@@ -15,7 +15,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -27,7 +26,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"; // Need to add textarea if not present, or use Input
 import { supabase } from "@/lib/supabase/client";
 import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "sonner";
@@ -40,11 +38,20 @@ const formSchema = z.object({
   note: z.string().optional(),
 });
 
-export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
-  const [open, setOpen] = useState(false);
+type FormValues = z.infer<typeof formSchema>;
+
+export function TransactionForm({
+  open,
+  onOpenChange,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+}) {
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount_chi: 0,
@@ -54,20 +61,20 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: FormValues) {
     setLoading(true);
     try {
       const { error } = await supabase.from("transactions").insert({
         amount_chi: values.amount_chi,
         price_per_chi: values.price_per_chi,
-        transaction_date: format(values.transaction_date, "yyyy-MM-dd"), // Correct format for DB date
+        transaction_date: format(values.transaction_date, "yyyy-MM-dd"),
         note: values.note,
       });
 
       if (error) throw error;
 
       toast.success("Đã thêm giao dịch thành công!");
-      setOpen(false);
+      onOpenChange(false);
       form.reset();
       onSuccess?.();
     } catch (error) {
@@ -79,12 +86,7 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-          <Plus className="mr-2 h-4 w-4" /> Thêm Mới
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Thêm Giao Dịch Mua Vàng</DialogTitle>
@@ -116,14 +118,12 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
                     <FormControl>
                       <Input
                         type="number"
-                        step="0.1"
+                        step="0.01"
                         placeholder="Ví dụ: 2.5"
                         {...field}
                       />
                     </FormControl>
-                    <FormDescription>
-                      Nhập số lẻ (VD: 2.5 = 2 chỉ 5 phân)
-                    </FormDescription>
+                    <FormDescription>Ví dụ: 1.5 (1 chỉ 5 phân)</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -136,11 +136,7 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
                   <FormItem>
                     <FormLabel>Giá mua (VNĐ/Chỉ)</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Ví dụ: 7500000"
-                        {...field}
-                      />
+                      <Input type="number" placeholder="7500000" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -163,7 +159,11 @@ export function TransactionForm({ onSuccess }: { onSuccess?: () => void }) {
             />
 
             <DialogFooter>
-              <Button type="submit" disabled={loading}>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary text-primary-foreground"
+              >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Lưu Giao Dịch
               </Button>

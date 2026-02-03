@@ -6,7 +6,9 @@ import { Database } from "@/lib/supabase/types";
 import { Overview } from "@/components/gold/Overview";
 import { TransactionForm } from "@/components/gold/TransactionForm";
 import { TransactionList } from "@/components/gold/TransactionList";
-import { Loader2 } from "lucide-react";
+import { BottomNav } from "@/components/gold/BottomNav";
+import { Loader2, Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 
@@ -14,6 +16,12 @@ export default function Home() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [marketPrice, setMarketPrice] = useState<number>(8000000); // Default 8,000,000
   const [loading, setLoading] = useState(true);
+
+  // Mobile Navigation State
+  const [currentTab, setCurrentTab] = useState<"home" | "history" | "profile">(
+    "home",
+  );
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   // Fetch Data
   const fetchData = async () => {
@@ -28,9 +36,7 @@ export default function Home() {
       if (txError) throw txError;
       setTransactions(txData || []);
 
-      // 2. Get Market Price Setting (Optional - if we want to persist it)
-      // For now, let's just default to local state or last saved.
-      // We can implement saving to 'app_settings' when user changes input with a debounce.
+      // 2. Get Market Price Setting
       const { data: settingsData } = await supabase
         .from("app_settings")
         .select("value")
@@ -47,10 +53,9 @@ export default function Home() {
     }
   };
 
-  // Update Market Price in DB (Debounced ideal, but simple save for now)
+  // Update Market Price in DB
   const handlePriceChange = async (newPrice: number) => {
     setMarketPrice(newPrice);
-    // Save to DB silently
     await supabase.from("app_settings").upsert({
       key: "current_gold_price",
       value: String(newPrice),
@@ -70,43 +75,104 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="min-h-screen bg-background font-sans text-foreground pb-24">
+      {/* Mobile Header */}
+      <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-primary">
-            Quản Lý Mua Vàng
+          <h1 className="text-xl font-bold tracking-tight text-primary">
+            Gold Portfolio
           </h1>
-          <p className="text-muted-foreground">
-            Theo dõi danh mục đầu tư và lợi nhuận của bạn.
-          </p>
+          <p className="text-xs text-muted-foreground">Welcome back!</p>
         </div>
-        <TransactionForm onSuccess={fetchData} />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground w-8 h-8 rounded-full"
+        >
+          <Bell className="w-5 h-5" />
+        </Button>
       </div>
 
-      {/* Loading State */}
-      {loading && transactions.length === 0 ? (
-        <div className="flex justify-center p-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : (
-        <>
-          {/* Overview Cards */}
-          <Overview
-            totalChi={totalChi}
-            totalInvested={totalInvested}
-            marketPrice={marketPrice}
-            setMarketPrice={handlePriceChange}
-          />
+      {/* Main Content Area */}
+      <main className="px-4 py-6 space-y-8 animate-in fade-in duration-500">
+        {loading && transactions.length === 0 ? (
+          <div className="flex justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            {/* Logic for Tabs */}
 
-          {/* Transactions List */}
-          <TransactionList
-            transactions={transactions}
-            marketPrice={marketPrice}
-            onUpdate={fetchData}
-          />
-        </>
-      )}
+            {/* HOME TAB */}
+            {currentTab === "home" && (
+              <>
+                <Overview
+                  totalChi={totalChi}
+                  totalInvested={totalInvested}
+                  marketPrice={marketPrice}
+                  setMarketPrice={handlePriceChange}
+                />
+
+                <div>
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <h3 className="font-bold text-lg">Giao dịch gần đây</h3>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => setCurrentTab("history")}
+                      className="text-primary pr-0"
+                    >
+                      Xem tất cả
+                    </Button>
+                  </div>
+                  {/* Show only first 5 recent transactions */}
+                  <TransactionList
+                    transactions={transactions.slice(0, 3)}
+                    marketPrice={marketPrice}
+                    onUpdate={fetchData}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* HISTORY TAB */}
+            {currentTab === "history" && (
+              <TransactionList
+                transactions={transactions}
+                marketPrice={marketPrice}
+                onUpdate={fetchData}
+              />
+            )}
+
+            {/* PROFILE TAB (Placeholder) */}
+            {currentTab === "profile" && (
+              <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center">
+                  <span className="text-4xl">👤</span>
+                </div>
+                <h2 className="text-2xl font-bold">Tài khoản</h2>
+                <p className="text-muted-foreground">
+                  Tính năng đang được phát triển.
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+
+      {/* Transaction Form (Controlled) */}
+      <TransactionForm
+        open={isAddOpen}
+        onOpenChange={setIsAddOpen}
+        onSuccess={fetchData}
+      />
+
+      {/* Mobile Bottom Navigation */}
+      <BottomNav
+        currentTab={currentTab}
+        onTabChange={setCurrentTab}
+        onAddClick={() => setIsAddOpen(true)}
+      />
     </div>
   );
 }

@@ -78,127 +78,115 @@ export function TransactionList({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-foreground">
-          Lịch Sử Giao Dịch
-        </h3>
-        <Button variant="outline" size="sm" onClick={handleExport}>
-          <Download className="mr-2 h-4 w-4" /> Xuất Excel
+    <div className="space-y-4 pb-20">
+      <div className="flex justify-between items-center px-1">
+        <h3 className="text-lg font-bold text-foreground">Lịch Sử Giao Dịch</h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleExport}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <Download className="mr-2 h-4 w-4" /> Excel
         </Button>
       </div>
 
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Ngày</TableHead>
-              <TableHead>Số lượng</TableHead>
-              <TableHead className="text-right">Giá mua / Chỉ</TableHead>
-              <TableHead className="text-right hidden md:table-cell">
-                Tổng vốn
-              </TableHead>
-              <TableHead className="text-right">Lời / Lỗ</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transactions.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="text-center py-8 text-muted-foreground"
-                >
-                  Chưa có giao dịch nào. Hãy thêm mới!
-                </TableCell>
-              </TableRow>
-            ) : (
-              transactions.map((t) => {
-                const totalCost =
-                  t.total_price || t.amount_chi * t.price_per_chi;
-                const currentValue = t.amount_chi * marketPrice;
-                const profit = currentValue - totalCost;
-                const profitPercent = (profit / totalCost) * 100;
+      <div className="space-y-3">
+        {transactions.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground bg-muted/30 rounded-xl">
+            <div className="flex justify-center mb-2">
+              <Download className="h-8 w-8 opacity-20" />
+            </div>
+            Chưa có giao dịch.
+          </div>
+        ) : (
+          transactions.map((t) => {
+            const totalCost = t.total_price || t.amount_chi * t.price_per_chi;
+            const currentValue = t.amount_chi * marketPrice;
+            const profit = currentValue - totalCost;
+            const isProfit = profit >= 0;
 
-                return (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium">
+            return (
+              <div
+                key={t.id}
+                className="relative bg-card rounded-xl border border-border/50 p-4 shadow-sm flex justify-between items-center group"
+              >
+                {/* Left: Info */}
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "h-10 w-10 rounded-full flex items-center justify-center bg-muted",
+                      isProfit
+                        ? "bg-green-500/10 text-green-600"
+                        : "bg-red-500/10 text-red-600",
+                    )}
+                  >
+                    {/* We can use an icon based on Buy/Sell if we had that info, for now assume all are BUYS so arrow down? Or just Trend arrow */}
+                    {isProfit ? (
+                      <div className="text-lg">↗</div>
+                    ) : (
+                      <div className="text-lg">↘</div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{t.amount_chi} Chỉ</p>
+                    <p className="text-xs text-muted-foreground">
                       {format(parseISO(t.transaction_date), "dd/MM/yyyy")}
-                      {t.note && (
-                        <div className="text-xs text-muted-foreground truncate max-w-[150px]">
-                          {t.note}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-semibold">{t.amount_chi} Chỉ</div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatGoldWeight(t.amount_chi)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(t.price_per_chi)}
-                    </TableCell>
-                    <TableCell className="text-right hidden md:table-cell">
-                      {formatCurrency(totalCost)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div
-                        className={cn(
-                          "font-bold",
-                          profit >= 0 ? "text-green-600" : "text-red-500",
-                        )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right: Profit/Value context */}
+                <div className="text-right">
+                  <p className="font-bold text-sm">
+                    {formatCurrency(totalCost)}
+                  </p>
+                  <p
+                    className={cn(
+                      "text-xs font-medium",
+                      isProfit ? "text-green-600" : "text-red-600",
+                    )}
+                  >
+                    {isProfit ? "+" : ""}
+                    {formatCurrency(profit)}
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
                       >
-                        {profit >= 0 ? "+" : ""}
-                        {formatCurrency(profit)}
-                      </div>
-                      <div
-                        className={cn(
-                          "text-xs",
-                          profit >= 0 ? "text-green-600/80" : "text-red-500/80",
-                        )}
-                      >
-                        {profitPercent.toFixed(1)}%
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Xóa giao dịch này?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Hành động này không thể hoàn tác.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Hủy</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(t.id)}
-                              className="bg-destructive hover:bg-destructive/90"
-                            >
-                              Xóa
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Xóa giao dịch này?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Hành động này không thể hoàn tác.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Hủy</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(t.id)}
+                          className="bg-destructive"
+                        >
+                          Xóa
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
