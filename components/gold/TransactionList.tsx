@@ -26,13 +26,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 import { formatCurrency, formatGoldWeight, cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
@@ -100,31 +93,38 @@ export function TransactionList({
 
   return (
     <div className="space-y-4 pb-20">
-      <div className="flex justify-between items-center px-1">
+      <div className="flex flex-col gap-4">
         <h3 className="text-lg font-bold text-foreground">Lịch Sử Giao Dịch</h3>
-        <div className="flex items-center gap-2">
-          {/* Year Filter */}
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-[100px] h-8 text-xs">
-              <SelectValue placeholder="Năm" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
-              {years.map((year) => (
-                <SelectItem key={year} value={year}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          <Button
+            variant={selectedYear === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedYear("all")}
+            className="rounded-full px-4"
+          >
+            Tất cả
+          </Button>
+          {years.slice(0, 5).map((year) => (
+            <Button
+              key={year}
+              variant={selectedYear === year ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedYear(year)}
+              className="rounded-full px-4"
+            >
+              {year}
+            </Button>
+          ))}
 
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={handleExport}
-            className="text-muted-foreground hover:text-foreground"
+            title="Xuất Excel"
+            className="ml-auto shrink-0 text-muted-foreground hover:text-foreground"
           >
-            <Download className="mr-2 h-4 w-4" /> Xuất Excel
+            <Download className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -147,47 +147,62 @@ export function TransactionList({
             return (
               <div
                 key={t.id}
-                className="relative bg-card rounded-xl border border-border/50 p-4 shadow-sm flex justify-between items-center group"
+                className="relative bg-card rounded-xl border border-border/50 p-4 shadow-sm flex flex-col gap-3 group"
               >
-                {/* Left: Info */}
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      "h-10 w-10 rounded-full flex items-center justify-center bg-muted",
-                      isProfit
-                        ? "bg-green-500/10 text-green-600"
-                        : "bg-red-500/10 text-red-600",
-                    )}
-                  >
-                    {/* We can use an icon based on Buy/Sell if we had that info, for now assume all are BUYS so arrow down? Or just Trend arrow */}
-                    {isProfit ? (
-                      <div className="text-lg">↗</div>
-                    ) : (
-                      <div className="text-lg">↘</div>
-                    )}
+                <div className="flex justify-between items-start">
+                  {/* Left: Info */}
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={cn(
+                        "h-10 w-10 rounded-full flex items-center justify-center bg-muted shrink-0",
+                        isProfit
+                          ? "bg-green-500/10 text-green-600"
+                          : "bg-red-500/10 text-red-600",
+                      )}
+                    >
+                      {isProfit ? (
+                        <div className="text-lg">↗</div>
+                      ) : (
+                        <div className="text-lg">↘</div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-sm">
+                          {t.amount_chi} Chỉ
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {format(parseISO(t.transaction_date), "dd/MM/yyyy")}
+                      </p>
+                      {t.note && (
+                        <div className="mt-1 flex items-start gap-1">
+                          <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                            Ghi chú:
+                          </span>
+                          <p className="text-xs text-foreground line-clamp-2">
+                            {t.note}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-sm">{t.amount_chi} Chỉ</p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(parseISO(t.transaction_date), "dd/MM/yyyy")}
+
+                  {/* Right: Profit/Value context */}
+                  <div className="text-right shrink-0">
+                    <p className="font-bold text-sm">
+                      {formatCurrency(totalCost)}
+                    </p>
+                    <p
+                      className={cn(
+                        "text-xs font-medium",
+                        isProfit ? "text-green-600" : "text-red-600",
+                      )}
+                    >
+                      {isProfit ? "+" : ""}
+                      {formatCurrency(profit)}
                     </p>
                   </div>
-                </div>
-
-                {/* Right: Profit/Value context */}
-                <div className="text-right">
-                  <p className="font-bold text-sm">
-                    {formatCurrency(totalCost)}
-                  </p>
-                  <p
-                    className={cn(
-                      "text-xs font-medium",
-                      isProfit ? "text-green-600" : "text-red-600",
-                    )}
-                  >
-                    {isProfit ? "+" : ""}
-                    {formatCurrency(profit)}
-                  </p>
                 </div>
 
                 {/* Actions */}
