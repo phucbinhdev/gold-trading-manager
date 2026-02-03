@@ -1,65 +1,112 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { Database } from "@/lib/supabase/types";
+import { Overview } from "@/components/gold/Overview";
+import { TransactionForm } from "@/components/gold/TransactionForm";
+import { TransactionList } from "@/components/gold/TransactionList";
+import { Loader2 } from "lucide-react";
+
+type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 
 export default function Home() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [marketPrice, setMarketPrice] = useState<number>(8000000); // Default 8,000,000
+  const [loading, setLoading] = useState(true);
+
+  // Fetch Data
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // 1. Get Transactions
+      const { data: txData, error: txError } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("transaction_date", { ascending: false });
+
+      if (txError) throw txError;
+      setTransactions(txData || []);
+
+      // 2. Get Market Price Setting (Optional - if we want to persist it)
+      // For now, let's just default to local state or last saved.
+      // We can implement saving to 'app_settings' when user changes input with a debounce.
+      const { data: settingsData } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "current_gold_price")
+        .single();
+
+      if (settingsData?.value) {
+        setMarketPrice(Number(settingsData.value));
+      }
+    } catch (error) {
+      console.error("Error loading data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update Market Price in DB (Debounced ideal, but simple save for now)
+  const handlePriceChange = async (newPrice: number) => {
+    setMarketPrice(newPrice);
+    // Save to DB silently
+    await supabase.from("app_settings").upsert({
+      key: "current_gold_price",
+      value: String(newPrice),
+      updated_at: new Date().toISOString(),
+    });
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Calculations
+  const totalChi = transactions.reduce((acc, t) => acc + t.amount_chi, 0);
+  const totalInvested = transactions.reduce(
+    (acc, t) => acc + (t.total_price || t.amount_chi * t.price_per_chi),
+    0,
+  );
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-background p-4 md:p-8 space-y-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-primary">
+            Quản Lý Mua Vàng
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-muted-foreground">
+            Theo dõi danh mục đầu tư và lợi nhuận của bạn.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <TransactionForm onSuccess={fetchData} />
+      </div>
+
+      {/* Loading State */}
+      {loading && transactions.length === 0 ? (
+        <div className="flex justify-center p-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </main>
+      ) : (
+        <>
+          {/* Overview Cards */}
+          <Overview
+            totalChi={totalChi}
+            totalInvested={totalInvested}
+            marketPrice={marketPrice}
+            setMarketPrice={handlePriceChange}
+          />
+
+          {/* Transactions List */}
+          <TransactionList
+            transactions={transactions}
+            marketPrice={marketPrice}
+            onUpdate={fetchData}
+          />
+        </>
+      )}
     </div>
   );
 }
