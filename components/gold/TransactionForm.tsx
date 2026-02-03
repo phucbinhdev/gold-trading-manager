@@ -9,6 +9,7 @@ import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
+import { NumericFormat } from "react-number-format";
 import {
   Dialog,
   DialogContent,
@@ -87,43 +88,54 @@ export function TransactionForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Thêm Giao Dịch Mua Vàng</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-xl">Thêm Giao Dịch Mua Vàng</DialogTitle>
+          <DialogDescription className="text-base">
             Nhập thông tin mua vàng của bạn. Lưu ý: 1 Chỉ = 10 Phân.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
               name="transaction_date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Ngày giao dịch</FormLabel>
+                  <FormLabel className="text-base">Ngày giao dịch</FormLabel>
                   <DatePicker date={field.value} setDate={field.onChange} />
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-6">
               <FormField
                 control={form.control}
                 name="amount_chi"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Số lượng (Chỉ)</FormLabel>
+                    <FormLabel className="text-base">Số lượng (Chỉ)</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="Ví dụ: 2.5"
-                        {...field}
+                      <NumericFormat
+                        customInput={Input}
+                        thousandSeparator="."
+                        decimalSeparator=","
+                        decimalScale={2}
+                        fixedDecimalScale={false}
+                        allowNegative={false}
+                        placeholder="Ví dụ: 2,5"
+                        className="h-12 text-lg"
+                        value={field.value}
+                        onValueChange={(values) => {
+                          field.onChange(values.floatValue);
+                        }}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        getInputRef={field.ref}
                       />
                     </FormControl>
-                    <FormDescription>Ví dụ: 1.5 (1 chỉ 5 phân)</FormDescription>
+                    <FormDescription>Ví dụ: 1,5 (1 chỉ 5 phân)</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -134,9 +146,26 @@ export function TransactionForm({
                 name="price_per_chi"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Giá mua (VNĐ/Chỉ)</FormLabel>
+                    <FormLabel className="text-base">
+                      Giá mua (VNĐ/Chỉ)
+                    </FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="7500000" {...field} />
+                      <NumericFormat
+                        customInput={Input}
+                        thousandSeparator="."
+                        decimalSeparator=","
+                        decimalScale={0}
+                        allowNegative={false}
+                        placeholder="7.500.000"
+                        className="h-12 text-lg"
+                        value={field.value}
+                        onValueChange={(values) => {
+                          field.onChange(values.floatValue);
+                        }}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        getInputRef={field.ref}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -149,23 +178,29 @@ export function TransactionForm({
               name="note"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ghi chú (Tùy chọn)</FormLabel>
+                  <FormLabel className="text-base">
+                    Ghi chú (Tùy chọn)
+                  </FormLabel>
                   <FormControl>
-                    <Input placeholder="Ví dụ: Mua tặng mẹ..." {...field} />
+                    <Input
+                      placeholder="Ví dụ: Mua tặng mẹ..."
+                      className="h-12 text-lg"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="mt-4">
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary text-primary-foreground"
+                className="w-full bg-primary text-primary-foreground h-12 text-lg font-semibold"
               >
                 {loading && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary-foreground" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary-foreground" />
                 )}
                 Lưu Giao Dịch
               </Button>

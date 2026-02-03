@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowDownRight, ArrowUpRight, Edit2, Wallet } from "lucide-react";
 import { useState } from "react";
+import { NumericFormat } from "react-number-format";
 
 interface OverviewProps {
   totalChi: number;
@@ -109,25 +110,32 @@ export function Overview({
                       <Edit2 className="w-4 h-4 opacity-70" />
                     </button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-xs">
+                  <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                       <DialogTitle>Cập nhật giá vàng</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-2">
-                      <div className="space-y-2">
-                        <Input
-                          type="number"
+                    <div className="space-y-6 py-4">
+                      <div className="space-y-3">
+                        <NumericFormat
+                          customInput={Input}
+                          thousandSeparator="."
+                          decimalSeparator=","
+                          decimalScale={0}
+                          allowNegative={false}
+                          placeholder="8.000.000"
                           value={tempPrice}
-                          onChange={(e) => setTempPrice(Number(e.target.value))}
-                          className="text-center text-lg font-bold"
+                          onValueChange={(values) => {
+                            setTempPrice(values.floatValue || 0);
+                          }}
+                          className="text-center text-2xl font-bold h-16"
                         />
-                        <p className="text-xs text-center text-muted-foreground">
+                        <p className="text-sm text-center text-muted-foreground">
                           VND / Chỉ
                         </p>
                       </div>
                       <Button
                         onClick={handlePriceSave}
-                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-lg"
                       >
                         Lưu Thay Đổi
                       </Button>
