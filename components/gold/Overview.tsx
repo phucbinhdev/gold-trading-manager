@@ -1,10 +1,5 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { formatCurrency } from "@/lib/utils";
-import { ArrowUpRight, ArrowDownRight, Wallet, Edit2 } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,6 +8,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/utils";
+import { ArrowDownRight, ArrowUpRight, Edit2, Wallet } from "lucide-react";
+import { useState } from "react";
 
 interface OverviewProps {
   totalChi: number;
