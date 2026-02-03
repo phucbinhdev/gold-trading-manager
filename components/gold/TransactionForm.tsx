@@ -52,7 +52,7 @@ export function TransactionForm({
   const [loading, setLoading] = useState(false);
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any, // Type assertion to bypass strict Zod/HookForm mismatch
     defaultValues: {
       amount_chi: 0,
       price_per_chi: 0,
@@ -164,7 +164,9 @@ export function TransactionForm({
                 disabled={loading}
                 className="w-full bg-primary text-primary-foreground"
               >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {loading && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary-foreground" />
+                )}
                 Lưu Giao Dịch
               </Button>
             </DialogFooter>
