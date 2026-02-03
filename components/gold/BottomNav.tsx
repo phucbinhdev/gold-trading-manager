@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
-  currentTab: "home" | "history" | "profile";
-  onTabChange: (tab: "home" | "history" | "profile") => void;
+  currentTab: "home" | "history" | "profile" | "budget";
+  onTabChange: (tab: "home" | "history" | "profile" | "budget") => void;
 }
 
 export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
@@ -25,6 +25,20 @@ export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
         >
           <Home className="h-6 w-6" />
           <span className="text-[10px] font-medium">Trang chủ</span>
+        </button>
+
+        {/* Budget */}
+        <button
+          onClick={() => onTabChange("budget")}
+          className={cn(
+            "flex flex-col items-center justify-center w-full space-y-1 transition-colors",
+            currentTab === "budget"
+              ? "text-primary"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <FileText className="h-6 w-6" />
+          <span className="text-[10px] font-medium">Tính Rợ</span>
         </button>
 
         {/* History */}

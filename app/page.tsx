@@ -7,6 +7,7 @@ import { Overview } from "@/components/gold/Overview";
 import { TransactionForm } from "@/components/gold/TransactionForm";
 import { TransactionList } from "@/components/gold/TransactionList";
 import { BottomNav } from "@/components/gold/BottomNav";
+import { BudgetPage } from "@/components/budget/BudgetPage";
 import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -18,9 +19,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   // Mobile Navigation State
-  const [currentTab, setCurrentTab] = useState<"home" | "history" | "profile">(
-    "home",
-  );
+  const [currentTab, setCurrentTab] = useState<
+    "home" | "history" | "profile" | "budget"
+  >("home");
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   // Fetch Data
@@ -80,10 +81,12 @@ export default function Home() {
       <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-primary">
-            Quản Lý Vàng
+            {currentTab === "budget" ? "Tính Rợ (Ngân sách)" : "Quản Lý Vàng"}
           </h1>
           <p className="text-xs text-muted-foreground">
-            Xin chào! Chúc bạn ngày mới tốt lành.
+            {currentTab === "budget"
+              ? "Quản lý chi tiêu hàng tháng"
+              : "Xin chào! Chúc bạn ngày mới tốt lành."}
           </p>
         </div>
       </div>
@@ -97,6 +100,9 @@ export default function Home() {
         ) : (
           <>
             {/* Logic for Tabs */}
+
+            {/* BUDGET TAB */}
+            {currentTab === "budget" && <BudgetPage />}
 
             {/* HOME TAB */}
             {currentTab === "home" && (
@@ -142,14 +148,16 @@ export default function Home() {
         )}
       </main>
 
-      {/* Floating Action Button (FAB) */}
-      <Button
-        onClick={() => setIsAddOpen(true)}
-        size="icon"
-        className="fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground"
-      >
-        <Plus className="h-8 w-8" />
-      </Button>
+      {/* Floating Action Button (FAB) - Hide on Budget Tab */}
+      {currentTab !== "budget" && (
+        <Button
+          onClick={() => setIsAddOpen(true)}
+          size="icon"
+          className="fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground"
+        >
+          <Plus className="h-8 w-8" />
+        </Button>
+      )}
 
       {/* Transaction Form (Controlled) */}
       <TransactionForm

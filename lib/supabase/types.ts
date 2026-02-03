@@ -37,6 +37,55 @@ export interface Database {
           note?: string | null;
         };
       };
+      budget_months: {
+        Row: {
+          id: string;
+          month_key: string;
+          total_income: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          month_key: string;
+          total_income?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          month_key?: string;
+          total_income?: number;
+          created_at?: string;
+        };
+      };
+      budget_expenses: {
+        Row: {
+          id: string;
+          budget_id: string;
+          name: string;
+          amount: number;
+          is_paid: boolean;
+          is_selected: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          budget_id: string;
+          name: string;
+          amount?: number;
+          is_paid?: boolean;
+          is_selected?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          budget_id?: string;
+          name?: string;
+          amount?: number;
+          is_paid?: boolean;
+          is_selected?: boolean;
+          created_at?: string;
+        };
+      };
       app_settings: {
         Row: {
           key: string;
