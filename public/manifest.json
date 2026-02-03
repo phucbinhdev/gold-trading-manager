@@ -1,6 +1,6 @@
 {
-    "name": "Gold Portfolio Manager",
-    "short_name": "Gold Portfolio",
+    "name": "Quản Lý Vàng",
+    "short_name": "QL Vàng",
     "icons": [
         {
             "src": "/icons/android-chrome-192x192.png",

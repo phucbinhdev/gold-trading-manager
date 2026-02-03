@@ -8,13 +8,13 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Gold Portfolio Manager",
-  description: "Track your gold investments and profit/loss.",
+  title: "Quản Lý Vàng",
+  description: "Theo dõi danh mục đầu tư vàng và lợi nhuận của bạn.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Gold Portfolio",
+    title: "Quản Lý Vàng",
   },
   formatDetection: {
     telephone: false,

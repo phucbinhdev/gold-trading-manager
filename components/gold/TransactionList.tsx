@@ -25,7 +25,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"; // Need to add alert-dialog if missing
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { formatCurrency, formatGoldWeight, cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
@@ -45,6 +52,20 @@ export function TransactionList({
   onUpdate,
 }: TransactionListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+
+  // Calculate unique years from transactions
+  const years = Array.from(
+    new Set(
+      transactions.map((t) => format(parseISO(t.transaction_date), "yyyy")),
+    ),
+  ).sort((a, b) => Number(b) - Number(a));
+
+  // Filter transactions
+  const filteredTransactions = transactions.filter((t) => {
+    if (selectedYear === "all") return true;
+    return format(parseISO(t.transaction_date), "yyyy") === selectedYear;
+  });
 
   const handleDelete = async (id: string) => {
     try {
@@ -81,18 +102,35 @@ export function TransactionList({
     <div className="space-y-4 pb-20">
       <div className="flex justify-between items-center px-1">
         <h3 className="text-lg font-bold text-foreground">Lịch Sử Giao Dịch</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleExport}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <Download className="mr-2 h-4 w-4" /> Excel
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Year Filter */}
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-[100px] h-8 text-xs">
+              <SelectValue placeholder="Năm" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả</SelectItem>
+              {years.map((year) => (
+                <SelectItem key={year} value={year}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleExport}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Download className="mr-2 h-4 w-4" /> Xuất Excel
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-3">
-        {transactions.length === 0 ? (
+        {filteredTransactions.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground bg-muted/30 rounded-xl">
             <div className="flex justify-center mb-2">
               <Download className="h-8 w-8 opacity-20" />
@@ -100,7 +138,7 @@ export function TransactionList({
             Chưa có giao dịch.
           </div>
         ) : (
-          transactions.map((t) => {
+          filteredTransactions.map((t) => {
             const totalCost = t.total_price || t.amount_chi * t.price_per_chi;
             const currentValue = t.amount_chi * marketPrice;
             const profit = currentValue - totalCost;

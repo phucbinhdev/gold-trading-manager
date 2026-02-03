@@ -7,7 +7,7 @@ import { Overview } from "@/components/gold/Overview";
 import { TransactionForm } from "@/components/gold/TransactionForm";
 import { TransactionList } from "@/components/gold/TransactionList";
 import { BottomNav } from "@/components/gold/BottomNav";
-import { Loader2, Bell } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
@@ -75,22 +75,17 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground pb-24">
+    <div className="min-h-screen bg-background font-sans text-foreground pb-24 relative">
       {/* Mobile Header */}
       <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-primary">
-            Gold Portfolio
+            Quản Lý Vàng
           </h1>
-          <p className="text-xs text-muted-foreground">Welcome back!</p>
+          <p className="text-xs text-muted-foreground">
+            Xin chào! Chúc bạn ngày mới tốt lành.
+          </p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground w-8 h-8 rounded-full"
-        >
-          <Bell className="w-5 h-5" />
-        </Button>
       </div>
 
       {/* Main Content Area */}
@@ -143,22 +138,18 @@ export default function Home() {
                 onUpdate={fetchData}
               />
             )}
-
-            {/* PROFILE TAB (Placeholder) */}
-            {currentTab === "profile" && (
-              <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center">
-                  <span className="text-4xl">👤</span>
-                </div>
-                <h2 className="text-2xl font-bold">Tài khoản</h2>
-                <p className="text-muted-foreground">
-                  Tính năng đang được phát triển.
-                </p>
-              </div>
-            )}
           </>
         )}
       </main>
+
+      {/* Floating Action Button (FAB) */}
+      <Button
+        onClick={() => setIsAddOpen(true)}
+        size="icon"
+        className="fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground"
+      >
+        <Plus className="h-8 w-8" />
+      </Button>
 
       {/* Transaction Form (Controlled) */}
       <TransactionForm
@@ -168,11 +159,7 @@ export default function Home() {
       />
 
       {/* Mobile Bottom Navigation */}
-      <BottomNav
-        currentTab={currentTab}
-        onTabChange={setCurrentTab}
-        onAddClick={() => setIsAddOpen(true)}
-      />
+      <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
     </div>
   );
 }
