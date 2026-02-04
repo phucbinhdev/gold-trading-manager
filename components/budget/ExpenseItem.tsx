@@ -11,6 +11,7 @@ interface ExpenseItemProps {
   onToggleSelect: (id: string, currentSelected: boolean) => void;
   onTogglePaid: (id: string, currentPaid: boolean) => void;
   onDelete: (id: string) => void;
+  isHidden?: boolean;
 }
 
 export function ExpenseItem({
@@ -18,6 +19,7 @@ export function ExpenseItem({
   onToggleSelect,
   onTogglePaid,
   onDelete,
+  isHidden = false,
 }: ExpenseItemProps) {
   const handleTogglePaid = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -70,7 +72,7 @@ export function ExpenseItem({
             {expense.name}
           </p>
           <p className="text-xs text-muted-foreground font-mono">
-            {formatCurrency(expense.amount)}
+            {isHidden ? "******" : formatCurrency(expense.amount)}
           </p>
         </div>
       </div>

@@ -3,7 +3,14 @@
 import { useEffect, useState, useMemo } from "react";
 import { format, subMonths, addMonths } from "date-fns";
 import { vi } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Loader2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Loader2,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -22,6 +29,7 @@ export function BudgetPage() {
   const [budget, setBudget] = useState<BudgetMonth | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showMoney, setShowMoney] = useState(false);
 
   // New Expense Input
   const [newExpenseName, setNewExpenseName] = useState("");
@@ -195,7 +203,7 @@ export function BudgetPage() {
   };
 
   return (
-    <div className="pb-24 pt-6 px-4 space-y-6 max-w-md mx-auto">
+    <div className="pb-24 px-4 space-y-6 max-w-md mx-auto">
       {/* Month Selector */}
       <div className="flex items-center justify-between bg-card p-2 rounded-2xl shadow-sm border">
         <Button
@@ -225,25 +233,43 @@ export function BudgetPage() {
       {/* Summary Card */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white shadow-xl">
         <div className="absolute top-0 right-0 p-3 opacity-20">
-          <FileText className="h-24 w-24" />{" "}
-          {/* Lucide icon isn't imported as FileText here, wait */}
-          {/* Just a decorative circle */}
           <div className="h-32 w-32 bg-white rounded-full blur-3xl translate-x-12 -translate-y-12"></div>
         </div>
+
+        <button
+          onClick={() => setShowMoney(!showMoney)}
+          className="absolute top-4 right-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors z-20"
+        >
+          {showMoney ? (
+            <Eye className="w-5 h-5 text-indigo-100" />
+          ) : (
+            <EyeOff className="w-5 h-5 text-indigo-100" />
+          )}
+        </button>
 
         <div className="relative z-10 space-y-4">
           <div>
             <p className="text-indigo-100 text-xs font-semibold uppercase tracking-wider mb-1">
               Tiền hiện có
             </p>
-            <NumericFormat
-              value={calculations.totalIncome}
-              onValueChange={handleIncomeChange}
-              thousandSeparator="."
-              decimalSeparator=","
-              className="bg-transparent text-3xl font-bold text-white placeholder-white/50 focus:outline-none w-full"
-              placeholder="0"
-            />
+            {showMoney ? (
+              <NumericFormat
+                value={calculations.totalIncome}
+                onValueChange={handleIncomeChange}
+                thousandSeparator="."
+                decimalSeparator=","
+                className="bg-transparent text-3xl font-bold text-white placeholder-white/50 focus:outline-none w-full"
+                placeholder="0"
+                inputMode="decimal"
+              />
+            ) : (
+              <p
+                className="text-3xl font-bold text-white cursor-pointer"
+                onClick={() => setShowMoney(true)}
+              >
+                ******
+              </p>
+            )}
           </div>
 
           <div className="pt-4 border-t border-white/20 grid grid-cols-2 gap-4">
@@ -252,7 +278,9 @@ export function BudgetPage() {
                 Dự kiến chi
               </p>
               <p className="text-lg font-semibold">
-                {formatCurrency(calculations.totalDeducted)}
+                {showMoney
+                  ? formatCurrency(calculations.totalDeducted)
+                  : "******"}
               </p>
             </div>
             <div className="text-right">
@@ -260,7 +288,7 @@ export function BudgetPage() {
                 Còn lại
               </p>
               <p className="text-xl font-bold">
-                {formatCurrency(calculations.remaining)}
+                {showMoney ? formatCurrency(calculations.remaining) : "******"}
               </p>
             </div>
           </div>
@@ -288,6 +316,7 @@ export function BudgetPage() {
             thousandSeparator="."
             decimalSeparator=","
             className="flex-1 bg-background h-12 text-lg font-medium"
+            inputMode="decimal"
           />
           <Button
             onClick={handleAddExpense}

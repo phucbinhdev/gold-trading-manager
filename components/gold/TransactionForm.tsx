@@ -133,6 +133,7 @@ export function TransactionForm({
                         onBlur={field.onBlur}
                         name={field.name}
                         getInputRef={field.ref}
+                        inputMode="decimal"
                       />
                     </FormControl>
                     <FormDescription>Ví dụ: 1,5 (1 chỉ 5 phân)</FormDescription>
@@ -165,6 +166,7 @@ export function TransactionForm({
                         onBlur={field.onBlur}
                         name={field.name}
                         getInputRef={field.ref}
+                        inputMode="decimal"
                       />
                     </FormControl>
                     <FormMessage />

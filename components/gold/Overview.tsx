@@ -10,7 +10,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
-import { ArrowDownRight, ArrowUpRight, Edit2, Wallet } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Edit2,
+  Wallet,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { useState } from "react";
 import { NumericFormat } from "react-number-format";
 
@@ -32,6 +39,7 @@ export function Overview({
   const profitPercent = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [tempPrice, setTempPrice] = useState(marketPrice);
+  const [showMoney, setShowMoney] = useState(true);
 
   const handlePriceSave = () => {
     setMarketPrice(tempPrice);
@@ -45,6 +53,18 @@ export function Overview({
         <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-white/20 blur-2xl" />
         <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-yellow-600/10 blur-xl" />
 
+        {/* Toggle Privacy Button */}
+        {/* <button
+          onClick={() => setShowMoney(!showMoney)}
+          className="absolute top-4 right-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors z-20"
+        >
+          {showMoney ? (
+            <Eye className="w-5 h-5 text-yellow-900" />
+          ) : (
+            <EyeOff className="w-5 h-5 text-yellow-900" />
+          )}
+        </button> */}
+
         <div className="relative">
           {/* Header */}
           <div className="flex justify-between items-start mb-2">
@@ -53,10 +73,10 @@ export function Overview({
                 Tổng Tài Sản
               </p>
               <h2 className="text-4xl font-bold tracking-tight mt-1">
-                {formatCurrency(currentValue)}
+                {showMoney ? formatCurrency(currentValue) : "******"}
               </h2>
             </div>
-            <div className="bg-white/30 p-2.5 rounded-2xl shadow-sm backdrop-blur-sm">
+            <div className="bg-white/30 p-2.5 rounded-2xl shadow-sm backdrop-blur-sm mr-10">
               <Wallet className="w-6 h-6 text-yellow-900" />
             </div>
           </div>
@@ -71,12 +91,18 @@ export function Overview({
                 profit >= 0 ? "text-green-800" : "text-red-800"
               }`}
             >
-              {profit >= 0 ? "+" : ""}
-              {formatCurrency(profit)}
-              {profit >= 0 ? (
-                <ArrowUpRight className="w-3.5 h-3.5" />
+              {showMoney ? (
+                <>
+                  {profit >= 0 ? "+" : ""}
+                  {formatCurrency(profit)}
+                  {profit >= 0 ? (
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  ) : (
+                    <ArrowDownRight className="w-3.5 h-3.5" />
+                  )}
+                </>
               ) : (
-                <ArrowDownRight className="w-3.5 h-3.5" />
+                "******"
               )}
             </div>
           </div>
@@ -92,7 +118,7 @@ export function Overview({
               </p>
               <p className="text-xl font-bold">{totalChi} Chỉ</p>
               <p className="text-xs opacity-60 mt-0.5">
-                Vốn: {formatCurrency(totalInvested)}
+                Vốn: {showMoney ? formatCurrency(totalInvested) : "******"}
               </p>
             </div>
 
@@ -102,7 +128,7 @@ export function Overview({
               </p>
               <div className="flex items-center gap-2">
                 <p className="text-xl font-bold">
-                  {formatCurrency(marketPrice)}
+                  {showMoney ? formatCurrency(marketPrice) : "******"}
                 </p>
                 <Dialog open={isEditingPrice} onOpenChange={setIsEditingPrice}>
                   <DialogTrigger asChild>
@@ -128,6 +154,7 @@ export function Overview({
                             setTempPrice(values.floatValue || 0);
                           }}
                           className="text-center text-2xl font-bold h-16"
+                          inputMode="decimal"
                         />
                         <p className="text-sm text-center text-muted-foreground">
                           VND / Chỉ
