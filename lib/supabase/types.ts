@@ -66,6 +66,7 @@ export interface Database {
           is_paid: boolean;
           is_selected: boolean;
           created_at: string;
+          note: string | null;
         };
         Insert: {
           id?: string;
@@ -75,6 +76,7 @@ export interface Database {
           is_paid?: boolean;
           is_selected?: boolean;
           created_at?: string;
+          note?: string | null;
         };
         Update: {
           id?: string;
@@ -84,6 +86,7 @@ export interface Database {
           is_paid?: boolean;
           is_selected?: boolean;
           created_at?: string;
+          note?: string | null;
         };
       };
       app_settings: {
