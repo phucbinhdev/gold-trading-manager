@@ -1,12 +1,12 @@
 "use client";
 
-import { Home, History, Plus, User, FileText, ShoppingBag } from "lucide-react";
+import { Home, History, Plus, User, FileText, ShoppingBag, BookHeart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
-  currentTab: "home" | "history" | "profile" | "budget" | "wishlist";
-  onTabChange: (tab: "home" | "history" | "profile" | "budget" | "wishlist") => void;
+  currentTab: "home" | "history" | "profile" | "budget" | "wishlist" | "diary";
+  onTabChange: (tab: "home" | "history" | "profile" | "budget" | "wishlist" | "diary") => void;
 }
 
 export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
@@ -25,6 +25,20 @@ export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
         >
           <Home className="h-6 w-6" />
           <span className="text-[10px] font-medium">Trang chủ</span>
+        </button>
+
+        {/* Diary */}
+        <button
+          onClick={() => onTabChange("diary")}
+          className={cn(
+            "flex flex-col items-center justify-center w-full space-y-1 transition-colors",
+            currentTab === "diary"
+              ? "text-amber-600"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <BookHeart className="h-6 w-6" />
+          <span className="text-[10px] font-medium text-amber-600 font-bold">Tâm Ký</span>
         </button>
 
         {/* Wishlist */}
@@ -53,20 +67,6 @@ export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
         >
           <FileText className="h-6 w-6" />
           <span className="text-[10px] font-medium">Tính Rợ</span>
-        </button>
-
-        {/* History */}
-        <button
-          onClick={() => onTabChange("history")}
-          className={cn(
-            "flex flex-col items-center justify-center w-full space-y-1 transition-colors",
-            currentTab === "history"
-              ? "text-primary"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <History className="h-6 w-6" />
-          <span className="text-[10px] font-medium">Lịch sử</span>
         </button>
       </div>
     </div>

@@ -138,6 +138,38 @@ export interface Database {
           product_url?: string | null;
         };
       };
+      diary: {
+        Row: {
+          id: string;
+          created_at: string;
+          date: string;
+          content: string;
+          mood: string;
+          mood_level: number;
+          image_urls: string[] | null;
+          is_encrypted: boolean;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          date?: string;
+          content: string;
+          mood?: string;
+          mood_level?: number;
+          image_urls?: string[] | null;
+          is_encrypted?: boolean;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          date?: string;
+          content?: string;
+          mood?: string;
+          mood_level?: number;
+          image_urls?: string[] | null;
+          is_encrypted?: boolean;
+        };
+      };
     };
   };
 }
