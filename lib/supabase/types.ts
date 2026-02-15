@@ -106,6 +106,38 @@ export interface Database {
           updated_at?: string;
         };
       };
+      wishlist: {
+        Row: {
+          id: string;
+          created_at: string;
+          name: string;
+          note: string | null;
+          price: number | null;
+          priority: "Low" | "Medium" | "High";
+          is_purchased: boolean;
+          product_url: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          name: string;
+          note?: string | null;
+          price?: number | null;
+          priority?: "Low" | "Medium" | "High";
+          is_purchased?: boolean;
+          product_url?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          name?: string;
+          note?: string | null;
+          price?: number | null;
+          priority?: "Low" | "Medium" | "High";
+          is_purchased?: boolean;
+          product_url?: string | null;
+        };
+      };
     };
   };
 }

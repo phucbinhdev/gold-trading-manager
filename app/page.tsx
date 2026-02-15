@@ -8,6 +8,7 @@ import { TransactionForm } from "@/components/gold/TransactionForm";
 import { TransactionList } from "@/components/gold/TransactionList";
 import { BottomNav } from "@/components/gold/BottomNav";
 import { BudgetPage } from "@/components/budget/BudgetPage";
+import { WishlistPage } from "@/components/wishlist/WishlistPage";
 import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -20,7 +21,7 @@ export default function Home() {
 
   // Mobile Navigation State
   const [currentTab, setCurrentTab] = useState<
-    "home" | "history" | "profile" | "budget"
+    "home" | "history" | "profile" | "budget" | "wishlist"
   >("home");
   const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -81,11 +82,13 @@ export default function Home() {
       <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-primary">
-            {currentTab === "budget" ? "Tính Rợ (Ngân sách)" : "Quản Lý Vàng"}
+            {currentTab === "budget" ? "Tính Rợ (Ngân sách)" : currentTab === "wishlist" ? "Wishlist" : "Quản Lý Vàng"}
           </h1>
           <p className="text-xs text-muted-foreground">
             {currentTab === "budget"
               ? "Quản lý chi tiêu hàng tháng"
+              : currentTab === "wishlist"
+              ? "Danh sách mục tiêu sắm sửa"
               : "Xin chào! Chúc bạn ngày mới tốt lành."}
           </p>
         </div>
@@ -103,6 +106,9 @@ export default function Home() {
 
             {/* BUDGET TAB */}
             {currentTab === "budget" && <BudgetPage />}
+
+            {/* WISHLIST TAB */}
+            {currentTab === "wishlist" && <WishlistPage />}
 
             {/* HOME TAB */}
             {currentTab === "home" && (
@@ -148,8 +154,8 @@ export default function Home() {
         )}
       </main>
 
-      {/* Floating Action Button (FAB) - Hide on Budget Tab */}
-      {currentTab !== "budget" && (
+      {/* Floating Action Button (FAB) - Hide on Budget & Wishlist Tab */}
+      {currentTab !== "budget" && currentTab !== "wishlist" && (
         <Button
           onClick={() => setIsAddOpen(true)}
           size="icon"
