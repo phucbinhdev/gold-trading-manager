@@ -273,31 +273,39 @@ export function WishlistPage() {
               />
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="price" className="text-sm font-bold text-slate-600 uppercase tracking-wider">Giá tiền (VND)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="30000000"
-                  className="h-14 text-lg rounded-2xl border-slate-200 bg-slate-50 focus:bg-white w-full"
-                />
+            <div className="space-y-3">
+              <Label className="text-sm font-bold text-slate-600 uppercase tracking-wider">Độ ưu tiên</Label>
+              <div className="flex gap-2">
+                {[
+                  { value: 'High', label: 'Cao 🔥', color: 'border-red-200 text-red-500 bg-red-50', active: 'bg-red-500 text-white border-red-600 shadow-md shadow-red-100' },
+                  { value: 'Medium', label: 'Vừa ⚡', color: 'border-amber-200 text-amber-600 bg-amber-50', active: 'bg-amber-500 text-white border-amber-600 shadow-md shadow-amber-100' },
+                  { value: 'Low', label: 'Thấp 🧊', color: 'border-blue-200 text-blue-500 bg-blue-50', active: 'bg-blue-500 text-white border-blue-600 shadow-md shadow-blue-100' }
+                ].map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setPriority(p.value as any)}
+                    className={cn(
+                      "flex-1 py-3 px-2 rounded-2xl border-2 font-bold text-sm transition-all active:scale-95",
+                      priority === p.value ? p.active : cn("opacity-60", p.color)
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                ))}
               </div>
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="priority" className="text-sm font-bold text-slate-600 uppercase tracking-wider">Độ ưu tiên</Label>
-                <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
-                  <SelectTrigger id="priority" className="h-14 text-lg rounded-2xl border-slate-200 bg-slate-50 focus:bg-white w-full">
-                    <SelectValue placeholder="Chọn mức" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl shadow-xl border-slate-100">
-                    <SelectItem value="High" className="py-3 font-bold text-red-500">🔥 Cao</SelectItem>
-                    <SelectItem value="Medium" className="py-3 font-bold text-amber-500">⚡ Vừa</SelectItem>
-                    <SelectItem value="Low" className="py-3 font-bold text-blue-500">🧊 Thấp</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="price" className="text-sm font-bold text-slate-600 uppercase tracking-wider">Giá tiền (VND)</Label>
+              <Input
+                id="price"
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="30000000"
+                className="h-14 text-lg rounded-2xl border-slate-200 bg-slate-50 focus:bg-white w-full"
+              />
             </div>
 
             <div className="space-y-2">
