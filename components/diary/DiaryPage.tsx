@@ -105,9 +105,13 @@ export function DiaryPage() {
 
     try {
       const encrypted = await encryptText(content, masterPassword);
+      const systemKey = process.env.NEXT_PUBLIC_SYSTEM_DIARY_KEY || "fallback-key";
+      const aiEncrypted = await encryptText(content, systemKey);
+
       const payload = {
         date: entryDate,
         content: encrypted,
+        ai_content: aiEncrypted,
         mood_level: moodLevel,
         mood: MOODS.find(m => m.level === moodLevel)?.label || "Bình thường",
         is_encrypted: true,
