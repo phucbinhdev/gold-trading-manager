@@ -4,13 +4,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, ShoppingCart, ExternalLink, MoreVertical, Star, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, ExternalLink, MoreVertical, CheckCircle2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,13 +44,11 @@ export function WishlistPage() {
     const { data, error } = await supabase
       .from("wishlist")
       .select("*")
-      .order("priority", { ascending: false }) // High first
       .order("created_at", { ascending: false });
     
     if (error) {
       toast.error("Không thể tải danh sách");
     } else {
-      // Custom sort: High -> Medium -> Low
       const priorityOrder: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
       const sorted = (data || []).sort((a, b) => {
         if (a.is_purchased !== b.is_purchased) return a.is_purchased ? 1 : -1;
@@ -139,198 +136,194 @@ export function WishlistPage() {
     setIsOpen(true);
   };
 
-  const getPriorityColor = (p: string) => {
-    switch (p) {
-      case "High": return "text-red-500 bg-red-50 dark:bg-red-950/30";
-      case "Medium": return "text-amber-500 bg-amber-50 dark:bg-amber-950/30";
-      default: return "text-blue-500 bg-blue-50 dark:bg-blue-950/30";
-    }
-  };
-
   return (
-    <div className="relative pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Wishlist</h2>
-          <p className="text-sm text-muted-foreground">Những món đồ sếp đang "nhắm" tới.</p>
-        </div>
+    <div className="relative pb-24 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-1 mb-6 px-1">
+        <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Wishlist</h2>
+        <p className="text-xs text-slate-400 font-medium">Danh sách mục tiêu sắm sửa</p>
       </div>
 
-      <div className="grid gap-4">
+      <div className="flex flex-col gap-3">
         {loading ? (
-          <p className="text-center py-8 text-muted-foreground">Đang tải...</p>
+          <p className="text-center py-8 text-slate-400 text-sm">Đang tải...</p>
         ) : items.length === 0 ? (
-          <div className="text-center py-12 border-2 border-dashed rounded-xl border-border/50">
-            <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground">Chưa có món nào. Sếp thêm gì đi!</p>
+          <div className="text-center py-16 bg-slate-50/50 border-2 border-dashed rounded-3xl border-slate-200">
+            <ShoppingCart className="h-12 w-12 mx-auto text-slate-200 mb-4" />
+            <p className="text-slate-400 font-medium">Chưa có món nào. Sếp thêm gì đi!</p>
           </div>
         ) : (
           items.map((item) => (
             <div
               key={item.id}
               className={cn(
-                "group relative p-5 rounded-3xl border border-border/50 bg-card/40 backdrop-blur-sm transition-all hover:shadow-lg",
-                item.is_purchased && "opacity-50 grayscale-[0.8] scale-[0.98]"
+                "group relative p-4 rounded-2xl border transition-all",
+                item.is_purchased 
+                  ? "bg-[#f0faf4] border-[#d7f1e1] opacity-90" 
+                  : "bg-white border-[#fef3c7] shadow-sm"
               )}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className={cn("font-bold text-xl leading-tight text-foreground", item.is_purchased && "line-through")}>
-                      {item.name}
-                    </h3>
-                    <span className={cn("text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider", getPriorityColor(item.priority))}>
-                      {item.priority === 'High' ? '🔥 Cao' : item.priority === 'Medium' ? '⚡ Vừa' : '🧊 Thấp'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-baseline gap-2">
-                    {item.price ? (
-                      <p className="text-primary font-black text-xl">
-                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}
-                      </p>
-                    ) : (
-                      <p className="text-muted-foreground/50 text-sm italic italic">Chưa có giá</p>
-                    )}
-                  </div>
-                  
-                  {item.note && (
-                    <div className="bg-muted/30 p-3 rounded-xl border border-border/20 mt-2">
-                      <p className="text-sm text-muted-foreground leading-relaxed">{item.note}</p>
-                    </div>
+              <div className="flex items-center justify-between gap-3">
+                {/* Left: Status Icon */}
+                <button 
+                  onClick={() => togglePurchased(item)}
+                  className={cn(
+                    "h-10 w-10 shrink-0 rounded-full flex items-center justify-center border-2 transition-all active:scale-90",
+                    item.is_purchased 
+                      ? "bg-[#22c55e] border-[#22c55e] text-white" 
+                      : "border-[#f59e0b] bg-white"
                   )}
+                >
+                  {item.is_purchased && <CheckCircle2 className="h-6 w-6" />}
+                </button>
+
+                {/* Middle: Content */}
+                <div className="flex-1 min-w-0">
+                  <h3 className={cn(
+                    "font-bold text-lg leading-tight truncate",
+                    item.is_purchased ? "text-slate-600" : "text-slate-800"
+                  )}>
+                    {item.name}
+                  </h3>
+                  <p className={cn(
+                    "text-base font-semibold",
+                    item.is_purchased ? "text-[#22c55e]/70" : "text-slate-500"
+                  )}>
+                    {item.price ? new Intl.NumberFormat('vi-VN').format(item.price) + ' đ' : '---'}
+                  </p>
                 </div>
 
-                <div className="flex flex-col gap-3 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 rounded-xl border-border/50 bg-background/50 hover:bg-background"
-                    onClick={() => openEdit(item)}
-                  >
-                    <MoreVertical className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant={item.is_purchased ? "default" : "outline"}
-                    size="icon"
-                    className={cn(
-                      "h-14 w-14 rounded-2xl border-2 transition-all active:scale-90 shadow-sm",
-                      item.is_purchased 
-                        ? "bg-green-500 border-green-600 text-white shadow-green-200" 
-                        : "border-primary/30 text-primary bg-primary/5 hover:bg-primary/10"
-                    )}
-                    onClick={() => togglePurchased(item)}
-                  >
-                    <CheckCircle2 className={cn("h-7 w-7", item.is_purchased && "animate-in zoom-in-50")} />
-                  </Button>
+                {/* Right: Badge or Actions */}
+                <div className="flex items-center gap-1">
+                  {item.is_purchased ? (
+                    <span className="bg-[#dcfce7] text-[#15803d] text-[10px] font-black px-3 py-1.5 rounded-lg tracking-wider border border-[#bbf7d0]">
+                      ĐÃ MUA
+                    </span>
+                  ) : (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 text-slate-300 hover:text-slate-500"
+                        onClick={() => openEdit(item)}
+                      >
+                        <MoreVertical className="h-5 w-5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 text-slate-200 hover:text-red-400"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="mt-6 flex items-center justify-between gap-4">
-                <div className="flex flex-1 gap-2">
+              {/* URL & Note footer if not purchased */}
+              {!item.is_purchased && (item.product_url || item.note) && (
+                <div className="mt-3 pt-3 border-t border-amber-50 flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    {item.note && <p className="text-xs text-slate-400 italic line-clamp-1 italic">{item.note}</p>}
+                  </div>
                   {item.product_url && (
                     <a
                       href={item.product_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs font-bold flex items-center gap-2 text-primary bg-primary/10 px-4 py-2 rounded-xl hover:bg-primary/20 transition-colors uppercase tracking-tight"
+                      className="shrink-0 text-[10px] font-black text-[#b45309] bg-[#fef3c7] px-2.5 py-1 rounded-md tracking-tight active:scale-95 transition-transform"
                     >
-                      <ExternalLink className="h-4 w-4" /> Mua ngay
+                      XEM SHOP
                     </a>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
-                  onClick={() => handleDelete(item.id)}
-                >
-                  <Trash2 className="h-5 w-5" />
-                </Button>
-              </div>
+              )}
             </div>
           ))
         )}
       </div>
 
-      {/* Fixed Float Action Button */}
+      {/* Floating Action Button */}
       <Button 
         onClick={openAdd} 
         size="icon" 
-        className="fixed bottom-24 right-6 h-16 w-16 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground z-50 border-4 border-background"
+        className="fixed bottom-24 right-6 h-16 w-16 rounded-full shadow-2xl bg-[#f59e0b] hover:bg-[#d97706] text-white z-50 border-4 border-white active:scale-90 transition-transform"
       >
         <Plus className="h-8 w-8" />
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[425px] w-[95vw] rounded-3xl p-6">
+        <DialogContent className="sm:max-w-[425px] w-[92vw] rounded-3xl p-6">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">{editingItem ? "Sửa món đồ" : "Thêm vào Wishlist"}</DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-slate-800">
+              {editingItem ? "Sửa món đồ" : "Thêm vào Wishlist"}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6 pt-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-base font-semibold">Tên sản phẩm *</Label>
+              <Label htmlFor="name" className="text-sm font-bold text-slate-600 uppercase tracking-wider">Tên sản phẩm *</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ví dụ: iPhone 16 Pro Max"
-                className="h-14 text-lg rounded-xl"
+                className="h-14 text-lg rounded-2xl border-slate-200 bg-slate-50 focus:bg-white"
                 required
               />
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 space-y-2">
-                <Label htmlFor="price" className="text-base font-semibold">Giá tiền (VND)</Label>
+                <Label htmlFor="price" className="text-sm font-bold text-slate-600 uppercase tracking-wider">Giá tiền (VND)</Label>
                 <Input
                   id="price"
                   type="number"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="30000000"
-                  className="h-14 text-lg rounded-xl w-full"
+                  className="h-14 text-lg rounded-2xl border-slate-200 bg-slate-50 focus:bg-white w-full"
                 />
               </div>
               <div className="flex-1 space-y-2">
-                <Label htmlFor="priority" className="text-base font-semibold">Độ ưu tiên</Label>
+                <Label htmlFor="priority" className="text-sm font-bold text-slate-600 uppercase tracking-wider">Độ ưu tiên</Label>
                 <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
-                  <SelectTrigger id="priority" className="h-14 text-lg rounded-xl w-full">
+                  <SelectTrigger id="priority" className="h-14 text-lg rounded-2xl border-slate-200 bg-slate-50 focus:bg-white w-full">
                     <SelectValue placeholder="Chọn mức" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="High" className="py-3">🔥 Cao</SelectItem>
-                    <SelectItem value="Medium" className="py-3">⚡ Vừa</SelectItem>
-                    <SelectItem value="Low" className="py-3">🧊 Thấp</SelectItem>
+                  <SelectContent className="rounded-2xl shadow-xl border-slate-100">
+                    <SelectItem value="High" className="py-3 font-bold text-red-500">🔥 Cao</SelectItem>
+                    <SelectItem value="Medium" className="py-3 font-bold text-amber-500">⚡ Vừa</SelectItem>
+                    <SelectItem value="Low" className="py-3 font-bold text-blue-500">🧊 Thấp</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="url" className="text-base font-semibold">Link sản phẩm</Label>
+              <Label htmlFor="url" className="text-sm font-bold text-slate-600 uppercase tracking-wider">Link sản phẩm</Label>
               <Input
                 id="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://shopee.vn/..."
-                className="h-14 text-lg rounded-xl"
+                className="h-14 text-lg rounded-2xl border-slate-200 bg-slate-50 focus:bg-white"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="note" className="text-base font-semibold">Ghi chú</Label>
+              <Label htmlFor="note" className="text-sm font-bold text-slate-600 uppercase tracking-wider">Ghi chú</Label>
               <Textarea
                 id="note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Màu sắc, cửa hàng, cấu hình..."
-                className="min-h-[100px] text-lg rounded-xl p-4"
+                className="min-h-[100px] text-lg rounded-2xl border-slate-200 bg-slate-50 focus:bg-white p-4"
               />
             </div>
 
-            <Button type="submit" className="w-full h-16 text-xl font-bold rounded-2xl shadow-lg mt-4">
-              {editingItem ? "Lưu thay đổi" : "Thêm ngay"}
+            <Button type="submit" className="w-full h-16 text-xl font-black rounded-2xl shadow-xl shadow-amber-100 bg-[#f59e0b] hover:bg-[#d97706] text-white active:scale-95 transition-all mt-4">
+              {editingItem ? "LƯU THAY ĐỔI" : "THÊM NGAY"}
             </Button>
           </form>
         </DialogContent>
