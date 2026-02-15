@@ -177,7 +177,10 @@ export function DiaryPage() {
 
   const openEdit = async (entry: DiaryEntry) => {
     try {
-      const decrypted = await decryptText(entry.content, masterPassword);
+      let decrypted = entry.content;
+      if (entry.is_encrypted) {
+        decrypted = await decryptText(entry.content, masterPassword);
+      }
       setEditingEntry(entry);
       setContent(decrypted);
       setMoodLevel(entry.mood_level);
@@ -307,7 +310,9 @@ export function DiaryPage() {
                         </div>
                     </div>
                     <p className="text-slate-400 text-sm leading-relaxed line-clamp-3 italic">
-                        Nội dung đã được mã hóa. Chạm để xem chi tiết hoặc chỉnh sửa.
+                        {entry.is_encrypted 
+                          ? "Nội dung đã được mã hóa. Chạm để xem chi tiết hoặc chỉnh sửa." 
+                          : entry.content}
                     </p>
                     <div className="absolute top-0 right-0 p-1">
                          <ShieldCheck className="h-3 w-3 text-slate-100" />
