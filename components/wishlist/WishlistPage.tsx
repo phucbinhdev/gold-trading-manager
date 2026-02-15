@@ -52,7 +52,7 @@ export function WishlistPage() {
       toast.error("Không thể tải danh sách");
     } else {
       // Custom sort: High -> Medium -> Low
-      const priorityOrder = { High: 3, Medium: 2, Low: 1 };
+      const priorityOrder: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
       const sorted = (data || []).sort((a, b) => {
         if (a.is_purchased !== b.is_purchased) return a.is_purchased ? 1 : -1;
         return priorityOrder[b.priority] - priorityOrder[a.priority];
