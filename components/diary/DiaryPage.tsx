@@ -8,7 +8,7 @@ import {
   Plus, Trash2, ShieldCheck, ShieldAlert, 
   Lock, Unlock, Calendar as CalendarIcon, 
   Smile, Frown, Meh, Laugh, Heart, Sparkles,
-  BarChart3, ChevronLeft, ChevronRight, Info
+  BarChart3, ChevronLeft, ChevronRight, Info, Loader2
 } from "lucide-react";
 import {
   Dialog,
@@ -57,6 +57,10 @@ export function DiaryPage() {
   const [moodLevel, setMoodLevel] = useState(3);
   const [entryDate, setEntryDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
+  // AI Feedback State
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
+
   const fetchEntries = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -82,7 +86,6 @@ export function DiaryPage() {
     
     setLoading(true);
     try {
-      // Try to decrypt the first entry as a test
       if (entries.length > 0) {
         const testEntry = entries[0];
         await decryptText(testEntry.content, masterPassword);
@@ -134,11 +137,37 @@ export function DiaryPage() {
     else fetchEntries();
   };
 
+  const getAiInsight = async () => {
+    if (!content) return;
+    setIsAiLoading(true);
+    setAiFeedback(null);
+    try {
+      const moodInfo = MOODS.find(m => m.level === moodLevel);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      let response = "";
+      if (moodLevel <= 2) {
+        response = `Chào sếp, Baymax đây. Em thấy sếp đang cảm thấy ${moodInfo?.label?.toLowerCase()}. Đừng quá khắt khe với bản thân nhé, ai cũng có những ngày như vậy. Hãy nghỉ ngơi một chút, uống một ly nước và nhớ rằng em luôn ở đây hỗ trợ sếp! 🔋`;
+      } else if (moodLevel >= 4) {
+        response = `Thật tuyệt vời khi thấy sếp đang ${moodInfo?.label?.toLowerCase()}! Hãy giữ vững năng lượng tích cực này nhé. Sếp đã làm rất tốt rồi, em rất tự hào về sếp! ✨`;
+      } else {
+        response = `Một ngày ${moodInfo?.label?.toLowerCase()} cũng là một ngày đáng quý để cân bằng lại. Chúc sếp có một buổi tối thật bình yên để chuẩn bị cho những bứt phá ngày mai! 🫡`;
+      }
+      
+      setAiFeedback(response);
+    } catch (err) {
+      toast.error("Baymax đang bận một chút, sếp thử lại sau nhé!");
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
   const openAdd = () => {
     setEditingEntry(null);
     setContent("");
     setMoodLevel(3);
     setEntryDate(format(new Date(), 'yyyy-MM-dd'));
+    setAiFeedback(null);
     setIsOpen(true);
   };
 
@@ -149,23 +178,13 @@ export function DiaryPage() {
       setContent(decrypted);
       setMoodLevel(entry.mood_level);
       setEntryDate(entry.date);
+      setAiFeedback(null);
       setIsOpen(true);
     } catch (err) {
       toast.error("Không thể giải mã trang này");
     }
   };
 
-  // Decrypt content for display
-  const decryptedEntries = useMemo(() => {
-    if (isLocked) return [];
-    return entries.map(entry => {
-        // This is a bit expensive, but fine for local small lists
-        // Ideally we'd decrypt only when needed or use a hook
-        return entry;
-    });
-  }, [entries, isLocked]);
-
-  // Mock Mood Stats
   const moodStats = useMemo(() => {
     const stats = [0, 0, 0, 0, 0];
     entries.slice(0, 7).forEach(e => stats[e.mood_level - 1]++);
@@ -221,7 +240,6 @@ export function DiaryPage() {
         </Button>
       </div>
 
-      {/* Stats Preview */}
       <div className="bg-white border border-slate-100 p-5 rounded-[2rem] shadow-sm mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
@@ -245,7 +263,6 @@ export function DiaryPage() {
         </div>
       </div>
 
-      {/* Entry List */}
       <div className="space-y-6">
         {entries.length === 0 ? (
           <div className="text-center py-16 bg-slate-50/50 border-2 border-dashed rounded-[3rem] border-slate-200">
@@ -255,7 +272,6 @@ export function DiaryPage() {
         ) : (
           entries.map((entry) => (
             <div key={entry.id} className="group relative">
-                {/* Date line */}
                 <div className="flex items-center gap-3 mb-2 px-2">
                     <div className="h-[1px] flex-1 bg-slate-100" />
                     <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">
@@ -289,8 +305,6 @@ export function DiaryPage() {
                     <p className="text-slate-400 text-sm leading-relaxed line-clamp-3 italic">
                         Nội dung đã được mã hóa. Chạm để xem chi tiết hoặc chỉnh sửa.
                     </p>
-                    
-                    {/* Stealth Indicator */}
                     <div className="absolute top-0 right-0 p-1">
                          <ShieldCheck className="h-3 w-3 text-slate-100" />
                     </div>
@@ -300,7 +314,6 @@ export function DiaryPage() {
         )}
       </div>
 
-      {/* FAB */}
       <Button 
         onClick={openAdd} 
         size="icon" 
@@ -309,7 +322,6 @@ export function DiaryPage() {
         <Plus className="h-8 w-8" />
       </Button>
 
-      {/* Entry Dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[500px] w-[95vw] rounded-[3rem] p-8 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -352,7 +364,23 @@ export function DiaryPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">Tâm tư của sếp</Label>
+              <Label className="text-xs font-black text-slate-400 uppercase tracking-widest px-1 flex justify-between">
+                <span>Tâm tư của sếp</span>
+                <button onClick={getAiInsight} disabled={isAiLoading || !content} className="flex items-center gap-1 text-amber-500 hover:text-amber-600 disabled:opacity-30">
+                    {isAiLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                    <span>Baymax ơi</span>
+                </button>
+              </Label>
+              
+              {aiFeedback && (
+                <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl text-sm text-amber-800 animate-in zoom-in-95 duration-300">
+                    <div className="flex gap-2">
+                        <Sparkles className="h-4 w-4 shrink-0 mt-0.5" />
+                        <p className="font-medium leading-relaxed">{aiFeedback}</p>
+                    </div>
+                </div>
+              )}
+
               <Textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -365,11 +393,6 @@ export function DiaryPage() {
                  <Button type="button" className="flex-1 h-16 text-xl font-black rounded-3xl bg-slate-800 text-white shadow-xl active:scale-95 transition-all" onClick={handleSave}>
                     {editingEntry ? "CẬP NHẬT" : "LƯU TRANG"}
                 </Button>
-                {editingEntry && (
-                    <Button type="button" variant="outline" className="h-16 w-16 rounded-3xl border-slate-100" onClick={() => toast.info("Baymax đang đọc dữ liệu...")}>
-                        <Sparkles className="h-6 w-6 text-amber-500" />
-                    </Button>
-                )}
             </div>
           </div>
         </DialogContent>
