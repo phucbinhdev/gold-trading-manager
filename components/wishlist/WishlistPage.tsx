@@ -169,67 +169,80 @@ export function WishlistPage() {
             <div
               key={item.id}
               className={cn(
-                "group relative p-5 rounded-2xl border border-border/50 bg-card/50 transition-all hover:shadow-md",
-                item.is_purchased && "opacity-60 grayscale-[0.5]"
+                "group relative p-5 rounded-3xl border border-border/50 bg-card/40 backdrop-blur-sm transition-all hover:shadow-lg",
+                item.is_purchased && "opacity-50 grayscale-[0.8] scale-[0.98]"
               )}
             >
-              <div className="flex items-start justify-between">
-                <div className="space-y-1 pr-12">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className={cn("font-bold text-xl leading-tight", item.is_purchased && "line-through")}>
+                    <h3 className={cn("font-bold text-xl leading-tight text-foreground", item.is_purchased && "line-through")}>
                       {item.name}
                     </h3>
-                    <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full uppercase", getPriorityColor(item.priority))}>
-                      {item.priority === 'High' ? '🔥 Ưu tiên cao' : item.priority === 'Medium' ? '⚡ Trung bình' : '🧊 Thấp'}
+                    <span className={cn("text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider", getPriorityColor(item.priority))}>
+                      {item.priority === 'High' ? '🔥 Cao' : item.priority === 'Medium' ? '⚡ Vừa' : '🧊 Thấp'}
                     </span>
                   </div>
                   
-                  {item.price && (
-                    <p className="text-primary font-bold text-lg">
-                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}
-                    </p>
-                  )}
+                  <div className="flex items-baseline gap-2">
+                    {item.price ? (
+                      <p className="text-primary font-black text-xl">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground/50 text-sm italic italic">Chưa có giá</p>
+                    )}
+                  </div>
                   
-                  {item.note && <p className="text-base text-muted-foreground">{item.note}</p>}
+                  {item.note && (
+                    <div className="bg-muted/30 p-3 rounded-xl border border-border/20 mt-2">
+                      <p className="text-sm text-muted-foreground leading-relaxed">{item.note}</p>
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex flex-col gap-3">
-                   <Button
-                    variant="ghost"
+                <div className="flex flex-col gap-3 shrink-0">
+                  <Button
+                    variant="outline"
                     size="icon"
-                    className="h-10 w-10 text-muted-foreground"
+                    className="h-10 w-10 rounded-xl border-border/50 bg-background/50 hover:bg-background"
                     onClick={() => openEdit(item)}
                   >
                     <MoreVertical className="h-5 w-5" />
                   </Button>
                   <Button
-                    variant={item.is_purchased ? "secondary" : "outline"}
+                    variant={item.is_purchased ? "default" : "outline"}
                     size="icon"
-                    className={cn("h-12 w-12 rounded-full border-2", item.is_purchased ? "text-green-500 border-green-500 bg-green-50" : "text-muted-foreground border-border")}
+                    className={cn(
+                      "h-14 w-14 rounded-2xl border-2 transition-all active:scale-90 shadow-sm",
+                      item.is_purchased 
+                        ? "bg-green-500 border-green-600 text-white shadow-green-200" 
+                        : "border-primary/30 text-primary bg-primary/5 hover:bg-primary/10"
+                    )}
                     onClick={() => togglePurchased(item)}
                   >
-                    <CheckCircle2 className={cn("h-6 w-6", item.is_purchased && "fill-current")} />
+                    <CheckCircle2 className={cn("h-7 w-7", item.is_purchased && "animate-in zoom-in-50")} />
                   </Button>
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex gap-2">
+              <div className="mt-6 flex items-center justify-between gap-4">
+                <div className="flex flex-1 gap-2">
                   {item.product_url && (
                     <a
                       href={item.product_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm font-medium flex items-center gap-1 text-primary bg-primary/10 px-3 py-1.5 rounded-lg hover:bg-primary/20"
+                      className="text-xs font-bold flex items-center gap-2 text-primary bg-primary/10 px-4 py-2 rounded-xl hover:bg-primary/20 transition-colors uppercase tracking-tight"
                     >
-                      <ExternalLink className="h-4 w-4" /> Xem shop
+                      <ExternalLink className="h-4 w-4" /> Mua ngay
                     </a>
                   )}
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 text-destructive opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-10 w-10 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
                   onClick={() => handleDelete(item.id)}
                 >
                   <Trash2 className="h-5 w-5" />
@@ -267,8 +280,8 @@ export function WishlistPage() {
               />
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 space-y-2">
                 <Label htmlFor="price" className="text-base font-semibold">Giá tiền (VND)</Label>
                 <Input
                   id="price"
@@ -276,13 +289,13 @@ export function WishlistPage() {
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="30000000"
-                  className="h-14 text-lg rounded-xl"
+                  className="h-14 text-lg rounded-xl w-full"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="flex-1 space-y-2">
                 <Label htmlFor="priority" className="text-base font-semibold">Độ ưu tiên</Label>
                 <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
-                  <SelectTrigger id="priority" className="h-14 text-lg rounded-xl">
+                  <SelectTrigger id="priority" className="h-14 text-lg rounded-xl w-full">
                     <SelectValue placeholder="Chọn mức" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
