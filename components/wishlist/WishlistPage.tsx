@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, ShoppingCart, ExternalLink, MoreVertical, CheckCircle2 } from "lucide-react";
+import { NumericFormat } from "react-number-format";
 import {
   Dialog,
   DialogContent,
@@ -34,7 +35,7 @@ export function WishlistPage() {
 
   // Form State
   const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
+  const [price, setPrice] = useState<number | undefined>(undefined);
   const [note, setNote] = useState("");
   const [priority, setPriority] = useState<"Low" | "Medium" | "High">("Medium");
   const [url, setUrl] = useState("");
@@ -67,7 +68,7 @@ export function WishlistPage() {
     e.preventDefault();
     const payload = {
       name,
-      price: price ? parseFloat(price) : null,
+      price: price ?? null,
       note,
       priority,
       product_url: url,
@@ -119,7 +120,7 @@ export function WishlistPage() {
   const openEdit = (item: WishlistItem) => {
     setEditingItem(item);
     setName(item.name);
-    setPrice(item.price?.toString() || "");
+    setPrice(item.price ?? undefined);
     setNote(item.note || "");
     setPriority(item.priority);
     setUrl(item.product_url || "");
@@ -129,7 +130,7 @@ export function WishlistPage() {
   const openAdd = () => {
     setEditingItem(null);
     setName("");
-    setPrice("");
+    setPrice(undefined);
     setNote("");
     setPriority("Medium");
     setUrl("");
@@ -298,13 +299,20 @@ export function WishlistPage() {
 
             <div className="space-y-2">
               <Label htmlFor="price" className="text-sm font-bold text-slate-600 uppercase tracking-wider">Giá tiền (VND)</Label>
-              <Input
+              <NumericFormat
+                customInput={Input}
                 id="price"
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="30000000"
+                thousandSeparator="."
+                decimalSeparator=","
+                decimalScale={0}
+                allowNegative={false}
+                placeholder="30.000.000"
                 className="h-14 text-lg rounded-2xl border-slate-200 bg-slate-50 focus:bg-white w-full"
+                value={price}
+                onValueChange={(values) => {
+                  setPrice(values.floatValue);
+                }}
+                inputMode="decimal"
               />
             </div>
 
