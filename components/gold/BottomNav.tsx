@@ -1,12 +1,22 @@
 "use client";
 
-import { Home, History, Plus, User, FileText, ShoppingBag, BookHeart } from "lucide-react";
+import {
+  Home,
+  History,
+  Plus,
+  User,
+  FileText,
+  ShoppingBag,
+  BookHeart,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
   currentTab: "home" | "history" | "profile" | "budget" | "wishlist" | "diary";
-  onTabChange: (tab: "home" | "history" | "profile" | "budget" | "wishlist" | "diary") => void;
+  onTabChange: (
+    tab: "home" | "history" | "profile" | "budget" | "wishlist" | "diary",
+  ) => void;
 }
 
 export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
@@ -27,8 +37,8 @@ export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
           <span className="text-[10px] font-medium">Trang chủ</span>
         </button>
 
-        {/* Diary */}
-        <button
+        {/* Diary - Hidden */}
+        {/* <button
           onClick={() => onTabChange("diary")}
           className={cn(
             "flex flex-col items-center justify-center w-full space-y-1 transition-colors",
@@ -39,10 +49,10 @@ export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
         >
           <BookHeart className="h-6 w-6" />
           <span className="text-[10px] font-medium text-amber-600 font-bold">Tâm Ký</span>
-        </button>
+        </button> */}
 
-        {/* Wishlist */}
-        <button
+        {/* Wishlist - Hidden */}
+        {/* <button
           onClick={() => onTabChange("wishlist")}
           className={cn(
             "flex flex-col items-center justify-center w-full space-y-1 transition-colors",
@@ -53,7 +63,7 @@ export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
         >
           <ShoppingBag className="h-6 w-6" />
           <span className="text-[10px] font-medium">Wishlist</span>
-        </button>
+        </button> */}
 
         {/* Budget */}
         <button
