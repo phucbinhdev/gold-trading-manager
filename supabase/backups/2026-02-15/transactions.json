@@ -1,0 +1,12 @@
+[{"id":"95de7eda-8216-416d-a27a-44e9b61515d5","created_at":"2026-02-03T05:34:55.54221+00:00","transaction_date":"2025-01-15","amount_chi":1.0,"price_per_chi":8700000,"total_price":8700000,"note":null}, 
+ {"id":"b2f8f9c7-09ab-4371-972c-d715756e8f5c","created_at":"2026-02-03T05:34:55.54221+00:00","transaction_date":"2025-02-15","amount_chi":0.5,"price_per_chi":8900000,"total_price":4450000,"note":null}, 
+ {"id":"797b72a5-231a-4edd-8c58-eb6531a594c7","created_at":"2026-02-03T05:34:55.54221+00:00","transaction_date":"2025-03-15","amount_chi":0.5,"price_per_chi":9000000,"total_price":4500000,"note":null}, 
+ {"id":"cdc7bee2-eed9-45e3-931f-5f7759ac9f0c","created_at":"2026-02-03T05:34:55.54221+00:00","transaction_date":"2025-04-15","amount_chi":0.5,"price_per_chi":9700000,"total_price":4850000,"note":null}, 
+ {"id":"49cd2297-6a65-4bbd-94b0-c9ae07aa68e0","created_at":"2026-02-03T05:34:55.54221+00:00","transaction_date":"2025-08-15","amount_chi":0.5,"price_per_chi":10920000,"total_price":5460000,"note":null}, 
+ {"id":"226ae379-83a9-4656-9492-24545ba122d7","created_at":"2026-02-03T05:34:55.54221+00:00","transaction_date":"2025-09-15","amount_chi":1.0,"price_per_chi":11900000,"total_price":11900000,"note":"Tú 5 phân"}, 
+ {"id":"28f88259-b351-4eab-84ca-59a08eb51940","created_at":"2026-02-03T05:34:55.54221+00:00","transaction_date":"2025-10-15","amount_chi":0.5,"price_per_chi":13570000,"total_price":6785000,"note":"2 đứa mua chung"}, 
+ {"id":"437e54bf-5fb2-45e1-bb16-3eb3e42fdce4","created_at":"2026-02-03T05:34:55.54221+00:00","transaction_date":"2025-11-15","amount_chi":0.5,"price_per_chi":14200000,"total_price":7100000,"note":"2 đứa mua chung"}, 
+ {"id":"1a0f23c8-6695-492c-95f6-a4b61edded45","created_at":"2026-02-03T05:34:55.54221+00:00","transaction_date":"2025-12-15","amount_chi":0.5,"price_per_chi":14230000,"total_price":7115000,"note":null}, 
+ {"id":"3b1867dd-0db3-4496-ab81-d9b4d47e964d","created_at":"2026-02-03T05:34:55.54221+00:00","transaction_date":"2026-01-10","amount_chi":0.5,"price_per_chi":14860000,"total_price":7430000,"note":null}, 
+ {"id":"4c331c76-97d1-4845-89f7-4361e1fa7c04","created_at":"2026-02-03T05:34:55.54221+00:00","transaction_date":"2026-01-20","amount_chi":1.0,"price_per_chi":15030000,"total_price":15030000,"note":null}, 
+ {"id":"35447c72-d42c-4751-8bd8-a4edea096d12","created_at":"2026-02-03T05:34:55.54221+00:00","transaction_date":"2026-02-02","amount_chi":0.5,"price_per_chi":16850000,"total_price":8425000,"note":null}]

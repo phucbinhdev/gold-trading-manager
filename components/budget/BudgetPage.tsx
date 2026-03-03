@@ -34,6 +34,7 @@ export function BudgetPage() {
   // New Expense Input
   const [newExpenseName, setNewExpenseName] = useState("");
   const [newExpenseAmount, setNewExpenseAmount] = useState<number | "">("");
+  const [newExpenseNote, setNewExpenseNote] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
   const monthKey = format(currentMonth, "yyyy-MM");
@@ -152,6 +153,7 @@ export function BudgetPage() {
         amount: amount,
         is_selected: true,
         is_paid: false,
+        note: newExpenseNote,
       })
       .select()
       .single();
@@ -162,6 +164,7 @@ export function BudgetPage() {
       setExpenses([...expenses, data]);
       setNewExpenseName("");
       setNewExpenseAmount("");
+      setNewExpenseNote("");
       toast.success("Đã thêm khoản chi");
     }
     setIsAdding(false);
@@ -296,12 +299,18 @@ export function BudgetPage() {
       </div>
 
       {/* Add Expense Form */}
-      <div className="space-y-3">
+      <div className="space-y-3 bg-muted/30 p-3 rounded-2xl border border-dashed border-muted-foreground/30">
         <Input
           placeholder="Tên khoản chi (vd: Tiền nhà)"
           value={newExpenseName}
           onChange={(e) => setNewExpenseName(e.target.value)}
           className="w-full bg-background h-12 text-lg"
+        />
+        <Input
+          placeholder="Ghi chú (tùy chọn)"
+          value={newExpenseNote}
+          onChange={(e) => setNewExpenseNote(e.target.value)}
+          className="w-full bg-background h-10 text-sm"
         />
         <div className="flex gap-3">
           <NumericFormat

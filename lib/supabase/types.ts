@@ -66,6 +66,7 @@ export interface Database {
           is_paid: boolean;
           is_selected: boolean;
           created_at: string;
+          note: string | null;
         };
         Insert: {
           id?: string;
@@ -75,6 +76,7 @@ export interface Database {
           is_paid?: boolean;
           is_selected?: boolean;
           created_at?: string;
+          note?: string | null;
         };
         Update: {
           id?: string;
@@ -84,6 +86,7 @@ export interface Database {
           is_paid?: boolean;
           is_selected?: boolean;
           created_at?: string;
+          note?: string | null;
         };
       };
       app_settings: {
@@ -101,6 +104,70 @@ export interface Database {
           key?: string;
           value?: string | null;
           updated_at?: string;
+        };
+      };
+      wishlist: {
+        Row: {
+          id: string;
+          created_at: string;
+          name: string;
+          note: string | null;
+          price: number | null;
+          priority: "Low" | "Medium" | "High";
+          is_purchased: boolean;
+          product_url: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          name: string;
+          note?: string | null;
+          price?: number | null;
+          priority?: "Low" | "Medium" | "High";
+          is_purchased?: boolean;
+          product_url?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          name?: string;
+          note?: string | null;
+          price?: number | null;
+          priority?: "Low" | "Medium" | "High";
+          is_purchased?: boolean;
+          product_url?: string | null;
+        };
+      };
+      diary: {
+        Row: {
+          id: string;
+          created_at: string;
+          date: string;
+          content: string;
+          mood: string;
+          mood_level: number;
+          image_urls: string[] | null;
+          is_encrypted: boolean;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          date?: string;
+          content: string;
+          mood?: string;
+          mood_level?: number;
+          image_urls?: string[] | null;
+          is_encrypted?: boolean;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          date?: string;
+          content?: string;
+          mood?: string;
+          mood_level?: number;
+          image_urls?: string[] | null;
+          is_encrypted?: boolean;
         };
       };
     };
