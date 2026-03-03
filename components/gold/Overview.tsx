@@ -111,12 +111,12 @@ export function Overview({
           <div className="my-6 border-t border-yellow-900/10" />
 
           {/* Details Grid */}
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs font-medium opacity-70 mb-1">
                 Khối lượng vàng
               </p>
-              <p className="text-xl font-bold">{totalChi} Chỉ</p>
+              <p className="text-base font-bold">{totalChi} Chỉ</p>
               <p className="text-xs opacity-60 mt-0.5">
                 Vốn: {showMoney ? formatCurrency(totalInvested) : "******"}
               </p>
@@ -126,8 +126,8 @@ export function Overview({
               <p className="text-xs font-medium opacity-70 mb-1">
                 Giá thị trường
               </p>
-              <div className="flex items-center gap-2">
-                <p className="text-xl font-bold">
+              <div className="flex items-center gap-1.5">
+                <p className="text-base font-bold">
                   {showMoney ? formatCurrency(marketPrice) : "******"}
                 </p>
                 <Dialog open={isEditingPrice} onOpenChange={setIsEditingPrice}>
