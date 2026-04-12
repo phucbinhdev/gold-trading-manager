@@ -8,11 +8,13 @@ import {
   ChevronRight,
   Plus,
   Loader2,
+  Wallet,
   Eye,
   EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/card";
 import { NumericFormat } from "react-number-format";
 import { supabase } from "@/lib/supabase/client";
@@ -207,6 +209,14 @@ export function BudgetPage() {
 
   return (
     <div className="pb-24 px-4 space-y-6 max-w-md mx-auto">
+      <PageHeader 
+        title="Tính Rợ" 
+        subtitle="Quản lý chi tiêu hàng tháng"
+        icon={<Wallet className="w-6 h-6" />}
+        iconColor="bg-gradient-to-br from-indigo-500 to-purple-600"
+        showSettings
+      />
+
       {/* Month Selector */}
       <div className="flex items-center justify-between bg-card p-2 rounded-2xl shadow-sm border">
         <Button

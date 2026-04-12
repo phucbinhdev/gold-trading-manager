@@ -10,7 +10,8 @@ import { BottomNav } from "@/components/gold/BottomNav";
 import { BudgetPage } from "@/components/budget/BudgetPage";
 import { WishlistPage } from "@/components/wishlist/WishlistPage";
 import { DiaryPage } from "@/components/diary/DiaryPage";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, Home, Wallet, BookHeart, Calendar, History } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
 
@@ -123,6 +124,13 @@ export default function Home() {
             {/* HOME TAB */}
             {currentTab === "home" && (
               <>
+                <PageHeader 
+                  title="Quản Lý Vàng" 
+                  subtitle="Xin chào! Chúc bạn ngày mới tốt lành."
+                  icon={<Wallet className="w-6 h-6" />}
+                  iconColor="bg-gradient-to-br from-yellow-400 to-amber-600"
+                  showSettings
+                />
                 <Overview
                   totalChi={totalChi}
                   totalInvested={totalInvested}
@@ -154,11 +162,19 @@ export default function Home() {
 
             {/* HISTORY TAB */}
             {currentTab === "history" && (
-              <TransactionList
-                transactions={transactions}
-                marketPrice={marketPrice}
-                onUpdate={fetchData}
-              />
+              <>
+                <PageHeader 
+                  title="Lịch Sử" 
+                  subtitle="Danh sách giao dịch"
+                  icon={<History className="w-6 h-6" />}
+                  iconColor="bg-gradient-to-br from-purple-500 to-indigo-600"
+                />
+                <TransactionList
+                  transactions={transactions}
+                  marketPrice={marketPrice}
+                  onUpdate={fetchData}
+                />
+              </>
             )}
 
             {/* ROOM RENTAL TAB */}
