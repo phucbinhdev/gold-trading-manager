@@ -24,10 +24,29 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   // Mobile Navigation State
-  const [currentTab, setCurrentTab] = useState<
-    "home" | "history" | "profile" | "budget" | "wishlist" | "diary" | "room-rental"
-  >("home");
+  type TabType = "home" | "history" | "profile" | "budget" | "wishlist" | "diary" | "room-rental";
+  
+  // Restore last active tab from localStorage
+  const getInitialTab = (): TabType => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("lastActiveTab");
+      if (saved && ["home", "history", "budget", "room-rental"].includes(saved)) {
+        return saved as TabType;
+      }
+    }
+    return "home";
+  };
+
+  const [currentTab, setCurrentTab] = useState<TabType>(getInitialTab);
   const [isAddOpen, setIsAddOpen] = useState(false);
+
+  // Save tab to localStorage when changed
+  const handleTabChange = (tab: TabType) => {
+    setCurrentTab(tab);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("lastActiveTab", tab);
+    }
+  };
 
   // Fetch Data
   const fetchData = async () => {
@@ -135,7 +154,7 @@ export default function Home() {
                     <Button
                       variant="link"
                       size="sm"
-                      onClick={() => setCurrentTab("history")}
+                      onClick={() => handleTabChange("history")}
                       className="text-primary pr-0"
                     >
                       Xem tất cả
@@ -187,7 +206,7 @@ export default function Home() {
       />
 
       {/* Mobile Bottom Navigation */}
-      <BottomNav currentTab={currentTab} onTabChange={setCurrentTab} />
+      <BottomNav currentTab={currentTab} onTabChange={handleTabChange} />
     </div>
   );
 }
