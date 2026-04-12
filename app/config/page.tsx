@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { PageHeader } from "@/components/ui/PageHeader";
 import {
   createCustomFee,
   deleteCustomFee,
@@ -235,18 +236,13 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-200">
-          <Settings className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Cấu hình giá</h1>
-          <p className="text-sm text-muted-foreground">
-            Thiết lập giá nhà, điện, nước
-          </p>
-        </div>
-      </div>
+    <div className="px-4 py-6 space-y-6 max-w-md mx-auto">
+      <PageHeader 
+        title="Cấu hình giá" 
+        subtitle="Thiết lập giá nhà, điện, nước"
+        icon={<Settings className="w-6 h-6 text-white" />}
+        iconColor="bg-gradient-to-br from-blue-500 to-indigo-500 shadow-blue-200"
+      />
 
       <div className="space-y-4">
         <div className="flex items-center gap-2 px-1">

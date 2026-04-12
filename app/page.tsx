@@ -100,25 +100,7 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground pb-24 relative">
-      {/* Mobile Header */}
-      <div className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 bg-background/80 backdrop-blur-md border-b border-border/50">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-primary">
-            {currentTab === "budget" ? "Tính Rợ (Ngân sách)" : currentTab === "wishlist" ? "Wishlist" : currentTab === "diary" ? "Tâm Ký" : "Quản Lý Vàng"}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            {currentTab === "budget"
-              ? "Quản lý chi tiêu hàng tháng"
-              : currentTab === "wishlist"
-              ? "Danh sách mục tiêu sắm sửa"
-              : currentTab === "diary"
-              ? "Nơi lưu giữ tâm tư sếp"
-              : "Xin chào! Chúc bạn ngày mới tốt lành."}
-          </p>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-background font-sans text-foreground pb-24 relative max-w-md mx-auto">
       {/* Main Content Area */}
       <main className="px-4 py-6 space-y-8 animate-in fade-in duration-500">
         {loading && transactions.length === 0 ? (

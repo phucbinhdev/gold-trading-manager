@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { deleteRecord, getRecords, getSettings } from "@/lib/supabase";
 import type { Record as RecordType, Settings } from "@/types";
 import { generateQuickLink } from "@/lib/vietqr";
@@ -111,16 +112,13 @@ export default function HistoryPage() {
 
   if (records.length === 0) {
     return (
-      <div className="p-4 space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-200">
-            <History className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Lịch sử</h1>
-            <p className="text-sm text-muted-foreground">Chưa có dữ liệu</p>
-          </div>
-        </div>
+      <div className="px-4 py-6 space-y-6 max-w-md mx-auto">
+        <PageHeader 
+          title="Lịch sử" 
+          subtitle="Danh sách hóa đơn"
+          icon={<History className="w-6 h-6 text-white" />}
+          iconColor="bg-gradient-to-br from-purple-500 to-indigo-600 shadow-purple-200"
+        />
 
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-10 text-center gap-4">
@@ -141,16 +139,13 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-200">
-          <History className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Lịch sử</h1>
-          <p className="text-sm text-muted-foreground">Quản lý chi tiêu</p>
-        </div>
-      </div>
+    <div className="px-4 py-6 space-y-6 max-w-md mx-auto">
+      <PageHeader 
+        title="Lịch sử" 
+        subtitle="Quản lý chi tiêu"
+        icon={<History className="w-6 h-6 text-white" />}
+        iconColor="bg-gradient-to-br from-purple-500 to-indigo-600 shadow-purple-200"
+      />
 
       {/* Latest Record Highlight or List */}
       <div className="space-y-4">
