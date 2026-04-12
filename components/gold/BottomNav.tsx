@@ -8,6 +8,7 @@ import {
   FileText,
   ShoppingBag,
   BookHeart,
+  CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,7 @@ interface BottomNavProps {
 export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-t border-border pb-[calc(env(safe-area-inset-bottom)+4px)]">
-      <div className="flex justify-around items-center h-16 px-2">
+      <div className="flex justify-around items-center h-16 px-1">
         {/* Home */}
         <button
           onClick={() => onTabChange("home")}
@@ -33,37 +34,23 @@ export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          <Home className="h-6 w-6" />
-          <span className="text-[10px] font-medium">Trang chủ</span>
+          <Home className="h-5 w-5" />
+          <span className="text-[9px] font-medium">Vàng</span>
         </button>
 
-        {/* Diary - Hidden */}
-        {/* <button
-          onClick={() => onTabChange("diary")}
+        {/* History */}
+        <button
+          onClick={() => onTabChange("history")}
           className={cn(
             "flex flex-col items-center justify-center w-full space-y-1 transition-colors",
-            currentTab === "diary"
-              ? "text-amber-600"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <BookHeart className="h-6 w-6" />
-          <span className="text-[10px] font-medium text-amber-600 font-bold">Tâm Ký</span>
-        </button> */}
-
-        {/* Wishlist - Hidden */}
-        {/* <button
-          onClick={() => onTabChange("wishlist")}
-          className={cn(
-            "flex flex-col items-center justify-center w-full space-y-1 transition-colors",
-            currentTab === "wishlist"
+            currentTab === "history"
               ? "text-primary"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          <ShoppingBag className="h-6 w-6" />
-          <span className="text-[10px] font-medium">Wishlist</span>
-        </button> */}
+          <CalendarClock className="h-5 w-5" />
+          <span className="text-[9px] font-medium">Lịch Sử</span>
+        </button>
 
         {/* Budget */}
         <button
@@ -75,8 +62,8 @@ export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          <FileText className="h-6 w-6" />
-          <span className="text-[10px] font-medium">Tính Rợ</span>
+          <FileText className="h-5 w-5" />
+          <span className="text-[9px] font-medium">Tính Rợ</span>
         </button>
 
         {/* Room Rental */}
@@ -89,8 +76,8 @@ export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          <Home className="h-6 w-6" />
-          <span className="text-[10px] font-medium">Tính Tiền Trọ</span>
+          <Home className="h-5 w-5" />
+          <span className="text-[9px] font-medium">Tiền Trọ</span>
         </button>
       </div>
     </div>
