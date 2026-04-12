@@ -22,7 +22,7 @@ export default function Home() {
 
   // Mobile Navigation State
   const [currentTab, setCurrentTab] = useState<
-    "home" | "history" | "profile" | "budget" | "wishlist" | "diary"
+    "home" | "history" | "profile" | "budget" | "wishlist" | "diary" | "room-rental"
   >("home");
   const [isAddOpen, setIsAddOpen] = useState(false);
 

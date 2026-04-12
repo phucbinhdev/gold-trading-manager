@@ -13,9 +13,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
-  currentTab: "home" | "history" | "profile" | "budget" | "wishlist" | "diary";
+  currentTab: "home" | "history" | "profile" | "budget" | "wishlist" | "diary" | "room-rental";
   onTabChange: (
-    tab: "home" | "history" | "profile" | "budget" | "wishlist" | "diary",
+    tab: "home" | "history" | "profile" | "budget" | "wishlist" | "diary" | "room-rental",
   ) => void;
 }
 
@@ -77,6 +77,20 @@ export function BottomNav({ currentTab, onTabChange }: BottomNavProps) {
         >
           <FileText className="h-6 w-6" />
           <span className="text-[10px] font-medium">Tính Rợ</span>
+        </button>
+
+        {/* Room Rental */}
+        <button
+          onClick={() => onTabChange("room-rental")}
+          className={cn(
+            "flex flex-col items-center justify-center w-full space-y-1 transition-colors",
+            currentTab === "room-rental"
+              ? "text-primary"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Home className="h-6 w-6" />
+          <span className="text-[10px] font-medium">Tính Tiền Trọ</span>
         </button>
       </div>
     </div>
