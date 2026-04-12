@@ -170,6 +170,149 @@ export interface Database {
           is_encrypted?: boolean;
         };
       };
+      settings: {
+        Row: {
+          id: string;
+          rent_price: number;
+          electric_price: number;
+          water_price: number;
+          bank_id: string | null;
+          bank_name: string | null;
+          account_number: string | null;
+          account_name: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          rent_price?: number;
+          electric_price?: number;
+          water_price?: number;
+          bank_id?: string | null;
+          bank_name?: string | null;
+          account_number?: string | null;
+          account_name?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          rent_price?: number;
+          electric_price?: number;
+          water_price?: number;
+          bank_id?: string | null;
+          bank_name?: string | null;
+          account_number?: string | null;
+          account_name?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      records: {
+        Row: {
+          id: string;
+          month: string;
+          electric_old: number;
+          electric_new: number;
+          water_old: number;
+          water_new: number;
+          rent_amount: number;
+          electric_amount: number;
+          water_amount: number;
+          total_amount: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          month: string;
+          electric_old?: number;
+          electric_new: number;
+          water_old?: number;
+          water_new: number;
+          rent_amount?: number;
+          electric_amount?: number;
+          water_amount?: number;
+          total_amount: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          month?: string;
+          electric_old?: number;
+          electric_new?: number;
+          water_old?: number;
+          water_new?: number;
+          rent_amount?: number;
+          electric_amount?: number;
+          water_amount?: number;
+          total_amount?: number;
+          created_at?: string;
+        };
+      };
+      custom_fees: {
+        Row: {
+          id: string;
+          name: string;
+          type: string;
+          unit_price: number | null;
+          fixed_amount: number | null;
+          unit_name: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          type: string;
+          unit_price?: number | null;
+          fixed_amount?: number | null;
+          unit_name?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          type?: string;
+          unit_price?: number | null;
+          fixed_amount?: number | null;
+          unit_name?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      record_custom_fees: {
+        Row: {
+          id: string;
+          record_id: string;
+          custom_fee_id: string | null;
+          fee_name: string;
+          quantity: number;
+          amount: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          record_id: string;
+          custom_fee_id?: string | null;
+          fee_name: string;
+          quantity?: number;
+          amount: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          record_id?: string;
+          custom_fee_id?: string | null;
+          fee_name?: string;
+          quantity?: number;
+          amount?: number;
+          created_at?: string;
+        };
+      };
     };
   };
 }

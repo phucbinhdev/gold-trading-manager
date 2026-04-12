@@ -1,8 +1,27 @@
-import * as React from "react"
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-import { cn } from "@/lib/utils"
+interface InputProps extends React.ComponentProps<"input"> {
+  formatCurrency?: boolean;
+}
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+function Input({ className, type, formatCurrency, ...props }: InputProps) {
+  const formattedValue = React.useMemo(() => {
+    if (formatCurrency && props.value) {
+      const numValue = String(props.value).replace(/\D/g, "");
+      return new Intl.NumberFormat("vi-VN").format(Number(numValue));
+    }
+    return props.value;
+  }, [props.value, formatCurrency]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (formatCurrency) {
+      const rawValue = e.target.value.replace(/\D/g, "");
+      e.target.value = rawValue;
+    }
+    props.onChange?.(e);
+  };
+
   return (
     <input
       type={type}
@@ -13,9 +32,11 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
         "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
         className
       )}
+      value={formattedValue}
+      onChange={handleChange}
       {...props}
     />
-  )
+  );
 }
 
-export { Input }
+export { Input };

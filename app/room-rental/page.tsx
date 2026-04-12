@@ -1,30 +1,27 @@
 "use client";
 
 import BillResult from "@/components/BillResult";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { deleteRecord, getRecords, getSettings } from "@/lib/supabase";
-import type { Record as RecordType, Settings } from "@/types";
-import { generateQuickLink } from "@/lib/vietqr";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  createRecord,
+  createRecordCustomFees,
+  getActiveCustomFees,
+  getLatestRecord,
+  getSettings,
+} from "@/lib/supabase";
+import type { CalculationResult, CustomFee, Settings } from "@/types";
+import { formatCurrency } from "@/lib/utils";
 import {
   Calendar,
   ChevronRight,
-  History,
-  QrCode,
+  Droplet,
+  Lightbulb,
   Receipt,
-  Trash2,
-  X,
-  Wallet,
+  Save,
+  Settings as SettingsIcon,
+  Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -38,21 +35,33 @@ function Loading() {
   );
 }
 
-export default function HistoryPage() {
+export default function RoomRentalPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [records, setRecords] = useState<RecordType[]>([]);
+  const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [selectedRecord, setSelectedRecord] = useState<RecordType | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{
-    isOpen: boolean;
-    recordId: string | null;
-    recordMonth: string;
-  }>({ isOpen: false, recordId: null, recordMonth: "" });
-  const [qrModal, setQrModal] = useState<{
-    isOpen: boolean;
-    record: RecordType | null;
-  }>({ isOpen: false, record: null });
+  const [customFees, setCustomFees] = useState<CustomFee[]>([]);
+  const [latestRecord, setLatestRecord] = useState<any>(null);
+
+  // Form state
+  const [month, setMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  });
+  const [electricOld, setElectricOld] = useState("");
+  const [electricNew, setElectricNew] = useState("");
+  const [waterOld, setWaterOld] = useState("");
+  const [waterNew, setWaterNew] = useState("");
+  const [customFeeQuantities, setCustomFeeQuantities] = useState<
+    Record<string, string>
+  >({});
+
+  // Calculation result
+  const [calculationResult, setCalculationResult] =
+    useState<CalculationResult | null>(null);
+
+  // Validation warnings
+  const [warnings, setWarnings] = useState<string[]>([]);
 
   useEffect(() => {
     loadData();
@@ -60,12 +69,34 @@ export default function HistoryPage() {
 
   async function loadData() {
     try {
-      const [recordsData, settingsData] = await Promise.all([
-        getRecords(),
+      const [settingsData, feesData, latestData] = await Promise.all([
         getSettings(),
+        getActiveCustomFees(),
+        getLatestRecord(),
       ]);
-      setRecords(recordsData);
+
       setSettings(settingsData);
+      setCustomFees(feesData);
+      setLatestRecord(latestData);
+
+      // Auto-fill old meter readings from latest record
+      if (latestData) {
+        setElectricOld(latestData.electric_new.toString());
+        setWaterOld(latestData.water_new.toString());
+      } else if (settingsData) {
+        // If no previous record, start from 0
+        setElectricOld("0");
+        setWaterOld("0");
+      }
+
+      // Initialize custom fee quantities
+      const quantities: Record<string, string> = {};
+      feesData.forEach((fee) => {
+        if (fee.type === "unit") {
+          quantities[fee.id] = "1";
+        }
+      });
+      setCustomFeeQuantities(quantities);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -73,21 +104,131 @@ export default function HistoryPage() {
     }
   }
 
-  async function handleDelete(id: string, month: string) {
-    setDeleteConfirm({ isOpen: true, recordId: id, recordMonth: month });
+  function calculateTotal() {
+    if (!settings) {
+      alert("Vui lòng cấu hình giá trước!");
+      router.push("/config");
+      return;
+    }
+
+    const electricOldNum = parseFloat(electricOld) || 0;
+    const electricNewNum = parseFloat(electricNew) || 0;
+    const waterOldNum = parseFloat(waterOld) || 0;
+    const waterNewNum = parseFloat(waterNew) || 0;
+
+    // Validation
+    const newWarnings: string[] = [];
+    if (electricNewNum < electricOldNum) {
+      newWarnings.push("Số điện mới không được nhỏ hơn số điện cũ");
+    }
+    if (waterNewNum < waterOldNum) {
+      newWarnings.push("Số nước mới không được nhỏ hơn số nước cũ");
+    }
+    setWarnings(newWarnings);
+
+    // Calculate usage
+    const electricUsed = Math.max(0, electricNewNum - electricOldNum);
+    const waterUsed = Math.max(0, waterNewNum - waterOldNum);
+
+    // Calculate amounts
+    const rentAmount = settings.rent_price;
+    const electricAmount = electricUsed * settings.electric_price;
+    const waterAmount = waterUsed * settings.water_price;
+
+    // Calculate custom fees
+    const customFeesDetails = customFees.map((fee) => {
+      const quantity =
+        fee.type === "unit"
+          ? parseFloat(customFeeQuantities[fee.id] || "1")
+          : 1;
+      const amount =
+        fee.type === "fixed"
+          ? fee.fixed_amount || 0
+          : (fee.unit_price || 0) * quantity;
+
+      return {
+        fee_id: fee.id,
+        fee_name: fee.name,
+        quantity,
+        amount,
+      };
+    });
+
+    const customFeesTotal = customFeesDetails.reduce(
+      (sum, fee) => sum + fee.amount,
+      0,
+    );
+
+    // Total
+    const totalAmount =
+      rentAmount + electricAmount + waterAmount + customFeesTotal;
+
+    const result: CalculationResult = {
+      rent_amount: rentAmount,
+      electric_used: electricUsed,
+      electric_amount: electricAmount,
+      water_used: waterUsed,
+      water_amount: waterAmount,
+      custom_fees_total: customFeesTotal,
+      custom_fees_details: customFeesDetails,
+      total_amount: totalAmount,
+    };
+
+    setCalculationResult(result);
   }
 
-  async function confirmDelete() {
-    if (!deleteConfirm.recordId) return;
+  async function handleSave() {
+    if (!settings || !calculationResult) return;
 
-    const success = await deleteRecord(deleteConfirm.recordId);
-    if (success) {
-      setRecords(records.filter((r) => r.id !== deleteConfirm.recordId));
-      setSelectedRecord(null);
-    } else {
-      alert("Có lỗi xảy ra, vui lòng thử lại.");
+    setSaving(true);
+
+    try {
+      const electricOldNum = parseFloat(electricOld) || 0;
+      const electricNewNum = parseFloat(electricNew) || 0;
+      const waterOldNum = parseFloat(waterOld) || 0;
+      const waterNewNum = parseFloat(waterNew) || 0;
+
+      // Create record
+      const record = await createRecord({
+        month,
+        electric_old: electricOldNum,
+        electric_new: electricNewNum,
+        water_old: waterOldNum,
+        water_new: waterNewNum,
+        rent_amount: calculationResult.rent_amount,
+        electric_amount: calculationResult.electric_amount,
+        water_amount: calculationResult.water_amount,
+        total_amount: calculationResult.total_amount,
+      });
+
+      if (!record) {
+        alert("Có lỗi xảy ra khi lưu hóa đơn!");
+        setSaving(false);
+        return;
+      }
+
+      // Save custom fees
+      if (calculationResult.custom_fees_details.length > 0) {
+        const customFeesData = calculationResult.custom_fees_details.map(
+          (fee) => ({
+            custom_fee_id: fee.fee_id,
+            fee_name: fee.fee_name,
+            quantity: fee.quantity,
+            amount: fee.amount,
+          }),
+        );
+
+        await createRecordCustomFees(record.id, customFeesData);
+      }
+
+      alert("Đã lưu hóa đơn thành công!");
+      router.push("/history");
+    } catch (error) {
+      console.error("Error saving record:", error);
+      alert("Có lỗi xảy ra khi lưu hóa đơn!");
+    } finally {
+      setSaving(false);
     }
-    setDeleteConfirm({ isOpen: false, recordId: null, recordMonth: "" });
   }
 
   const formatMonth = (dateStr: string) => {
@@ -95,45 +236,41 @@ export default function HistoryPage() {
     return `Tháng ${date.getMonth() + 1}, ${date.getFullYear()}`;
   };
 
-  const getQrLink = (record: RecordType) => {
-    if (!settings?.bank_id || !settings?.account_number) return null;
-
-    return generateQuickLink({
-      bankId: settings.bank_id,
-      accountNo: settings.account_number,
-      amount: record.total_amount,
-    });
-  };
-
   if (loading) {
     return <Loading />;
   }
 
-  if (records.length === 0) {
+  if (!settings) {
     return (
       <div className="p-4 space-y-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-200">
-            <History className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200">
+            <Receipt className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Lịch sử</h1>
-            <p className="text-sm text-muted-foreground">Chưa có dữ liệu</p>
+            <h1 className="text-2xl font-bold tracking-tight">Tính tiền trọ</h1>
+            <p className="text-sm text-muted-foreground">
+              Tạo hóa đơn hàng tháng
+            </p>
           </div>
         </div>
 
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-10 text-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-              <Receipt className="w-8 h-8 text-gray-400" />
+              <SettingsIcon className="w-8 h-8 text-gray-400" />
             </div>
             <div>
-              <p className="font-semibold text-gray-900">Chưa có hóa đơn nào</p>
+              <p className="font-semibold text-gray-900">
+                Chưa có cấu hình giá
+              </p>
               <p className="text-sm text-gray-500">
-                Hãy tạo hóa đơn đầu tiên của bạn
+                Vui lòng cấu hình giá nhà, điện, nước trước
               </p>
             </div>
-            <Button onClick={() => router.push("/")}>Tạo hóa đơn mới</Button>
+            <Button onClick={() => router.push("/config")}>
+              Đi đến cấu hình
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -143,229 +280,260 @@ export default function HistoryPage() {
   return (
     <div className="p-4 space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-200">
-          <History className="w-6 h-6 text-white" />
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200">
+          <Receipt className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Lịch sử</h1>
-          <p className="text-sm text-muted-foreground">Quản lý chi tiêu</p>
+          <h1 className="text-2xl font-bold tracking-tight">Tính tiền trọ</h1>
+          <p className="text-sm text-muted-foreground">Tạo hóa đơn hàng tháng</p>
         </div>
       </div>
 
-      {/* Latest Record Highlight or List */}
-      <div className="space-y-4">
-        {records.map((record, index) => {
-          const isSelected = selectedRecord?.id === record.id;
+      {/* Month Selection */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-green-500" />
+            Tháng tính tiền
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Input
+            type="month"
+            value={month.slice(0, 7)}
+            onChange={(e) => setMonth(`${e.target.value}-01`)}
+            className="h-12 rounded-xl"
+          />
+        </CardContent>
+      </Card>
 
-          return (
-            <div
-              key={record.id}
-              className="relative transition-all duration-300"
-            >
-              <Card
-                className={`cursor-pointer transition-all border shadow-sm ${
-                  isSelected
-                    ? "ring ring-primary border-primary"
-                    : "border-gray-100 hover:shadow-md"
-                }`}
-              >
+      {/* Meter Readings */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Zap className="w-4 h-4 text-yellow-500" />
+            Chỉ số công tơ
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Electricity */}
+          <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-yellow-600 fill-yellow-600" />
+              <span className="font-bold text-yellow-800">Điện (kWh)</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-yellow-700 mb-1 block">
+                  Chỉ số cũ
+                </label>
+                <Input
+                  type="number"
+                  value={electricOld}
+                  onChange={(e) => setElectricOld(e.target.value)}
+                  placeholder="0"
+                  className="h-12 bg-white border-yellow-200 rounded-xl"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-yellow-700 mb-1 block">
+                  Chỉ số mới
+                </label>
+                <Input
+                  type="number"
+                  value={electricNew}
+                  onChange={(e) => setElectricNew(e.target.value)}
+                  placeholder="0"
+                  className="h-12 bg-white border-yellow-200 rounded-xl"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Water */}
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Droplet className="w-5 h-5 text-blue-600 fill-blue-600" />
+              <span className="font-bold text-blue-800">Nước (m³)</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-blue-700 mb-1 block">
+                  Chỉ số cũ
+                </label>
+                <Input
+                  type="number"
+                  value={waterOld}
+                  onChange={(e) => setWaterOld(e.target.value)}
+                  placeholder="0"
+                  className="h-12 bg-white border-blue-200 rounded-xl"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-blue-700 mb-1 block">
+                  Chỉ số mới
+                </label>
+                <Input
+                  type="number"
+                  value={waterNew}
+                  onChange={(e) => setWaterNew(e.target.value)}
+                  placeholder="0"
+                  className="h-12 bg-white border-blue-200 rounded-xl"
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Custom Fees Quantities */}
+      {customFees.filter((fee) => fee.type === "unit").length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <SettingsIcon className="w-4 h-4 text-gray-500" />
+              Chi phí khác
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {customFees
+              .filter((fee) => fee.type === "unit")
+              .map((fee) => (
                 <div
-                  className="flex items-center justify-between gap-4"
-                  onClick={() => setSelectedRecord(isSelected ? null : record)}
+                  key={fee.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
                 >
-                  <div className="flex items-center gap-4 min-w-0 space-y-1">
-                    <div
-                      className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-                        isSelected
-                          ? "bg-primary/10 text-primary"
-                          : "bg-[#e2fbf1] text-[#00b979]" // Mint background & text
-                      }`}
-                    >
-                      <Calendar className="w-6 h-6" />
-                    </div>
-
-                    <div className="min-w-0 space-y-2">
-                      <h3 className="font-bold text-gray-900 text-[16px] md:text-[17px] leading-tight mb-2 truncated">
-                        {formatMonth(record.month)}
-                      </h3>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs md:text-[13px] text-gray-500 font-medium whitespace-nowrap">
-                          {new Date(record.created_at).toLocaleDateString(
-                            "vi-VN",
-                          )}
-                        </span>
-                      </div>
-                    </div>
+                  <div>
+                    <p className="font-medium text-sm">{fee.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatCurrency(fee.unit_price || 0)}/{fee.unit_name}
+                    </p>
                   </div>
-
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="font-bold text-gray-900 text-[16px] md:text-[17px]">
-                      {new Intl.NumberFormat("vi-VN").format(
-                        record.total_amount,
-                      )}
-                      đ
-                    </span>
-                    <ChevronRight
-                      className={`w-5 h-5 text-gray-300 transition-transform duration-300 ${
-                        isSelected ? "rotate-90" : ""
-                      }`}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Số lượng:</span>
+                    <Input
+                      type="number"
+                      value={customFeeQuantities[fee.id] || "1"}
+                      onChange={(e) =>
+                        setCustomFeeQuantities({
+                          ...customFeeQuantities,
+                          [fee.id]: e.target.value,
+                        })
+                      }
+                      className="w-20 h-10 bg-white rounded-xl"
+                      min="0"
                     />
                   </div>
                 </div>
+              ))}
+          </CardContent>
+        </Card>
+      )}
 
-                {isSelected && (
-                  <div className="bg-gray-50/50 space-y-4 animate-accordion-down">
-                    <BillResult
-                      borderLess
-                      month={record.month}
-                      electricOld={record.electric_old}
-                      electricNew={record.electric_new}
-                      waterOld={record.water_old}
-                      waterNew={record.water_new}
-                      rentAmount={record.rent_amount}
-                      electricAmount={record.electric_amount}
-                      waterAmount={record.water_amount}
-                      customFees={
-                        record.record_custom_fees?.map((fee) => ({
-                          name: fee.fee_name,
-                          amount: fee.amount,
-                          quantity: fee.quantity,
-                        })) || []
-                      }
-                      totalAmount={record.total_amount}
-                    />
-
-                    <div className="flex gap-3 pt-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1 bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200 h-10 font-medium"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (settings?.bank_id && settings?.account_number) {
-                            setQrModal({ isOpen: true, record });
-                          } else {
-                            alert("Vui lòng cấu hình ngân hàng trước!");
-                            router.push("/config");
-                          }
-                        }}
-                      >
-                        <QrCode className="w-4 h-4 mr-2" />
-                        QR Chuyển khoản
-                      </Button>
-
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="w-10 bg-red-50 text-red-600 hover:bg-red-100 shadow-none border border-red-200 h-10 shrink-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(record.id, formatMonth(record.month));
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </Card>
+      {/* Warnings */}
+      {warnings.length > 0 && (
+        <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 space-y-2">
+          <div className="flex items-start gap-3">
+            <Lightbulb className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h3 className="font-semibold text-yellow-800 text-sm">
+                Cảnh báo:
+              </h3>
+              <ul className="text-xs text-yellow-700 space-y-1 list-disc pl-3">
+                {warnings.map((warning, index) => (
+                  <li key={index}>{warning}</li>
+                ))}
+              </ul>
             </div>
-          );
-        })}
+          </div>
+        </div>
+      )}
+
+      {/* Calculate Button */}
+      <Button
+        onClick={calculateTotal}
+        className="w-full h-12 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium shadow-lg shadow-green-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+      >
+        <Zap className="w-5 h-5 mr-2" />
+        Tính tiền
+      </Button>
+
+      {/* Calculation Result */}
+      {calculationResult && (
+        <div className="space-y-4">
+          <BillResult
+            month={month}
+            electricOld={parseFloat(electricOld) || 0}
+            electricNew={parseFloat(electricNew) || 0}
+            waterOld={parseFloat(waterOld) || 0}
+            waterNew={parseFloat(waterNew) || 0}
+            rentAmount={calculationResult.rent_amount}
+            electricAmount={calculationResult.electric_amount}
+            waterAmount={calculationResult.water_amount}
+            customFees={calculationResult.custom_fees_details.map((fee) => ({
+              name: fee.fee_name,
+              amount: fee.amount,
+              quantity: fee.quantity,
+            }))}
+            totalAmount={calculationResult.total_amount}
+          />
+
+          {/* Save Button */}
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full h-12 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-medium shadow-lg shadow-gray-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Save className="w-5 h-5 mr-2" />
+            {saving ? "Đang lưu..." : "Lưu hóa đơn"}
+          </Button>
+        </div>
+      )}
+
+      {/* Quick Navigation */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 px-1">
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          <h2 className="font-bold text-sm text-gray-900">Điều hướng nhanh</h2>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/history")}
+            className="h-12 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Xem lịch sử
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/config")}
+            className="h-12 rounded-xl bg-purple-50 text-purple-600 hover:bg-purple-100 border-purple-200"
+          >
+            <SettingsIcon className="w-4 h-4 mr-2" />
+            Cấu hình giá
+          </Button>
+        </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <AlertDialog
-        open={deleteConfirm.isOpen}
-        onOpenChange={(open) =>
-          !open && setDeleteConfirm({ ...deleteConfirm, isOpen: false })
-        }
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Xóa bản ghi?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bạn có chắc muốn xóa bản ghi "{deleteConfirm.recordMonth}"? Hành
-              động này không thể hoàn tác.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Xóa
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* QR Payment Modal */}
-      <AlertDialog
-        open={qrModal.isOpen}
-        onOpenChange={(open) =>
-          !open && setQrModal({ isOpen: false, record: null })
-        }
-      >
-        <AlertDialogContent className="max-w-xs p-0 overflow-hidden bg-white border-0 rounded-3xl">
-          <div className="bg-blue-600 p-4 text-center">
-            <h3 className="text-white font-bold text-lg">Quét mã thanh toán</h3>
-            <p className="text-blue-100 text-sm">
-              {qrModal.record ? formatMonth(qrModal.record.month) : ""}
-            </p>
+      {/* Info Note */}
+      <div className="p-4 bg-green-50 rounded-xl border border-green-100">
+        <div className="flex items-start gap-3">
+          <Lightbulb className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h3 className="font-semibold text-green-800 text-sm">
+              Hướng dẫn:
+            </h3>
+            <ul className="text-xs text-green-700 space-y-1 list-disc pl-3">
+              <li>Nhập chỉ số công tơ điện và nước mới</li>
+              <li>Chỉ số cũ tự động lấy từ tháng trước</li>
+              <li>Click &quot;Tính tiền&quot; để xem chi tiết</li>
+              <li>Nhấn &quot;Lưu hóa đơn&quot; để lưu vào lịch sử</li>
+            </ul>
           </div>
-          {/* Trigger build */}
-          <div className="p-6 flex flex-col items-center justify-center space-y-4 bg-white">
-            {qrModal.record && getQrLink(qrModal.record) ? (
-              <div className="relative group">
-                <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full"></div>
-                <img
-                  src={getQrLink(qrModal.record!)!}
-                  alt="QR Code"
-                  className="relative size-60 rounded-xl border-4 border-white shadow-xl"
-                />
-              </div>
-            ) : (
-              <div className="w-48 h-48 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
-                <QrCode className="w-8 h-8" />
-              </div>
-            )}
-
-            <div className="text-center space-y-1">
-              <p className="text-sm text-gray-500 font-medium">
-                Số tiền cần thanh toán
-              </p>
-              <p className="text-2xl font-bold text-blue-600">
-                {qrModal.record
-                  ? new Intl.NumberFormat("vi-VN").format(
-                      qrModal.record.total_amount,
-                    )
-                  : "0"}
-                đ
-              </p>
-            </div>
-          </div>
-
-          <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-3">
-            <Button
-              variant="outline"
-              className="flex-1 bg-pink-50 text-pink-600 hover:bg-pink-100 border-pink-200 rounded-xl"
-              onClick={() => {
-                window.location.href = "momo://app";
-              }}
-            >
-              <Wallet className="w-4 h-4 mr-2" />
-              Mở Momo
-            </Button>
-            <Button
-              className="flex-1 bg-gray-900 text-white hover:bg-gray-800 rounded-xl"
-              onClick={() => setQrModal({ isOpen: false, record: null })}
-            >
-              Đóng
-            </Button>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
+        </div>
+      </div>
     </div>
   );
 }
