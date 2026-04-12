@@ -1,0 +1,58 @@
+[
+  {
+    "idx": 0,
+    "id": "11a14133-aad6-439c-803d-eb8de9256a0b",
+    "month": "2025-12-01",
+    "electric_old": "0.00",
+    "electric_new": "10458.00",
+    "water_old": "0.00",
+    "water_new": "207.00",
+    "rent_amount": "1500000.00",
+    "electric_amount": "41832000.00",
+    "water_amount": "4140000.00",
+    "total_amount": "47522000.00",
+    "created_at": "2026-01-21 17:03:28.837677+00"
+  },
+  {
+    "idx": 1,
+    "id": "2c580544-a7ba-480e-b187-2168c84fe395",
+    "month": "2026-02-01",
+    "electric_old": "10532.00",
+    "electric_new": "10609.00",
+    "water_old": "210.00",
+    "water_new": "213.00",
+    "rent_amount": "1500000.00",
+    "electric_amount": "308000.00",
+    "water_amount": "60000.00",
+    "total_amount": "1918000.00",
+    "created_at": "2026-02-23 11:43:52.444611+00"
+  },
+  {
+    "idx": 2,
+    "id": "7ad484d2-5178-4c53-8ea2-a7a240cbc55a",
+    "month": "2026-01-01",
+    "electric_old": "10458.00",
+    "electric_new": "10532.00",
+    "water_old": "207.00",
+    "water_new": "210.00",
+    "rent_amount": "1500000.00",
+    "electric_amount": "296000.00",
+    "water_amount": "60000.00",
+    "total_amount": "1906000.00",
+    "created_at": "2026-01-21 17:06:59.984605+00"
+  },
+  {
+    "idx": 3,
+    "id": "e98abd52-b1cd-42ff-bec7-3e8ada9e5c79",
+    "month": "2026-03-01",
+    "electric_old": "10609.00",
+    "electric_new": "10710.00",
+    "water_old": "213.00",
+    "water_new": "217.00",
+    "rent_amount": "1500000.00",
+    "electric_amount": "404000.00",
+    "water_amount": "80000.00",
+    "total_amount": "2034000.00",
+    "created_at": "2026-03-23 08:17:21.106887+00"
+  }
+]

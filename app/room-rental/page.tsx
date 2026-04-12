@@ -3,6 +3,12 @@
 import BillResult from "@/components/BillResult";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   createRecord,
@@ -12,12 +18,14 @@ import {
   getSettings,
 } from "@/lib/supabase";
 import type { CalculationResult, CustomFee, Settings } from "@/types";
+import type { Record as RoomRecord } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import {
   Calendar,
   ChevronRight,
   Droplet,
   Lightbulb,
+  Plus,
   Receipt,
   Save,
   Settings as SettingsIcon,
@@ -41,7 +49,7 @@ export default function RoomRentalPage() {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [customFees, setCustomFees] = useState<CustomFee[]>([]);
-  const [latestRecord, setLatestRecord] = useState<any>(null);
+  const [latestRecord, setLatestRecord] = useState<RoomRecord | null>(null);
 
   // Form state
   const [month, setMonth] = useState(() => {
@@ -62,6 +70,14 @@ export default function RoomRentalPage() {
 
   // Validation warnings
   const [warnings, setWarnings] = useState<string[]>([]);
+
+  // Quick add dialog for room rental
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickMonth, setQuickMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  });
+  const [quickRentAmount, setQuickRentAmount] = useState("");
 
   useEffect(() => {
     loadData();
@@ -555,6 +571,77 @@ if (!settings) {
           </div>
         </div>
       </div>
+
+      {/* Floating Action Button - Quick Add Room Rental */}
+      <Button
+        onClick={() => setQuickAddOpen(true)}
+        size="icon"
+        className="fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-yellow-500 hover:bg-yellow-600 text-white"
+      >
+        <Plus className="h-8 w-8" />
+      </Button>
+
+      {/* Quick Add Dialog */}
+      <Dialog open={quickAddOpen} onOpenChange={setQuickAddOpen}>
+        <DialogContent className="sm:max-w-[425px] w-[92vw] rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-slate-800">
+              Đóng tiền trọ nhanh
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-600">Tháng</label>
+              <Input
+                type="month"
+                value={quickMonth.slice(0, 7)}
+                onChange={(e) => setQuickMonth(`${e.target.value}-01`)}
+                className="h-12 rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-600">Tiền trọ (VND)</label>
+              <Input
+                type="number"
+                value={quickRentAmount}
+                onChange={(e) => setQuickRentAmount(e.target.value)}
+                placeholder="Nhập số tiền"
+                className="h-12 rounded-xl"
+              />
+            </div>
+            <Button
+              onClick={async () => {
+                const amount = parseFloat(quickRentAmount);
+                if (!amount || amount <= 0) {
+                  alert("Vui lòng nhập số tiền hợp lệ!");
+                  return;
+                }
+                setMonth(quickMonth);
+                if (settings) {
+                  setElectricOld(latestRecord?.electric_new?.toString() || "0");
+                  setWaterOld(latestRecord?.water_new?.toString() || "0");
+                  setElectricNew(latestRecord?.electric_new?.toString() || "0");
+                  setWaterNew(latestRecord?.water_new?.toString() || "0");
+                }
+                setCalculationResult({
+                  rent_amount: amount,
+                  electric_used: 0,
+                  electric_amount: 0,
+                  water_used: 0,
+                  water_amount: 0,
+                  custom_fees_total: 0,
+                  custom_fees_details: [],
+                  total_amount: amount,
+                });
+                setQuickAddOpen(false);
+              }}
+              className="w-full h-12 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white font-medium"
+            >
+              Xác nhận
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

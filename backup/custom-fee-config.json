@@ -1,0 +1,14 @@
+[
+  {
+    "idx": 0,
+    "id": "66016062-1140-4218-a4b2-625dc6f46d58",
+    "name": "Rác",
+    "type": "fixed",
+    "unit_price": null,
+    "fixed_amount": "50000.00",
+    "unit_name": null,
+    "is_active": true,
+    "created_at": "2026-01-21 16:52:32.922668+00",
+    "updated_at": "2026-01-22 15:30:22.322+00"
+  }
+]

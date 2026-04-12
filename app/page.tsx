@@ -168,8 +168,8 @@ export default function Home() {
         )}
       </main>
 
-      {/* Floating Action Button (FAB) - Hide on Budget, Wishlist & Diary Tab */}
-      {currentTab !== "budget" && currentTab !== "wishlist" && currentTab !== "diary" && (
+      {/* Floating Action Button (FAB) - Hide on Budget, Wishlist, Diary & Room Rental Tab */}
+      {currentTab !== "budget" && currentTab !== "wishlist" && currentTab !== "diary" && currentTab !== "room-rental" && (
         <Button
           onClick={() => setIsAddOpen(true)}
           size="icon"
