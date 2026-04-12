@@ -240,19 +240,30 @@ export default function RoomRentalPage() {
     return <Loading />;
   }
 
-  if (!settings) {
+if (!settings) {
     return (
       <div className="p-4 space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200">
-            <Receipt className="w-6 h-6 text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200">
+              <Receipt className="w-6 h-6 text-white" />
+            </div>
+
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Tính tiền trọ</h1>
+              <p className="text-sm text-muted-foreground">
+                Tạo hóa đơn hàng tháng
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Tính tiền trọ</h1>
-            <p className="text-sm text-muted-foreground">
-              Tạo hóa đơn hàng tháng
-            </p>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/config")}
+            className="shrink-0"
+          >
+            <SettingsIcon className="w-5 h-5" />
+          </Button>
         </div>
 
         <Card className="border-dashed">
@@ -279,14 +290,24 @@ export default function RoomRentalPage() {
 
   return (
     <div className="p-4 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200">
-          <Receipt className="w-6 h-6 text-white" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200">
+            <Receipt className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Tính tiền trọ</h1>
+            <p className="text-sm text-muted-foreground">Tạo hóa đơn hàng tháng</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tính tiền trọ</h1>
-          <p className="text-sm text-muted-foreground">Tạo hóa đơn hàng tháng</p>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push("/config")}
+          className="shrink-0"
+        >
+          <SettingsIcon className="w-5 h-5" />
+        </Button>
       </div>
 
       {/* Month Selection */}
