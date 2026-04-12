@@ -12,6 +12,9 @@ import { WishlistPage } from "@/components/wishlist/WishlistPage";
 import { DiaryPage } from "@/components/diary/DiaryPage";
 import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import dynamic from "next/dynamic";
+
+const RoomRentalPage = dynamic(() => import("@/app/room-rental/page").then(mod => ({default: mod.default})), {loading: () => <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /></div>});
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 
@@ -155,6 +158,11 @@ export default function Home() {
                 marketPrice={marketPrice}
                 onUpdate={fetchData}
               />
+            )}
+
+            {/* ROOM RENTAL TAB */}
+            {currentTab === "room-rental" && (
+              <RoomRentalPage />
             )}
           </>
         )}
