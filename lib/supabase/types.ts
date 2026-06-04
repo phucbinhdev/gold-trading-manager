@@ -117,9 +117,12 @@ export interface Database {
           serial_number: string | null;
           purchase_price: number;
           extra_cost: number;
+          loan_amount: number;
           selling_price: number | null;
           sale_date: string | null;
           note: string | null;
+          debt_paid: boolean;
+          debt_paid_at: string | null;
           total_cost: number;
           profit_amount: number | null;
           status: "selling" | "sold";
@@ -134,9 +137,12 @@ export interface Database {
           serial_number?: string | null;
           purchase_price: number;
           extra_cost?: number;
+          loan_amount?: number;
           selling_price?: number | null;
           sale_date?: string | null;
           note?: string | null;
+          debt_paid?: boolean;
+          debt_paid_at?: string | null;
         };
         Update: {
           id?: string;
@@ -148,9 +154,12 @@ export interface Database {
           serial_number?: string | null;
           purchase_price?: number;
           extra_cost?: number;
+          loan_amount?: number;
           selling_price?: number | null;
           sale_date?: string | null;
           note?: string | null;
+          debt_paid?: boolean;
+          debt_paid_at?: string | null;
         };
       };
       wishlist: {

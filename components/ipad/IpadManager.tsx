@@ -6,12 +6,14 @@ import {
   Banknote,
   CheckCircle2,
   CircleDollarSign,
+  HandCoins,
   Loader2,
   Pencil,
   Plus,
   ReceiptText,
   Tablet,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Resolver, useForm } from "react-hook-form";
@@ -65,12 +67,9 @@ type IpadTransaction =
 
 const transactionSchema = z.object({
   purchase_date: z.date(),
-  device_name: z.string().min(1, "Nhập tên máy"),
-  storage: z.string().optional(),
-  color: z.string().optional(),
-  serial_number: z.string().optional(),
   purchase_price: z.coerce.number().min(0, "Giá mua không hợp lệ"),
   extra_cost: z.coerce.number().min(0, "Chi phí không hợp lệ"),
+  loan_amount: z.coerce.number().min(0, "Số tiền vay không hợp lệ").optional(),
   selling_price: z.coerce.number().min(0).optional(),
   sale_date: z.date().optional(),
   note: z.string().optional(),
@@ -86,6 +85,15 @@ type SaleFormValues = z.infer<typeof saleSchema>;
 
 const compactDate = (value: string | null) =>
   value ? format(parseISO(value), "dd/MM/yyyy") : "";
+
+const currentMonthKey = () => format(new Date(), "yyyy-MM");
+
+const monthKeyFromDate = (value: string) => value.slice(0, 7);
+
+const monthLabel = (monthKey: string) => {
+  const [year, month] = monthKey.split("-");
+  return `Tháng ${Number(month)}/${year}`;
+};
 
 function moneyInput(onChange: (value?: number) => void) {
   return {
@@ -106,17 +114,15 @@ export function IpadManager() {
   const [saving, setSaving] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [saleTarget, setSaleTarget] = useState<IpadTransaction | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema) as unknown as Resolver<TransactionFormValues>,
     defaultValues: {
       purchase_date: new Date(),
-      device_name: "",
-      storage: "",
-      color: "",
-      serial_number: "",
       purchase_price: 0,
       extra_cost: 0,
+      loan_amount: undefined,
       note: "",
     },
   });
@@ -160,9 +166,26 @@ export function IpadManager() {
     });
   }, [saleForm, saleTarget]);
 
+  const monthOptions = useMemo(() => {
+    const months = new Set([currentMonthKey()]);
+    transactions.forEach((item) => {
+      months.add(monthKeyFromDate(item.purchase_date));
+    });
+
+    return Array.from(months).sort((a, b) => b.localeCompare(a));
+  }, [transactions]);
+
+  const monthlyTransactions = useMemo(
+    () =>
+      transactions.filter(
+        (item) => monthKeyFromDate(item.purchase_date) === selectedMonth,
+      ),
+    [selectedMonth, transactions],
+  );
+
   const summary = useMemo(
     () =>
-      transactions.reduce(
+      monthlyTransactions.reduce(
         (acc, item) => {
           const sold = item.status === "sold";
           return {
@@ -171,6 +194,9 @@ export function IpadManager() {
             totalExtraCost: acc.totalExtraCost + item.extra_cost,
             totalRevenue: acc.totalRevenue + (item.selling_price || 0),
             totalProfit: acc.totalProfit + (item.profit_amount || 0),
+            debtRemaining:
+              acc.debtRemaining + (item.debt_paid ? 0 : item.loan_amount),
+            debtPaidCount: acc.debtPaidCount + (item.debt_paid ? 1 : 0),
             sellingCount: acc.sellingCount + (sold ? 0 : 1),
             soldCount: acc.soldCount + (sold ? 1 : 0),
           };
@@ -181,25 +207,30 @@ export function IpadManager() {
           totalExtraCost: 0,
           totalRevenue: 0,
           totalProfit: 0,
+          debtRemaining: 0,
+          debtPaidCount: 0,
           sellingCount: 0,
           soldCount: 0,
         },
       ),
-    [transactions],
+    [monthlyTransactions],
   );
 
   const onSubmit = async (values: TransactionFormValues) => {
     setSaving(true);
     try {
       const sellingPrice = values.selling_price || null;
+      const loanAmount =
+        values.loan_amount ?? values.purchase_price + (values.extra_cost || 0);
       const { error } = await supabase.from("ipad_transactions").insert({
         purchase_date: format(values.purchase_date, "yyyy-MM-dd"),
-        device_name: values.device_name.trim(),
-        storage: values.storage?.trim() || null,
-        color: values.color?.trim() || null,
-        serial_number: values.serial_number?.trim() || null,
+        device_name: "iPad",
+        storage: null,
+        color: null,
+        serial_number: null,
         purchase_price: values.purchase_price,
         extra_cost: values.extra_cost || 0,
+        loan_amount: loanAmount,
         selling_price: sellingPrice,
         sale_date: sellingPrice
           ? format(values.sale_date || new Date(), "yyyy-MM-dd")
@@ -261,23 +292,55 @@ export function IpadManager() {
     }
   };
 
+  const handleDebtToggle = async (item: IpadTransaction) => {
+    try {
+      const nextPaid = !item.debt_paid;
+      const { error } = await supabase
+        .from("ipad_transactions")
+        .update({
+          debt_paid: nextPaid,
+          debt_paid_at: nextPaid ? new Date().toISOString() : null,
+        })
+        .eq("id", item.id);
+
+      if (error) throw error;
+      toast.success(nextPaid ? "Đã đánh dấu trả xong nợ" : "Đã chuyển về còn nợ");
+      fetchData();
+    } catch (error) {
+      console.error(error);
+      toast.error("Không thể cập nhật trạng thái nợ");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background px-4 py-6 pb-24 text-foreground">
       <PageHeader
         title="Mua bán iPad"
-        subtitle="Theo dõi vốn, doanh thu và lợi nhuận từng máy"
         icon={<Tablet className="h-6 w-6 text-white" />}
         iconColor="bg-gradient-to-br from-sky-500 to-emerald-500"
-        showSettings
       />
 
       <div className="mt-6 space-y-5">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {monthOptions.map((month) => (
+            <Button
+              key={month}
+              variant={selectedMonth === month ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedMonth(month)}
+              className="shrink-0 rounded-full px-4"
+            >
+              {month === currentMonthKey() ? "Tháng này" : monthLabel(month)}
+            </Button>
+          ))}
+        </div>
+
         <Card className="overflow-hidden rounded-2xl border-0 bg-slate-950 py-0 text-white shadow-xl">
           <CardContent className="p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase text-white/60">
-                  Lợi nhuận hiện tại
+                  Lợi nhuận {monthLabel(selectedMonth)}
                 </p>
                 <p
                   className={cn(
@@ -306,8 +369,10 @@ export function IpadManager() {
                 </p>
               </div>
               <div className="rounded-xl bg-white/10 p-3">
-                <p className="text-white/55">Đang bán</p>
-                <p className="mt-1 font-bold">{summary.sellingCount} máy</p>
+                <p className="text-white/55">Nợ chưa trả</p>
+                <p className="mt-1 font-bold">
+                  {formatCurrency(summary.debtRemaining)}
+                </p>
               </div>
               <div className="rounded-xl bg-white/10 p-3">
                 <p className="text-white/55">Đã bán</p>
@@ -317,7 +382,7 @@ export function IpadManager() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <Card className="rounded-2xl py-0">
             <CardContent className="p-4">
               <Banknote className="h-5 w-5 text-sky-600" />
@@ -336,6 +401,15 @@ export function IpadManager() {
               </p>
             </CardContent>
           </Card>
+          <Card className="rounded-2xl py-0">
+            <CardContent className="p-4">
+              <HandCoins className="h-5 w-5 text-emerald-600" />
+              <p className="mt-3 text-xs text-muted-foreground">Đã trả nợ</p>
+              <p className="mt-1 text-sm font-bold">
+                {summary.debtPaidCount} máy
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="flex items-center justify-between">
@@ -350,21 +424,24 @@ export function IpadManager() {
           <div className="flex justify-center p-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : transactions.length === 0 ? (
+        ) : monthlyTransactions.length === 0 ? (
           <Card className="rounded-2xl border-dashed py-0">
             <CardContent className="flex flex-col items-center justify-center p-10 text-center">
               <Tablet className="h-10 w-10 text-muted-foreground/40" />
-              <p className="mt-3 font-semibold">Chưa có giao dịch iPad</p>
+              <p className="mt-3 font-semibold">
+                Chưa có giao dịch iPad trong {monthLabel(selectedMonth)}
+              </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Thêm máy đầu tiên để theo dõi lời lỗ.
+                Chọn tháng cũ hoặc thêm giao dịch mới để theo dõi lời lỗ.
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
-            {transactions.map((item) => {
+            {monthlyTransactions.map((item) => {
               const isSold = item.status === "sold";
               const profit = item.profit_amount || 0;
+              const debtPaid = item.debt_paid;
 
               return (
                 <Card key={item.id} className="rounded-2xl py-0">
@@ -375,6 +452,16 @@ export function IpadManager() {
                           <h3 className="truncate font-bold">{item.device_name}</h3>
                           <Badge variant={isSold ? "secondary" : "outline"}>
                             {isSold ? "Đã bán" : "Đang bán"}
+                          </Badge>
+                          <Badge
+                            variant={debtPaid ? "secondary" : "destructive"}
+                            className={cn(
+                              debtPaid
+                                ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                                : "bg-red-100 text-red-700 hover:bg-red-100",
+                            )}
+                          >
+                            {debtPaid ? "Đã trả nợ" : "Còn nợ"}
                           </Badge>
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -457,11 +544,27 @@ export function IpadManager() {
                             : "Đang chờ"}
                         </p>
                       </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Nợ mua máy</p>
+                        <p
+                          className={cn(
+                            "font-bold",
+                            debtPaid ? "text-emerald-600" : "text-red-600",
+                          )}
+                        >
+                          {debtPaid ? "Đã trả xong" : formatCurrency(item.loan_amount)}
+                        </p>
+                      </div>
                     </div>
 
                     {item.sale_date && (
                       <p className="mt-3 text-xs text-muted-foreground">
                         Bán ngày {compactDate(item.sale_date)}
+                      </p>
+                    )}
+                    {item.debt_paid_at && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Trả nợ ngày {compactDate(item.debt_paid_at)}
                       </p>
                     )}
                     {item.note && (
@@ -470,18 +573,30 @@ export function IpadManager() {
                       </p>
                     )}
 
-                    <Button
-                      variant={isSold ? "outline" : "default"}
-                      className="mt-4 w-full"
-                      onClick={() => setSaleTarget(item)}
-                    >
-                      {isSold ? (
-                        <Pencil className="h-4 w-4" />
-                      ) : (
-                        <CheckCircle2 className="h-4 w-4" />
-                      )}
-                      {isSold ? "Sửa giá bán" : "Nhập giá bán"}
-                    </Button>
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <Button
+                        variant={isSold ? "outline" : "default"}
+                        onClick={() => setSaleTarget(item)}
+                      >
+                        {isSold ? (
+                          <Pencil className="h-4 w-4" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4" />
+                        )}
+                        {isSold ? "Sửa giá bán" : "Nhập giá bán"}
+                      </Button>
+                      <Button
+                        variant={debtPaid ? "outline" : "secondary"}
+                        onClick={() => handleDebtToggle(item)}
+                      >
+                        {debtPaid ? (
+                          <Undo2 className="h-4 w-4" />
+                        ) : (
+                          <HandCoins className="h-4 w-4" />
+                        )}
+                        {debtPaid ? "Chưa trả nợ" : "Đã trả nợ"}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
@@ -507,63 +622,6 @@ export function IpadManager() {
                   <FormItem>
                     <FormLabel>Ngày mua</FormLabel>
                     <DatePicker date={field.value} setDate={field.onChange} />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="device_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tên máy</FormLabel>
-                    <FormControl>
-                      <Input placeholder="iPad Pro M2 11 inch" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="storage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Dung lượng</FormLabel>
-                      <FormControl>
-                        <Input placeholder="128GB" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="color"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Màu</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Space Gray" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="serial_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Seri / IMEI</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Tùy chọn" {...field} />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -605,6 +663,24 @@ export function IpadManager() {
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="loan_amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Số tiền vay</FormLabel>
+                    <FormControl>
+                      <NumericFormat
+                        {...moneyInput(field.onChange)}
+                        value={field.value}
+                        placeholder="Để trống nếu vay bằng tổng giá mua"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
