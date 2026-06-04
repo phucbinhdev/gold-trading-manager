@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Check, Trash2 } from "lucide-react";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
-import type { SavingsRow } from "../page";
+import type { SavingsRow } from "./SavingsContext";
 
 type SavingsBoardProps = {
   rows: SavingsRow[];
@@ -38,17 +37,6 @@ function formatDate(value: string) {
     month: "2-digit",
     year: "numeric",
   }).format(parseLocalDate(value));
-}
-
-function getRemainingMonths(dueDate: string) {
-  const now = new Date();
-  const due = parseLocalDate(dueDate);
-  const monthDiff =
-    (due.getFullYear() - now.getFullYear()) * 12 +
-    due.getMonth() -
-    now.getMonth();
-
-  return Math.max(monthDiff + 1, 1);
 }
 
 function getStatus(row: SavingsRow): { label: string; variant: BadgeProps["variant"] } {

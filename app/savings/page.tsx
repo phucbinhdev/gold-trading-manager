@@ -1,63 +1,89 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { PiggyBank, Target } from "lucide-react";
+import { useCallback, useEffect } from "react";
+import { PiggyBank } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { SavingsBoard } from "./_components/SavingsBoard";
+import {
+  SavingsProvider,
+  type SavingsRow,
+  type SavingsRowInput,
+  useSavingsDispatch,
+  useSavingsState,
+} from "./_components/SavingsContext";
 import { SavingsForm } from "./_components/SavingsForm";
 
-export type SavingsRow = {
-  id: string;
-  created_at: string;
-  label: string;
-  period_amount: number;
-  periods_left: number;
-  remaining_amount: number;
-  closed: boolean;
-  month_cells: Record<string, boolean>;
-  closed_count: number;
-};
+function getCurrentMonthKey() {
+  return new Date().toISOString().slice(0, 7);
+}
 
-export type SavingsRowInput = Omit<
-  SavingsRow,
-  "id" | "created_at" | "month_cells" | "closed_count" | "closed"
-> & { month_cells?: Record<string, boolean> };
-export default function SavingsPage() {
-  const [rows, setRows] = useState<SavingsRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function normalizeRows(rows: SavingsRow[] | null): SavingsRow[] {
+  const monthKey = getCurrentMonthKey();
 
-  const fetchRows = async () => {
-    setLoading(true);
-    setError(null);
+  return (rows || []).map((row) => {
+    const monthCells = row.month_cells || {};
+
+    return {
+      ...row,
+      month_cells: monthCells,
+      closed: Boolean(monthCells[monthKey]),
+    };
+  });
+}
+
+function SavingsPageContent() {
+  const { rows, loading, saving, error } = useSavingsState();
+  const dispatch = useSavingsDispatch();
+
+  const fetchRows = useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      dispatch({ type: "load_start" });
+    }
+
     const { data, error } = await supabase
       .from("savings")
       .select("*")
       .order("created_at", { ascending: true });
 
-    if (error) setError(error.message);
-    setRows(data || []);
-    setLoading(false);
-  };
+    if (error) {
+      dispatch({ type: "load_error", error: error.message });
+      return;
+    }
+
+    dispatch({ type: "load_success", rows: normalizeRows(data || []) });
+  }, [dispatch]);
 
   useEffect(() => {
-    fetchRows();
-  }, []);
+    let active = true;
+
+    const fetchInitialRows = async () => {
+      const { data, error } = await supabase
+        .from("savings")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+      if (!active) return;
+
+      if (error) {
+        dispatch({ type: "load_error", error: error.message });
+        return;
+      }
+
+      dispatch({ type: "load_success", rows: normalizeRows(data || []) });
+    };
+
+    fetchInitialRows();
+
+    return () => {
+      active = false;
+    };
+  }, [dispatch]);
 
   const handleAddRow = async (input: SavingsRowInput) => {
-    setSaving(true);
-    setError(null);
+    dispatch({ type: "saving_start" });
 
     const { error } = await supabase.from("savings").insert({
       label: input.label,
@@ -69,15 +95,20 @@ export default function SavingsPage() {
       closed_count: 0,
     });
 
-    if (error) setError(error.message);
-    await fetchRows();
-    setSaving(false);
+    if (error) {
+      dispatch({ type: "set_error", error: error.message });
+    } else {
+      await fetchRows(false);
+    }
+
+    dispatch({ type: "saving_end" });
   };
 
   const handleToggleClosed = async (row: SavingsRow) => {
-    setError(null);
+    dispatch({ type: "set_error", error: null });
+
     const nextClosed = !row.closed;
-    const monthKey = new Date().toISOString().slice(0, 7);
+    const monthKey = getCurrentMonthKey();
     const nextMonthCells = { ...(row.month_cells || {}) };
     nextMonthCells[monthKey] = nextClosed;
 
@@ -86,7 +117,7 @@ export default function SavingsPage() {
       month_cells: nextMonthCells,
     };
 
-    if (!nextClosed) {
+    if (nextClosed) {
       patch.periods_left = Math.max(0, (row.periods_left || 0) - 1);
       patch.remaining_amount = Math.max(
         0,
@@ -105,19 +136,26 @@ export default function SavingsPage() {
       .update(patch)
       .eq("id", row.id);
 
-    if (error) setError(error.message);
-    await fetchRows();
+    if (error) {
+      dispatch({ type: "set_error", error: error.message });
+    } else {
+      await fetchRows(false);
+    }
   };
 
   const handleRemoveRow = async (rowId: string) => {
-    setError(null);
+    dispatch({ type: "set_error", error: null });
+
     const { error } = await supabase
       .from("savings")
       .delete()
       .eq("id", rowId);
 
-    if (error) setError(error.message);
-    await fetchRows();
+    if (error) {
+      dispatch({ type: "set_error", error: error.message });
+    } else {
+      await fetchRows(false);
+    }
   };
 
   const totalPeriodAmount = rows.reduce(
@@ -192,5 +230,13 @@ export default function SavingsPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function SavingsPage() {
+  return (
+    <SavingsProvider>
+      <SavingsPageContent />
+    </SavingsProvider>
   );
 }

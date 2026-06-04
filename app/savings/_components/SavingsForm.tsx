@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { SavingsRowInput } from "../page";
+import type { SavingsRowInput } from "./SavingsContext";
 
 type SavingsFormProps = {
   onAdd: (input: SavingsRowInput) => void;
