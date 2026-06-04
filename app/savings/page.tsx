@@ -30,9 +30,8 @@ export type SavingsRow = {
 
 export type SavingsRowInput = Omit<
   SavingsRow,
-  "id" | "created_at" | "month_cells" | "closed_count"
+  "id" | "created_at" | "month_cells" | "closed_count" | "closed"
 > & { month_cells?: Record<string, boolean> };
-
 export default function SavingsPage() {
   const [rows, setRows] = useState<SavingsRow[]>([]);
   const [loading, setLoading] = useState(true);
