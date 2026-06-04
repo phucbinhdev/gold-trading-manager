@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/utils";
 import { useSavingsActions, useSavingsState } from "./SavingsContext";
 
 function toDigits(value: string) {
@@ -24,87 +25,83 @@ function formatDigits(value: string) {
 
 export function SavingsForm() {
   const { addRow } = useSavingsActions();
-  const { saving } = useSavingsState();
+  const { saving, rows } = useSavingsState();
   const [label, setLabel] = useState("");
-  const [periodAmount, setPeriodAmount] = useState("");
-  const [periodsLeft, setPeriodsLeft] = useState("");
-  const [remainingAmount, setRemainingAmount] = useState("");
+  const [periodAmount, setPeriodAmount] = useState("5.000.000");
+  const [totalCells, setTotalCells] = useState("20");
+
+  const nextName = useMemo(() => `Dây ${rows.length + 1}`, [rows.length]);
+  const previewTotal = Number(toDigits(periodAmount)) * Number(toDigits(totalCells));
 
   const reset = () => {
     setLabel("");
-    setPeriodAmount("");
-    setPeriodsLeft("");
-    setRemainingAmount("");
+    setPeriodAmount("5.000.000");
+    setTotalCells("20");
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const name = label.trim();
+    const name = label.trim() || nextName;
     const period = Number(toDigits(periodAmount));
-    const periods = Number(toDigits(periodsLeft));
-    const remaining = Number(toDigits(remainingAmount));
+    const cells = Number(toDigits(totalCells));
 
-    if (!name || period <= 0 || periods <= 0 || remaining <= 0) return;
+    if (!name || period <= 0 || cells <= 0) return;
 
     await addRow({
       label: name,
       period_amount: period,
-      periods_left: periods,
-      remaining_amount: remaining,
+      total_cells: cells,
     });
 
     reset();
   };
 
   return (
-    <Card className="rounded-2xl">
-      <CardHeader>
-        <CardTitle className="text-lg">Thêm khoản tích góp</CardTitle>
+    <Card className="rounded-[28px] border-emerald-100/80 bg-white/85 shadow-sm backdrop-blur">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Thêm dây tích góp</CardTitle>
       </CardHeader>
       <CardContent>
         <form className="space-y-3" onSubmit={handleSubmit}>
-          <Input
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-            placeholder="Tên khoản / kỳ"
-            className="h-11 bg-background"
-          />
-          <Input
-            value={periodAmount}
-            onChange={(event) =>
-              setPeriodAmount(formatDigits(event.target.value))
-            }
-            placeholder="Mệnh giá (đ/kỳ)"
-            inputMode="numeric"
-            className="h-11 bg-background"
-          />
-          <Input
-            value={periodsLeft}
-            onChange={(event) =>
-              setPeriodsLeft(formatDigits(event.target.value))
-            }
-            placeholder="Còn lại (kỳ)"
-            inputMode="numeric"
-            className="h-11 bg-background"
-          />
-          <Input
-            value={remainingAmount}
-            onChange={(event) =>
-              setRemainingAmount(formatDigits(event.target.value))
-            }
-            placeholder="Tiền còn lại (đ)"
-            inputMode="numeric"
-            className="h-11 bg-background"
-          />
-          <Button
-            type="submit"
-            className="h-11 w-full bg-emerald-600 hover:bg-emerald-700"
-            disabled={saving}
-          >
-            <Plus className="h-4 w-4" />
-            Thêm
-          </Button>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Input
+              value={label}
+              onChange={(event) => setLabel(event.target.value)}
+              placeholder={nextName}
+              className="h-11 rounded-2xl bg-background"
+            />
+            <Input
+              value={periodAmount}
+              onChange={(event) =>
+                setPeriodAmount(formatDigits(event.target.value))
+              }
+              placeholder="Số tiền / ô"
+              inputMode="numeric"
+              className="h-11 rounded-2xl bg-background"
+            />
+            <Input
+              value={totalCells}
+              onChange={(event) => setTotalCells(formatDigits(event.target.value))}
+              placeholder="Tổng số ô"
+              inputMode="numeric"
+              className="h-11 rounded-2xl bg-background"
+            />
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-2xl bg-emerald-50/80 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-muted-foreground">
+              Mục tiêu dây: <b className="text-emerald-700">{formatCurrency(previewTotal || 0)}</b>
+            </span>
+            <Button
+              type="submit"
+              className="h-11 rounded-2xl bg-emerald-600 px-5 hover:bg-emerald-700"
+              disabled={saving}
+            >
+              <Plus className="h-4 w-4" />
+              Thêm dây
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>
