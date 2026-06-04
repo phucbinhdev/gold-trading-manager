@@ -113,6 +113,7 @@ export function IpadManager() {
   const [saving, setSaving] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [saleTarget, setSaleTarget] = useState<IpadTransaction | null>(null);
+  const [editTarget, setEditTarget] = useState<IpadTransaction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
 
   const form = useForm<TransactionFormValues>({
@@ -131,6 +132,17 @@ export function IpadManager() {
     defaultValues: {
       selling_price: 0,
       sale_date: new Date(),
+    },
+  });
+
+  const editForm = useForm<TransactionFormValues>({
+    resolver: zodResolver(transactionSchema) as unknown as Resolver<TransactionFormValues>,
+    defaultValues: {
+      purchase_date: new Date(),
+      purchase_price: 0,
+      extra_cost: 0,
+      loan_amount: undefined,
+      note: "",
     },
   });
 
@@ -164,6 +176,19 @@ export function IpadManager() {
       sale_date: saleTarget.sale_date ? parseISO(saleTarget.sale_date) : new Date(),
     });
   }, [saleForm, saleTarget]);
+
+  useEffect(() => {
+    if (!editTarget) return;
+    editForm.reset({
+      purchase_date: parseISO(editTarget.purchase_date),
+      purchase_price: editTarget.purchase_price,
+      extra_cost: editTarget.extra_cost,
+      loan_amount: editTarget.loan_amount,
+      selling_price: editTarget.selling_price || undefined,
+      sale_date: editTarget.sale_date ? parseISO(editTarget.sale_date) : undefined,
+      note: editTarget.note || "",
+    });
+  }, [editForm, editTarget]);
 
   const monthOptions = useMemo(() => {
     const months = new Set([currentMonthKey()]);
@@ -270,6 +295,41 @@ export function IpadManager() {
     } catch (error) {
       console.error(error);
       toast.error("Không thể cập nhật giá bán");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onEditSubmit = async (values: TransactionFormValues) => {
+    if (!editTarget) return;
+
+    setSaving(true);
+    try {
+      const sellingPrice = values.selling_price || null;
+      const loanAmount =
+        values.loan_amount ?? values.purchase_price + (values.extra_cost || 0);
+      const { error } = await supabase
+        .from("ipad_transactions")
+        .update({
+          purchase_date: format(values.purchase_date, "yyyy-MM-dd"),
+          purchase_price: values.purchase_price,
+          extra_cost: values.extra_cost || 0,
+          loan_amount: loanAmount,
+          selling_price: sellingPrice,
+          sale_date: sellingPrice
+            ? format(values.sale_date || new Date(), "yyyy-MM-dd")
+            : null,
+          note: values.note?.trim() || null,
+        })
+        .eq("id", editTarget.id);
+
+      if (error) throw error;
+      toast.success("Đã cập nhật thông tin nhập hàng");
+      setEditTarget(null);
+      fetchData();
+    } catch (error) {
+      console.error(error);
+      toast.error("Không thể cập nhật thông tin nhập hàng");
     } finally {
       setSaving(false);
     }
@@ -565,6 +625,13 @@ export function IpadManager() {
 
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <Button
+                        variant="outline"
+                        onClick={() => setEditTarget(item)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Sửa nhập hàng
+                      </Button>
+                      <Button
                         variant={isSold ? "outline" : "default"}
                         onClick={() => setSaleTarget(item)}
                       >
@@ -575,18 +642,20 @@ export function IpadManager() {
                         )}
                         {isSold ? "Sửa giá bán" : "Nhập giá bán"}
                       </Button>
-                      <Button
-                        variant={debtPaid ? "outline" : "secondary"}
-                        onClick={() => handleDebtToggle(item)}
-                      >
-                        {debtPaid ? (
-                          <Undo2 className="h-4 w-4" />
-                        ) : (
-                          <HandCoins className="h-4 w-4" />
-                        )}
-                        {debtPaid ? "Chưa trả nợ" : "Đã trả nợ"}
-                      </Button>
                     </div>
+
+                    <Button
+                      variant={debtPaid ? "outline" : "secondary"}
+                      className="mt-2 w-full"
+                      onClick={() => handleDebtToggle(item)}
+                    >
+                      {debtPaid ? (
+                        <Undo2 className="h-4 w-4" />
+                      ) : (
+                        <HandCoins className="h-4 w-4" />
+                      )}
+                      {debtPaid ? "Chưa trả nợ" : "Đã trả nợ"}
+                    </Button>
                   </CardContent>
                 </Card>
               );
@@ -723,6 +792,141 @@ export function IpadManager() {
                 <Button type="submit" className="w-full" disabled={saving}>
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   Lưu giao dịch
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Sửa thông tin nhập hàng</DialogTitle>
+            <DialogDescription>
+              Cập nhật ngày mua, giá nhập, chi phí, số tiền vay và ghi chú.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-5">
+              <FormField
+                control={editForm.control}
+                name="purchase_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ngày mua</FormLabel>
+                    <DatePicker date={field.value} setDate={field.onChange} />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={editForm.control}
+                  name="purchase_price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Giá mua</FormLabel>
+                      <FormControl>
+                        <NumericFormat
+                          {...moneyInput(field.onChange)}
+                          value={field.value}
+                          placeholder="10.000.000"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="extra_cost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Chi phí</FormLabel>
+                      <FormControl>
+                        <NumericFormat
+                          {...moneyInput(field.onChange)}
+                          value={field.value}
+                          placeholder="0"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={editForm.control}
+                name="loan_amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Số tiền vay</FormLabel>
+                    <FormControl>
+                      <NumericFormat
+                        {...moneyInput(field.onChange)}
+                        value={field.value}
+                        placeholder="Để trống nếu vay bằng tổng giá mua"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="selling_price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Giá bán nếu đã bán</FormLabel>
+                    <FormControl>
+                      <NumericFormat
+                        {...moneyInput(field.onChange)}
+                        value={field.value}
+                        placeholder="Để trống nếu đang bán"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="sale_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ngày bán</FormLabel>
+                    <DatePicker date={field.value} setDate={field.onChange} />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="note"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ghi chú</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Người mua, tình trạng nợ..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button type="submit" className="w-full" disabled={saving}>
+                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Lưu thay đổi
                 </Button>
               </DialogFooter>
             </form>
