@@ -81,18 +81,14 @@ function SavingsPageContent() {
               <div className="flex justify-center text-7xl sm:text-8xl">🧰</div>
             </div>
 
-            <div className="grid grid-cols-3 border-t bg-white/80 px-5 py-4 text-sm">
+            <div className="grid grid-cols-2 border-t bg-white/80 px-5 py-4 text-sm">
               <div>
                 <p className="font-black uppercase text-slate-600">Đã đóng</p>
                 <p className="mt-1 text-lg font-black text-emerald-700">{formatCurrency(summary.paid)}</p>
               </div>
-              <div className="border-x px-4">
+              <div className="border-l pl-4">
                 <p className="font-black uppercase text-slate-600">Còn lại</p>
                 <p className="mt-1 text-lg font-black text-orange-600">{formatCurrency(summary.remaining)}</p>
-              </div>
-              <div className="pl-4">
-                <p className="font-black uppercase text-slate-600">Tiến độ</p>
-                <p className="mt-1 text-lg font-black text-blue-600">{progress}%</p>
               </div>
             </div>
           </CardContent>
