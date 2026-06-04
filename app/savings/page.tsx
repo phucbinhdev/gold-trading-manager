@@ -40,7 +40,7 @@ function SavingsPageContent() {
           </p>
         )}
 
-        <Card className="overflow-hidden rounded-[32px] border-0 bg-white/90 shadow-[0_14px_35px_rgba(15,23,42,0.10)] backdrop-blur">
+        <Card className="overflow-hidden rounded-[32px] border-0 bg-white/90 py-0 shadow-[0_14px_35px_rgba(15,23,42,0.10)] backdrop-blur">
           <CardContent className="p-0">
             <div className="grid gap-4 p-5 sm:grid-cols-[1fr_180px] sm:items-center">
               <div>
@@ -80,8 +80,10 @@ function SavingsPageContent() {
         <SavingsForm />
 
         {loading ? (
-          <Card className="rounded-[28px] py-10 text-center text-sm text-muted-foreground">
-            Đang tải dữ liệu...
+          <Card className="rounded-[28px] py-0 text-center text-sm text-muted-foreground">
+            <CardContent className="p-10">
+              Đang tải dữ liệu...
+            </CardContent>
           </Card>
         ) : (
           <SavingsBoard />

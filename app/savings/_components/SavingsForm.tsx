@@ -81,7 +81,7 @@ export function SavingsForm() {
       </DialogTrigger>
 
       <DialogContent className="rounded-[28px] border-0 bg-transparent p-0 shadow-none sm:max-w-md">
-        <Card className="rounded-[28px] border-emerald-100/80 bg-white shadow-xl">
+        <Card className="rounded-[28px] border-emerald-100/80 bg-white py-0 shadow-xl">
           <CardHeader className="pb-3 pr-12">
             <CardTitle className="text-base">Thêm dây tích góp</CardTitle>
             <DialogHeader className="sr-only">

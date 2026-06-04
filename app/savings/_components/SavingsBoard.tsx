@@ -67,7 +67,7 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
 
   if (completed) {
     return (
-      <Card className="overflow-hidden rounded-[24px] border-0 bg-white/95 shadow-[0_8px_22px_rgba(15,23,42,0.07)]">
+      <Card className="relative overflow-hidden rounded-[24px] border-0 bg-white/95 py-0 shadow-[0_8px_22px_rgba(15,23,42,0.07)]">
         <CardContent className="flex items-center gap-3 p-4">
           <WireBadge index={index} completed />
           <div className="min-w-0 flex-1">
@@ -88,7 +88,7 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
           <Button
             variant="ghost"
             size="icon-sm"
-            className="rounded-full text-slate-400 hover:text-destructive"
+            className="absolute top-4 right-4 rounded-full text-slate-400 hover:text-destructive"
             aria-label={`Xóa ${row.label}`}
             onClick={() => removeRow(row.id)}
             disabled={saving}
@@ -101,8 +101,8 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
   }
 
   return (
-    <Card className="overflow-hidden rounded-[26px] border-0 bg-white/95 shadow-[0_10px_28px_rgba(15,23,42,0.08)]">
-      <CardContent className="grid gap-3 p-4 sm:grid-cols-[160px_1fr_145px_auto] sm:items-center sm:gap-4">
+    <Card className="relative overflow-hidden rounded-[26px] border-0 bg-white/95 py-0 shadow-[0_10px_28px_rgba(15,23,42,0.08)]">
+      <CardContent className="grid gap-3 p-4 sm:grid-cols-[160px_1fr_145px] sm:items-center sm:gap-4">
         <div className="flex items-center gap-3">
           <WireBadge index={index} completed={completed} />
           <div className="min-w-0">
@@ -143,18 +143,16 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="rounded-full text-slate-400 hover:text-destructive"
-            aria-label={`Xóa ${row.label}`}
-            onClick={() => removeRow(row.id)}
-            disabled={saving}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="absolute top-4 right-4 rounded-full text-slate-400 hover:text-destructive"
+          aria-label={`Xóa ${row.label}`}
+          onClick={() => removeRow(row.id)}
+          disabled={saving}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
       </CardContent>
     </Card>
   );
@@ -165,7 +163,7 @@ export function SavingsBoard() {
 
   if (rows.length === 0) {
     return (
-      <Card className="rounded-[28px] border-dashed bg-white/85">
+      <Card className="rounded-[28px] border-dashed bg-white/85 py-0">
         <CardContent className="p-8 text-center">
           <p className="font-semibold">Chưa có dây tích góp</p>
           <p className="mt-1 text-sm text-muted-foreground">
