@@ -10,7 +10,6 @@ import {
   Loader2,
   Pencil,
   Plus,
-  ReceiptText,
   Tablet,
   Trash2,
   Undo2,
@@ -382,22 +381,13 @@ export function IpadManager() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Card className="rounded-2xl py-0">
             <CardContent className="p-4">
               <Banknote className="h-5 w-5 text-sky-600" />
               <p className="mt-3 text-xs text-muted-foreground">Tiền mua máy</p>
               <p className="mt-1 text-sm font-bold">
                 {formatCurrency(summary.totalPurchase)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="rounded-2xl py-0">
-            <CardContent className="p-4">
-              <ReceiptText className="h-5 w-5 text-orange-600" />
-              <p className="mt-3 text-xs text-muted-foreground">Chi phí phát sinh</p>
-              <p className="mt-1 text-sm font-bold">
-                {formatCurrency(summary.totalExtraCost)}
               </p>
             </CardContent>
           </Card>
