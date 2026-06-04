@@ -10,12 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { SavingsRowInput } from "./SavingsContext";
-
-type SavingsFormProps = {
-  onAdd: (input: SavingsRowInput) => void;
-  disabled?: boolean;
-};
+import { useSavingsActions, useSavingsState } from "./SavingsContext";
 
 function toDigits(value: string) {
   return value.replace(/\D/g, "");
@@ -27,7 +22,9 @@ function formatDigits(value: string) {
   return new Intl.NumberFormat("vi-VN").format(Number(numeric));
 }
 
-export function SavingsForm({ onAdd, disabled }: SavingsFormProps) {
+export function SavingsForm() {
+  const { addRow } = useSavingsActions();
+  const { saving } = useSavingsState();
   const [label, setLabel] = useState("");
   const [periodAmount, setPeriodAmount] = useState("");
   const [periodsLeft, setPeriodsLeft] = useState("");
@@ -40,7 +37,7 @@ export function SavingsForm({ onAdd, disabled }: SavingsFormProps) {
     setRemainingAmount("");
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const name = label.trim();
@@ -50,7 +47,7 @@ export function SavingsForm({ onAdd, disabled }: SavingsFormProps) {
 
     if (!name || period <= 0 || periods <= 0 || remaining <= 0) return;
 
-    onAdd({
+    await addRow({
       label: name,
       period_amount: period,
       periods_left: periods,
@@ -103,7 +100,7 @@ export function SavingsForm({ onAdd, disabled }: SavingsFormProps) {
           <Button
             type="submit"
             className="h-11 w-full bg-emerald-600 hover:bg-emerald-700"
-            disabled={!!disabled}
+            disabled={saving}
           >
             <Plus className="h-4 w-4" />
             Thêm

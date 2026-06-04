@@ -4,9 +4,13 @@ import {
   createContext,
   type Dispatch,
   type ReactNode,
+  useCallback,
   useContext,
+  useEffect,
+  useMemo,
   useReducer,
 } from "react";
+import { supabase } from "@/lib/supabase/client";
 
 export type SavingsRow = {
   id: string;
@@ -39,6 +43,12 @@ type SavingsAction =
   | { type: "saving_start" }
   | { type: "saving_end" }
   | { type: "set_error"; error: string | null };
+
+type SavingsActions = {
+  addRow: (input: SavingsRowInput) => Promise<void>;
+  toggleClosed: (row: SavingsRow) => Promise<void>;
+  removeRow: (rowId: string) => Promise<void>;
+};
 
 const initialState: SavingsState = {
   rows: [],
@@ -73,14 +83,135 @@ const SavingsStateContext = createContext<SavingsState | null>(null);
 const SavingsDispatchContext = createContext<Dispatch<SavingsAction> | null>(
   null,
 );
+const SavingsActionsContext = createContext<SavingsActions | null>(null);
+
+function getCurrentMonthKey() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function normalizeRows(rows: SavingsRow[] | null): SavingsRow[] {
+  const monthKey = getCurrentMonthKey();
+
+  return (rows || []).map((row) => {
+    const monthCells = row.month_cells || {};
+
+    return {
+      ...row,
+      month_cells: monthCells,
+      closed: Boolean(monthCells[monthKey]),
+    };
+  });
+}
 
 export function SavingsProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(savingsReducer, initialState);
 
+  const fetchRows = useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      dispatch({ type: "load_start" });
+    }
+
+    const { data, error } = await supabase
+      .from("savings")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      dispatch({ type: "load_error", error: error.message });
+      return;
+    }
+
+    dispatch({ type: "load_success", rows: normalizeRows(data || []) });
+  }, []);
+
+  useEffect(() => {
+    fetchRows();
+  }, [fetchRows]);
+
+  const actions = useMemo<SavingsActions>(
+    () => ({
+      async addRow(input) {
+        dispatch({ type: "saving_start" });
+
+        const { error } = await supabase.from("savings").insert({
+          label: input.label,
+          period_amount: input.period_amount,
+          periods_left: input.periods_left,
+          remaining_amount: input.remaining_amount,
+          closed: false,
+          month_cells: {},
+          closed_count: 0,
+        });
+
+        if (error) {
+          dispatch({ type: "set_error", error: error.message });
+        } else {
+          await fetchRows(false);
+        }
+
+        dispatch({ type: "saving_end" });
+      },
+
+      async toggleClosed(row) {
+        dispatch({ type: "set_error", error: null });
+
+        const nextClosed = !row.closed;
+        const monthKey = getCurrentMonthKey();
+        const nextMonthCells = { ...(row.month_cells || {}) };
+        nextMonthCells[monthKey] = nextClosed;
+
+        const patch: Record<string, unknown> = {
+          closed: nextClosed,
+          month_cells: nextMonthCells,
+        };
+
+        if (nextClosed) {
+          patch.periods_left = Math.max(0, (row.periods_left || 0) - 1);
+          patch.remaining_amount = Math.max(
+            0,
+            (row.remaining_amount || 0) - (row.period_amount || 0),
+          );
+          patch.closed_count = (row.closed_count || 0) + 1;
+        } else {
+          patch.periods_left = (row.periods_left || 0) + 1;
+          patch.remaining_amount =
+            (row.remaining_amount || 0) + (row.period_amount || 0);
+          patch.closed_count = Math.max(0, (row.closed_count || 0) - 1);
+        }
+
+        const { error } = await supabase
+          .from("savings")
+          .update(patch)
+          .eq("id", row.id);
+
+        if (error) {
+          dispatch({ type: "set_error", error: error.message });
+        } else {
+          await fetchRows(false);
+        }
+      },
+
+      async removeRow(rowId) {
+        dispatch({ type: "set_error", error: null });
+
+        const { error } = await supabase.from("savings").delete().eq("id", rowId);
+
+        if (error) {
+          dispatch({ type: "set_error", error: error.message });
+        } else {
+          await fetchRows(false);
+        }
+      },
+    }),
+    [fetchRows],
+  );
+
   return (
     <SavingsStateContext.Provider value={state}>
       <SavingsDispatchContext.Provider value={dispatch}>
-        {children}
+        <SavingsActionsContext.Provider value={actions}>
+          {children}
+        </SavingsActionsContext.Provider>
       </SavingsDispatchContext.Provider>
     </SavingsStateContext.Provider>
   );
@@ -102,4 +233,13 @@ export function useSavingsDispatch() {
   }
 
   return dispatch;
+}
+
+export function useSavingsActions() {
+  const actions = useContext(SavingsActionsContext);
+  if (!actions) {
+    throw new Error("useSavingsActions must be used within SavingsProvider");
+  }
+
+  return actions;
 }

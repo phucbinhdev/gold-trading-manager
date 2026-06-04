@@ -18,13 +18,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
-import type { SavingsRow } from "./SavingsContext";
-
-type SavingsBoardProps = {
-  rows: SavingsRow[];
-  onToggleClosed: (row: SavingsRow) => void;
-  onRemove: (rowId: string) => void;
-};
+import {
+  type SavingsRow,
+  useSavingsActions,
+  useSavingsState,
+} from "./SavingsContext";
 
 function parseLocalDate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
@@ -48,7 +46,9 @@ function getStatus(row: SavingsRow): { label: string; variant: BadgeProps["varia
     : { label: "Đang góp", variant: "outline" };
 }
 
-export function SavingsBoard({ rows, onToggleClosed, onRemove }: SavingsBoardProps) {
+export function SavingsBoard() {
+  const { rows } = useSavingsState();
+  const { removeRow, toggleClosed } = useSavingsActions();
   const summary = rows.reduce(
     (acc, row) => ({
       remaining: acc.remaining + (row.remaining_amount || 0),
@@ -128,7 +128,7 @@ export function SavingsBoard({ rows, onToggleClosed, onRemove }: SavingsBoardPro
                               ? "Đánh dấu chưa đóng"
                               : "Đánh dấu đã đóng"
                           }
-                          onClick={() => onToggleClosed(row)}
+                          onClick={() => toggleClosed(row)}
                         >
                           <Check className="h-4 w-4" />
                         </Button>
@@ -136,7 +136,7 @@ export function SavingsBoard({ rows, onToggleClosed, onRemove }: SavingsBoardPro
                           variant="ghost"
                           size="icon-xs"
                           aria-label={`Xóa ${row.label}`}
-                          onClick={() => onRemove(row.id)}
+                          onClick={() => removeRow(row.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
