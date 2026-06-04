@@ -106,6 +106,53 @@ export interface Database {
           updated_at?: string;
         };
       };
+      ipad_transactions: {
+        Row: {
+          id: string;
+          created_at: string;
+          purchase_date: string;
+          device_name: string;
+          storage: string | null;
+          color: string | null;
+          serial_number: string | null;
+          purchase_price: number;
+          extra_cost: number;
+          selling_price: number | null;
+          sale_date: string | null;
+          note: string | null;
+          total_cost: number;
+          profit_amount: number | null;
+          status: "selling" | "sold";
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          purchase_date?: string;
+          device_name: string;
+          storage?: string | null;
+          color?: string | null;
+          serial_number?: string | null;
+          purchase_price: number;
+          extra_cost?: number;
+          selling_price?: number | null;
+          sale_date?: string | null;
+          note?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          purchase_date?: string;
+          device_name?: string;
+          storage?: string | null;
+          color?: string | null;
+          serial_number?: string | null;
+          purchase_price?: number;
+          extra_cost?: number;
+          selling_price?: number | null;
+          sale_date?: string | null;
+          note?: string | null;
+        };
+      };
       wishlist: {
         Row: {
           id: string;

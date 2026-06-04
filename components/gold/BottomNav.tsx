@@ -5,6 +5,7 @@ import {
   FileText,
   CalendarClock,
   PiggyBank,
+  Tablet,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -12,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Vàng", icon: Home },
+  { href: "/ipad", label: "iPad", icon: Tablet },
   { href: "/history", label: "Lịch Sử", icon: CalendarClock },
   { href: "/budget", label: "Tính Rợ", icon: FileText },
   { href: "/savings", label: "Tích góp", icon: PiggyBank },
