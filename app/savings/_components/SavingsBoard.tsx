@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Trash2 } from "lucide-react";
+import { Check, Trash2, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -45,19 +45,19 @@ function CellButton({
       onClick={onToggle}
       aria-label={checked ? `Bỏ đóng ô ${number}` : `Đánh dấu đã đóng ô ${number}`}
       className={cn(
-        "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold transition active:scale-95 disabled:opacity-60",
+        "flex h-11 w-11 items-center justify-center rounded-full border text-sm font-bold transition active:scale-95 disabled:opacity-60",
         checked
-          ? "border-emerald-500 bg-emerald-600 text-white shadow-[0_4px_10px_rgba(22,163,74,0.25)]"
+          ? "border-emerald-500 bg-emerald-600 text-white shadow-[0_5px_12px_rgba(22,163,74,0.28)]"
           : "border-slate-200 bg-white text-slate-600 shadow-sm hover:border-emerald-300 hover:text-emerald-700",
       )}
     >
-      {checked ? <Check className="h-4 w-4 stroke-[4]" /> : number}
+      {checked ? <Check className="h-5 w-5 stroke-[4]" /> : number}
     </button>
   );
 }
 
 function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
-  const { removeRow, toggleCell, toggleClosed } = useSavingsActions();
+  const { removeRow, toggleCell } = useSavingsActions();
   const { saving } = useSavingsState();
   const totalCells = getTotalCells(row);
   const completedCells = getCompletedCellSet(row);
@@ -65,9 +65,44 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
   const remainingAmount = Math.max(0, (totalCells - completedCells.size) * (row.period_amount || 0));
   const completed = totalCells > 0 && completedCells.size >= totalCells;
 
+  if (completed) {
+    return (
+      <Card className="overflow-hidden rounded-[24px] border-0 bg-white/95 shadow-[0_8px_22px_rgba(15,23,42,0.07)]">
+        <CardContent className="flex items-center gap-3 p-4">
+          <WireBadge index={index} completed />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate text-base font-extrabold text-slate-900">{row.label}</h3>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-black text-emerald-700">
+                <Trophy className="h-3.5 w-3.5" />
+                Đã Win
+              </span>
+            </div>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              {completedCells.size} / {totalCells} ô - {formatCurrency(row.period_amount)} / ô
+            </p>
+            <p className="mt-1 text-sm font-extrabold text-emerald-700">
+              Đã đóng {formatCurrency(paidAmount)}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-full text-slate-400 hover:text-destructive"
+            aria-label={`Xóa ${row.label}`}
+            onClick={() => removeRow(row.id)}
+            disabled={saving}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="overflow-hidden rounded-[26px] border-0 bg-white/95 shadow-[0_10px_28px_rgba(15,23,42,0.08)]">
-      <CardContent className="grid gap-3 p-3 sm:grid-cols-[160px_1fr_145px_auto] sm:items-center sm:gap-4">
+      <CardContent className="grid gap-3 p-4 sm:grid-cols-[160px_1fr_145px_auto] sm:items-center sm:gap-4">
         <div className="flex items-center gap-3">
           <WireBadge index={index} completed={completed} />
           <div className="min-w-0">
@@ -81,7 +116,7 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-5 gap-2 sm:grid-cols-[repeat(auto-fit,2rem)] sm:justify-start">
+        <div className="grid grid-cols-5 justify-items-start gap-x-3 gap-y-3 sm:grid-cols-[repeat(auto-fit,2.75rem)] sm:justify-start">
           {Array.from({ length: totalCells }, (_, cellIndex) => {
             const number = cellIndex + 1;
             const checked = completedCells.has(number);
@@ -109,16 +144,6 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="outline"
-            size="icon-sm"
-            className="rounded-full border-slate-200 bg-white"
-            aria-label={completed ? "Bỏ hoàn thành dây" : "Hoàn thành dây"}
-            onClick={() => toggleClosed(row)}
-            disabled={saving}
-          >
-            <ChevronDown className="h-4 w-4" />
-          </Button>
           <Button
             variant="ghost"
             size="icon-sm"

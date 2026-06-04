@@ -1,7 +1,5 @@
 "use client";
 
-import { ArrowLeft, Award, HelpCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { SavingsBoard } from "./_components/SavingsBoard";
@@ -36,21 +34,6 @@ function SavingsPageContent() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,#d8f4ff_0%,#eefbf2_34%,#f8fafc_70%)] pb-24 text-foreground">
       <div className="mx-auto max-w-5xl space-y-4 px-4 py-5">
-        <header className="flex items-center justify-between">
-          <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-white/90 shadow-sm">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-black text-slate-900">Tích góp</h1>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="h-11 w-11 rounded-full bg-white/90 shadow-sm" aria-label="Hướng dẫn">
-              <HelpCircle className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-11 w-11 rounded-full bg-white/90 shadow-sm" aria-label="Thành tích">
-              <Award className="h-5 w-5" />
-            </Button>
-          </div>
-        </header>
-
         {error && (
           <p className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
             Lỗi: {error}
@@ -103,21 +86,6 @@ function SavingsPageContent() {
         ) : (
           <SavingsBoard />
         )}
-
-        <Card className="overflow-hidden rounded-[28px] border-amber-200 bg-gradient-to-r from-amber-50 to-white shadow-sm">
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="text-6xl">🪙</div>
-            <div className="flex-1">
-              <p className="font-black uppercase text-amber-800">Hoàn thành mục tiêu</p>
-              <p className="text-sm text-slate-600">Khi bạn hoàn thành tất cả các ô, phần thưởng đặc biệt đang chờ bạn!</p>
-            </div>
-            <div className="rounded-2xl bg-white px-4 py-3 text-center shadow-sm">
-              <div className="text-3xl">🎁</div>
-              <p className="text-xs font-bold text-violet-700">Phần thưởng đặc biệt</p>
-              <p className="font-black text-violet-800">{formatCurrency(Math.round(summary.goal * 0.05))}</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
