@@ -4,6 +4,7 @@ import {
   Home,
   FileText,
   CalendarClock,
+  PiggyBank,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -13,6 +14,7 @@ const navItems = [
   { href: "/", label: "Vàng", icon: Home },
   { href: "/history", label: "Lịch Sử", icon: CalendarClock },
   { href: "/budget", label: "Tính Rợ", icon: FileText },
+  { href: "/savings", label: "Tích góp", icon: PiggyBank },
   { href: "/room-rental", label: "Tiền Trọ", icon: Home },
 ];
 
