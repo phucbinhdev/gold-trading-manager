@@ -3,6 +3,17 @@
 import { Check, Trash2, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   getCompletedCellSet,
@@ -57,6 +68,46 @@ function CellButton({
   );
 }
 
+function DeleteSavingsRowButton({
+  label,
+  disabled,
+  onConfirm,
+}: {
+  label: string;
+  disabled: boolean;
+  onConfirm: () => void;
+}) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="absolute top-4 right-4 rounded-full text-muted-foreground hover:text-destructive"
+          aria-label={`Xóa ${label}`}
+          disabled={disabled}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Xóa dây tích góp này?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Dây “{label}” sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Hủy</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} className="bg-destructive">
+            Xóa
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
   const { removeRow, toggleCell } = useSavingsActions();
   const { saving } = useSavingsState();
@@ -87,20 +138,14 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
               Đã đóng {formatCurrency(paidAmount)}
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="absolute top-4 right-4 rounded-full text-muted-foreground hover:text-destructive"
-            aria-label={`Xóa ${row.label}`}
-            data-haptic="warning"
-            onClick={() => {
+          <DeleteSavingsRowButton
+            label={row.label}
+            disabled={saving}
+            onConfirm={() => {
               void haptics.trigger("warning");
               removeRow(row.id);
             }}
-            disabled={saving}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          />
         </CardContent>
       </Card>
     );
@@ -152,20 +197,14 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
           </div>
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="absolute top-4 right-4 rounded-full text-muted-foreground hover:text-destructive"
-          aria-label={`Xóa ${row.label}`}
-          data-haptic="warning"
-          onClick={() => {
+        <DeleteSavingsRowButton
+          label={row.label}
+          disabled={saving}
+          onConfirm={() => {
             void haptics.trigger("warning");
             removeRow(row.id);
           }}
-          disabled={saving}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        />
       </CardContent>
     </Card>
   );
