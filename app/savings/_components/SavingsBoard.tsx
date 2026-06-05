@@ -158,6 +158,15 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
   );
 }
 
+function getSavingsRowSortMeta(row: SavingsRow) {
+  const totalCells = getTotalCells(row);
+  const completedCells = getCompletedCellSet(row).size;
+  const completed = totalCells > 0 && completedCells >= totalCells;
+  const totalAmount = totalCells * (row.period_amount || 0);
+
+  return { completed, completedCells, totalAmount };
+}
+
 export function SavingsBoard() {
   const { rows } = useSavingsState();
 
@@ -174,9 +183,28 @@ export function SavingsBoard() {
     );
   }
 
+  const sortedRows = [...rows].sort((left, right) => {
+    const leftMeta = getSavingsRowSortMeta(left);
+    const rightMeta = getSavingsRowSortMeta(right);
+
+    if (leftMeta.completed !== rightMeta.completed) {
+      return leftMeta.completed ? -1 : 1;
+    }
+
+    if (leftMeta.completedCells !== rightMeta.completedCells) {
+      return rightMeta.completedCells - leftMeta.completedCells;
+    }
+
+    if (leftMeta.totalAmount !== rightMeta.totalAmount) {
+      return leftMeta.totalAmount - rightMeta.totalAmount;
+    }
+
+    return new Date(left.created_at).getTime() - new Date(right.created_at).getTime();
+  });
+
   return (
     <div className="space-y-3">
-      {rows.map((row, index) => (
+      {sortedRows.map((row, index) => (
         <SavingsWireCard key={row.id} row={row} index={index + 1} />
       ))}
     </div>
