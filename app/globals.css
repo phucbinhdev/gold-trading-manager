@@ -117,10 +117,51 @@
 }
 
 @layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    text-wrap: balance;
+  }
+
+  p,
+  li {
+    text-wrap: pretty;
+  }
+
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .numeric-stable {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tap-target {
+    min-height: 40px;
+    min-width: 40px;
+  }
+
+  .image-outline {
+    outline: 1px solid rgb(0 0 0 / 10%);
+    outline-offset: -1px;
+  }
+
+  .dark .image-outline {
+    outline-color: rgb(255 255 255 / 10%);
   }
 }

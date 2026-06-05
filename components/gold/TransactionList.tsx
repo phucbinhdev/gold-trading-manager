@@ -101,7 +101,7 @@ export function TransactionList({
             variant={selectedYear === "all" ? "default" : "outline"}
             size="sm"
             onClick={() => setSelectedYear("all")}
-            className="rounded-full px-4"
+            className="rounded-full px-4 numeric-stable"
           >
             Tất cả
           </Button>
@@ -111,7 +111,7 @@ export function TransactionList({
               variant={selectedYear === year ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedYear(year)}
-              className="rounded-full px-4"
+              className="rounded-full px-4 numeric-stable"
             >
               {year}
             </Button>
@@ -131,7 +131,7 @@ export function TransactionList({
 
       <div className="space-y-3">
         {filteredTransactions.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground bg-muted/30 rounded-xl">
+          <div className="rounded-2xl bg-muted/30 py-12 text-center text-muted-foreground ring-1 ring-border/50">
             <div className="flex justify-center mb-2">
               <Download className="h-8 w-8 opacity-20" />
             </div>
@@ -147,14 +147,14 @@ export function TransactionList({
             return (
               <div
                 key={t.id}
-                className="relative bg-card rounded-xl border border-border/50 p-4 shadow-sm flex flex-col gap-3 group"
+                className="group relative flex flex-col gap-3 rounded-2xl border border-border/50 bg-card p-4 shadow-[0_12px_30px_-24px_rgba(0,0,0,0.45)] transition-[border-color,box-shadow,transform] duration-150 ease-out hover:border-border hover:shadow-[0_18px_42px_-28px_rgba(0,0,0,0.5)] active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100"
               >
                 <div className="flex justify-between items-start">
                   {/* Left: Info */}
                   <div className="flex items-start gap-3">
                     <div
                       className={cn(
-                        "h-10 w-10 rounded-full flex items-center justify-center bg-muted shrink-0",
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted shadow-inner image-outline",
                         isProfit
                           ? "bg-green-500/10 text-green-600"
                           : "bg-red-500/10 text-red-600",
@@ -168,7 +168,7 @@ export function TransactionList({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-sm">
+                        <p className="text-sm font-semibold numeric-stable">
                           {t.amount_chi} Chỉ
                         </p>
                       </div>
@@ -190,12 +190,12 @@ export function TransactionList({
 
                   {/* Right: Profit/Value context */}
                   <div className="text-right shrink-0">
-                    <p className="font-bold text-sm">
+                    <p className="text-sm font-bold numeric-stable">
                       {formatCurrency(totalCost)}
                     </p>
                     <p
                       className={cn(
-                        "text-xs font-medium",
+                        "text-xs font-medium numeric-stable",
                         isProfit ? "text-green-600" : "text-red-600",
                       )}
                     >
@@ -206,13 +206,13 @@ export function TransactionList({
                 </div>
 
                 {/* Actions */}
-                <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute right-2 top-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                        className="h-10 w-10 text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
