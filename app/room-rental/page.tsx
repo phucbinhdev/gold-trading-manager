@@ -13,7 +13,6 @@ import {
   getSettings,
 } from "@/lib/supabase";
 import type { CalculationResult, CustomFee, Settings } from "@/types";
-import type { Record as RoomRecord } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import {
   Calendar,
@@ -43,7 +42,6 @@ export default function RoomRentalPage() {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [customFees, setCustomFees] = useState<CustomFee[]>([]);
-  const [latestRecord, setLatestRecord] = useState<RoomRecord | null>(null);
 
   // Form state
   const [month, setMonth] = useState(() => {
@@ -79,7 +77,6 @@ export default function RoomRentalPage() {
 
       setSettings(settingsData);
       setCustomFees(feesData);
-      setLatestRecord(latestData);
 
       // Auto-fill old meter readings from latest record
       if (latestData) {
@@ -232,11 +229,6 @@ export default function RoomRentalPage() {
       setSaving(false);
     }
   }
-
-  const formatMonth = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return `Tháng ${date.getMonth() + 1}, ${date.getFullYear()}`;
-  };
 
   if (loading) {
     return <Loading />;
@@ -493,15 +485,7 @@ if (!settings) {
           <h2 className="font-bold text-sm text-gray-900">Điều hướng nhanh</h2>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            variant="outline"
-            onClick={() => router.push("/history")}
-            className="h-12 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Xem lịch sử
-          </Button>
+        <div className="grid gap-3">
           <Button
             variant="outline"
             onClick={() => router.push("/config")}

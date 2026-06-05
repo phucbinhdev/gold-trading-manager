@@ -3,7 +3,6 @@
 import {
   Home,
   FileText,
-  CalendarClock,
   PiggyBank,
   Tablet,
 } from "lucide-react";
@@ -14,7 +13,6 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "Vàng", icon: Home },
   { href: "/ipad", label: "iPad", icon: Tablet },
-  { href: "/history", label: "Lịch Sử", icon: CalendarClock },
   { href: "/budget", label: "Tính Rợ", icon: FileText },
   { href: "/savings", label: "Tích góp", icon: PiggyBank },
   { href: "/room-rental", label: "Tiền Trọ", icon: Home },

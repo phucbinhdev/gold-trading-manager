@@ -1,7 +1,9 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { formatCurrency } from "@/lib/utils";
+import { PiggyBank } from "lucide-react";
 import { SavingsBoard } from "./_components/SavingsBoard";
 import {
   getTotalCells,
@@ -34,6 +36,13 @@ function SavingsPageContent() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,#d8f4ff_0%,#eefbf2_34%,#f8fafc_70%)] pb-24 text-foreground">
       <div className="mx-auto max-w-5xl space-y-4 px-4 py-5">
+        <PageHeader
+          title="Tích góp"
+          subtitle="Theo dõi mục tiêu tiết kiệm"
+          icon={<PiggyBank className="h-6 w-6 text-white" />}
+          iconColor="bg-gradient-to-br from-emerald-500 to-green-600"
+        />
+
         {error && (
           <p className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
             Lỗi: {error}

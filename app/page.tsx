@@ -88,16 +88,8 @@ export default function Home() {
           />
 
           <div>
-            <div className="flex items-center justify-between mb-2 px-1">
+            <div className="mb-2 px-1">
               <h3 className="font-bold text-lg">Lịch sử giao dịch</h3>
-              <Button
-                variant="link"
-                size="sm"
-                onClick={() => window.location.href = "/history"}
-                className="text-primary pr-0"
-              >
-                Xem tất cả
-              </Button>
             </div>
             <TransactionList
               transactions={transactions}
