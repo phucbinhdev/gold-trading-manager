@@ -410,8 +410,8 @@ export function IpadManager() {
           ))}
         </div>
 
-        <Card className="overflow-hidden rounded-2xl border-0 bg-slate-950 py-0 text-white shadow-xl">
-          <CardContent className="p-5">
+        <section className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-xl shadow-slate-950/20 ring-1 ring-white/10">
+          <div className="p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase text-white/60">
@@ -454,8 +454,8 @@ export function IpadManager() {
                 <p className="mt-1 font-bold">{summary.soldCount} máy</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
         <div className="grid grid-cols-2 gap-3">
           <Card className="rounded-2xl py-0">
