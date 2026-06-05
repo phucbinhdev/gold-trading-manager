@@ -89,7 +89,7 @@ export default function Home() {
 
           <div>
             <div className="flex items-center justify-between mb-2 px-1">
-              <h3 className="font-bold text-lg">Giao dịch gần đây</h3>
+              <h3 className="font-bold text-lg">Lịch sử giao dịch</h3>
               <Button
                 variant="link"
                 size="sm"
@@ -100,7 +100,7 @@ export default function Home() {
               </Button>
             </div>
             <TransactionList
-              transactions={transactions.slice(0, 3)}
+              transactions={transactions}
               marketPrice={marketPrice}
               onUpdate={fetchData}
             />
