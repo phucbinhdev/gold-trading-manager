@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, ShoppingCart, ExternalLink, MoreVertical, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, MoreVertical, CheckCircle2 } from "lucide-react";
 import { NumericFormat } from "react-number-format";
 import {
   Dialog,
@@ -15,17 +15,36 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type WishlistItem = Database["public"]["Tables"]["wishlist"]["Row"];
+type WishlistPriority = "Low" | "Medium" | "High";
+const priorityOptions: Array<{
+  value: WishlistPriority;
+  label: string;
+  color: string;
+  active: string;
+}> = [
+  {
+    value: "High",
+    label: "Cao 🔥",
+    color: "border-red-200 text-red-500 bg-red-50",
+    active: "bg-red-500 text-white border-red-600 shadow-md shadow-red-100",
+  },
+  {
+    value: "Medium",
+    label: "Vừa ⚡",
+    color: "border-amber-200 text-amber-600 bg-amber-50",
+    active: "bg-amber-500 text-white border-amber-600 shadow-md shadow-amber-100",
+  },
+  {
+    value: "Low",
+    label: "Thấp 🧊",
+    color: "border-blue-200 text-blue-500 bg-blue-50",
+    active: "bg-blue-500 text-white border-blue-600 shadow-md shadow-blue-100",
+  },
+];
 
 export function WishlistPage() {
   const [items, setItems] = useState<WishlistItem[]>([]);
@@ -37,7 +56,7 @@ export function WishlistPage() {
   const [name, setName] = useState("");
   const [price, setPrice] = useState<number | undefined>(undefined);
   const [note, setNote] = useState("");
-  const [priority, setPriority] = useState<"Low" | "Medium" | "High">("Medium");
+  const [priority, setPriority] = useState<WishlistPriority>("Medium");
   const [url, setUrl] = useState("");
 
   const fetchWishlist = async () => {
@@ -61,7 +80,7 @@ export function WishlistPage() {
   };
 
   useEffect(() => {
-    fetchWishlist();
+    void Promise.resolve().then(fetchWishlist);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -277,15 +296,11 @@ export function WishlistPage() {
             <div className="space-y-3">
               <Label className="text-sm font-bold text-slate-600 uppercase tracking-wider">Độ ưu tiên</Label>
               <div className="flex gap-2">
-                {[
-                  { value: 'High', label: 'Cao 🔥', color: 'border-red-200 text-red-500 bg-red-50', active: 'bg-red-500 text-white border-red-600 shadow-md shadow-red-100' },
-                  { value: 'Medium', label: 'Vừa ⚡', color: 'border-amber-200 text-amber-600 bg-amber-50', active: 'bg-amber-500 text-white border-amber-600 shadow-md shadow-amber-100' },
-                  { value: 'Low', label: 'Thấp 🧊', color: 'border-blue-200 text-blue-500 bg-blue-50', active: 'bg-blue-500 text-white border-blue-600 shadow-md shadow-blue-100' }
-                ].map((p) => (
+                {priorityOptions.map((p) => (
                   <button
                     key={p.value}
                     type="button"
-                    onClick={() => setPriority(p.value as any)}
+                    onClick={() => setPriority(p.value)}
                     className={cn(
                       "flex-1 py-3 px-2 rounded-2xl border-2 font-bold text-sm transition-all active:scale-95",
                       priority === p.value ? p.active : cn("opacity-60", p.color)

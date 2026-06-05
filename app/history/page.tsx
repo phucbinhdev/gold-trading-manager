@@ -29,9 +29,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 export default function HistoryPage() {
   const router = useRouter();
+  const haptics = useWebHaptics();
   const [loading, setLoading] = useState(true);
   const [records, setRecords] = useState<RecordType[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -74,10 +77,12 @@ export default function HistoryPage() {
 
     const success = await deleteRecord(deleteConfirm.recordId);
     if (success) {
+      void haptics.trigger("success");
       setRecords(records.filter((r) => r.id !== deleteConfirm.recordId));
       setSelectedRecord(null);
     } else {
-      alert("Có lỗi xảy ra, vui lòng thử lại.");
+      void haptics.trigger("error");
+      toast.error("Không thể xóa bản ghi");
     }
     setDeleteConfirm({ isOpen: false, recordId: null, recordMonth: "" });
   }
@@ -151,7 +156,10 @@ export default function HistoryPage() {
               >
                 <div
                   className="flex items-center justify-between gap-4"
-                  onClick={() => setSelectedRecord(isSelected ? null : record)}
+                  onClick={() => {
+                    void haptics.trigger("selection");
+                    setSelectedRecord(isSelected ? null : record);
+                  }}
                 >
                   <div className="flex items-center gap-4 min-w-0 space-y-1">
                     <div
@@ -222,9 +230,11 @@ export default function HistoryPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           if (settings?.bank_id && settings?.account_number) {
+                            void haptics.trigger("medium");
                             setQrModal({ isOpen: true, record });
                           } else {
-                            alert("Vui lòng cấu hình ngân hàng trước!");
+                            void haptics.trigger("warning");
+                            toast.warning("Vui lòng cấu hình ngân hàng trước");
                             router.push("/config");
                           }
                         }}
@@ -272,6 +282,7 @@ export default function HistoryPage() {
             <AlertDialogCancel>Hủy</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
+              data-haptic="warning"
               className="bg-red-600 hover:bg-red-700"
             >
               Xóa

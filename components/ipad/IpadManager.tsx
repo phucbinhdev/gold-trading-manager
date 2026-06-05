@@ -61,6 +61,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
 import { cn, formatCurrency } from "@/lib/utils";
+import { useWebHaptics } from "web-haptics/react";
 
 type IpadTransaction =
   Database["public"]["Tables"]["ipad_transactions"]["Row"];
@@ -109,6 +110,7 @@ function moneyInput(onChange: (value?: number) => void) {
 }
 
 export function IpadManager() {
+  const haptics = useWebHaptics();
   const [transactions, setTransactions] = useState<IpadTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -264,12 +266,14 @@ export function IpadManager() {
       });
 
       if (error) throw error;
+      void haptics.trigger("success");
       toast.success("Đã thêm giao dịch iPad");
       setIsAddOpen(false);
       form.reset();
       fetchData();
     } catch (error) {
       console.error(error);
+      void haptics.trigger("error");
       toast.error("Không thể lưu giao dịch iPad");
     } finally {
       setSaving(false);
@@ -290,11 +294,13 @@ export function IpadManager() {
         .eq("id", saleTarget.id);
 
       if (error) throw error;
+      void haptics.trigger("success");
       toast.success("Đã cập nhật giá bán");
       setSaleTarget(null);
       fetchData();
     } catch (error) {
       console.error(error);
+      void haptics.trigger("error");
       toast.error("Không thể cập nhật giá bán");
     } finally {
       setSaving(false);
@@ -325,11 +331,13 @@ export function IpadManager() {
         .eq("id", editTarget.id);
 
       if (error) throw error;
+      void haptics.trigger("success");
       toast.success("Đã cập nhật thông tin nhập hàng");
       setEditTarget(null);
       fetchData();
     } catch (error) {
       console.error(error);
+      void haptics.trigger("error");
       toast.error("Không thể cập nhật thông tin nhập hàng");
     } finally {
       setSaving(false);
@@ -344,10 +352,12 @@ export function IpadManager() {
         .eq("id", id);
 
       if (error) throw error;
+      void haptics.trigger("success");
       toast.success("Đã xóa giao dịch");
       fetchData();
     } catch (error) {
       console.error(error);
+      void haptics.trigger("error");
       toast.error("Không thể xóa giao dịch");
     }
   };
@@ -364,10 +374,12 @@ export function IpadManager() {
         .eq("id", item.id);
 
       if (error) throw error;
+      void haptics.trigger(nextPaid ? "success" : "selection");
       toast.success(nextPaid ? "Đã đánh dấu trả xong nợ" : "Đã chuyển về còn nợ");
       fetchData();
     } catch (error) {
       console.error(error);
+      void haptics.trigger("error");
       toast.error("Không thể cập nhật trạng thái nợ");
     }
   };
@@ -387,7 +399,10 @@ export function IpadManager() {
               key={month}
               variant={selectedMonth === month ? "default" : "outline"}
               size="sm"
-              onClick={() => setSelectedMonth(month)}
+              onClick={() => {
+                void haptics.trigger("selection");
+                setSelectedMonth(month);
+              }}
               className="shrink-0 rounded-full px-4"
             >
               {month === currentMonthKey() ? "Tháng này" : monthLabel(month)}
@@ -465,7 +480,14 @@ export function IpadManager() {
 
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">Danh sách máy</h2>
-          <Button onClick={() => setIsAddOpen(true)} size="sm">
+          <Button
+            onClick={() => {
+              void haptics.trigger("medium");
+              setIsAddOpen(true);
+            }}
+            size="sm"
+            data-haptic="medium"
+          >
             <Plus className="h-4 w-4" />
             Thêm iPad
           </Button>
@@ -524,6 +546,7 @@ export function IpadManager() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            data-haptic="warning"
                             className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -540,6 +563,7 @@ export function IpadManager() {
                             <AlertDialogCancel>Hủy</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDelete(item.id)}
+                              data-haptic="warning"
                               className="bg-destructive"
                             >
                               Xóa
@@ -619,14 +643,20 @@ export function IpadManager() {
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <Button
                         variant="outline"
-                        onClick={() => setEditTarget(item)}
+                        onClick={() => {
+                          void haptics.trigger("medium");
+                          setEditTarget(item);
+                        }}
                       >
                         <Pencil className="h-4 w-4" />
                         Sửa nhập hàng
                       </Button>
                       <Button
                         variant={isSold ? "outline" : "default"}
-                        onClick={() => setSaleTarget(item)}
+                        onClick={() => {
+                          void haptics.trigger("medium");
+                          setSaleTarget(item);
+                        }}
                       >
                         {isSold ? (
                           <Pencil className="h-4 w-4" />
@@ -640,6 +670,7 @@ export function IpadManager() {
                     <Button
                       variant={debtPaid ? "outline" : "secondary"}
                       className="mt-2 w-full"
+                      data-haptic={debtPaid ? "selection" : "success"}
                       onClick={() => handleDebtToggle(item)}
                     >
                       {debtPaid ? (

@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import { useSavingsActions, useSavingsState } from "./SavingsContext";
+import { useWebHaptics } from "web-haptics/react";
 
 function toDigits(value: string) {
   return value.replace(/\D/g, "");
@@ -34,6 +35,7 @@ function formatDigits(value: string) {
 export function SavingsForm() {
   const { addRow } = useSavingsActions();
   const { saving, rows } = useSavingsState();
+  const haptics = useWebHaptics();
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
   const [periodAmount, setPeriodAmount] = useState("5.000.000");
@@ -64,6 +66,7 @@ export function SavingsForm() {
     });
 
     reset();
+    void haptics.trigger("success");
     setOpen(false);
   };
 
@@ -73,6 +76,7 @@ export function SavingsForm() {
         <Button
           type="button"
           size="icon"
+          data-haptic="medium"
           className="fixed right-5 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 h-14 w-14 rounded-full bg-emerald-600 text-white shadow-[0_12px_24px_rgba(5,150,105,0.35)] hover:bg-emerald-700"
           aria-label="Thêm dây tích góp"
         >
@@ -122,6 +126,7 @@ export function SavingsForm() {
                 </span>
                 <Button
                   type="submit"
+                  data-haptic="success"
                   className="h-11 rounded-2xl bg-emerald-600 px-5 hover:bg-emerald-700"
                   disabled={saving}
                 >

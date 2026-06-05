@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Resolver, useForm } from "react-hook-form";
 import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 // Schema
 const formSchema = z.object({
@@ -51,9 +52,10 @@ export function TransactionForm({
   onSuccess?: () => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const haptics = useWebHaptics();
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema) as any, // Type assertion to bypass strict Zod/HookForm mismatch
+    resolver: zodResolver(formSchema) as unknown as Resolver<FormValues>,
     defaultValues: {
       amount_chi: 0,
       price_per_chi: 0,
@@ -74,12 +76,14 @@ export function TransactionForm({
 
       if (error) throw error;
 
+      void haptics.trigger("success");
       toast.success("Đã thêm giao dịch thành công!");
       onOpenChange(false);
       form.reset();
       onSuccess?.();
     } catch (error) {
       console.error(error);
+      void haptics.trigger("error");
       toast.error("Lỗi khi thêm giao dịch");
     } finally {
       setLoading(false);
@@ -199,6 +203,7 @@ export function TransactionForm({
               <Button
                 type="submit"
                 disabled={loading}
+                data-haptic="success"
                 className="w-full bg-primary text-primary-foreground h-12 text-lg font-semibold"
               >
                 {loading && (

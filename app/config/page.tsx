@@ -47,8 +47,10 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getBanks, type Bank } from "@/lib/vietqr";
+import { useWebHaptics } from "web-haptics/react";
 
 export default function ConfigPage() {
+  const haptics = useWebHaptics();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [banks, setBanks] = useState<Bank[]>([]);
@@ -131,13 +133,16 @@ export default function ConfigPage() {
       });
 
       if (data) {
+        void haptics.trigger("success");
         setMessage({ type: "success", text: "Đã lưu cấu hình thành công!" });
         setTimeout(() => setMessage(null), 3000);
       } else {
+        void haptics.trigger("error");
         setMessage({ type: "error", text: "Có lỗi xảy ra, vui lòng thử lại." });
       }
     } catch (error) {
       console.error("Error saving settings:", error);
+      void haptics.trigger("error");
       setMessage({ type: "error", text: "Có lỗi xảy ra, vui lòng thử lại." });
     } finally {
       setSaving(false);
@@ -169,6 +174,7 @@ export default function ConfigPage() {
       const created = await createCustomFee(feeData);
 
       if (created) {
+        void haptics.trigger("success");
         setCustomFees([...customFees, created]);
         setNewFee({
           name: "",
@@ -182,6 +188,7 @@ export default function ConfigPage() {
       }
     } catch (error) {
       console.error("Error adding custom fee:", error);
+      void haptics.trigger("error");
       setMessage({ type: "error", text: "Có lỗi xảy ra khi thêm chi phí." });
     }
   }
@@ -190,14 +197,17 @@ export default function ConfigPage() {
     try {
       const updated = await updateCustomFee(id, { is_active: !isActive });
       if (updated) {
+        void haptics.trigger("selection");
         setCustomFees(customFees.map((fee) => (fee.id === id ? updated : fee)));
       }
     } catch (error) {
       console.error("Error toggling fee:", error);
+      void haptics.trigger("error");
     }
   }
 
   async function handleDeleteFee(id: string, name: string) {
+    void haptics.trigger("warning");
     setDeleteConfirm({ isOpen: true, feeId: id, feeName: name });
   }
 
@@ -207,6 +217,7 @@ export default function ConfigPage() {
     try {
       const success = await deleteCustomFee(deleteConfirm.feeId);
       if (success) {
+        void haptics.trigger("success");
         setCustomFees(
           customFees.filter((fee) => fee.id !== deleteConfirm.feeId),
         );
@@ -215,6 +226,7 @@ export default function ConfigPage() {
       }
     } catch (error) {
       console.error("Error deleting fee:", error);
+      void haptics.trigger("error");
       setMessage({ type: "error", text: "Có lỗi xảy ra khi xóa chi phí." });
     } finally {
       setDeleteConfirm({ isOpen: false, feeId: null, feeName: "" });
@@ -411,6 +423,7 @@ export default function ConfigPage() {
 
           <Button
             type="submit"
+            data-haptic="success"
             className="h-12 w-full rounded-2xl bg-foreground text-background shadow-lg transition-[background-color,box-shadow,transform] hover:scale-[1.01] hover:bg-foreground/90 active:scale-[0.98]"
             disabled={saving}
           >
@@ -542,6 +555,7 @@ export default function ConfigPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        data-haptic="warning"
                         className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50"
                         onClick={() => handleDeleteFee(fee.id, fee.name)}
                       >
@@ -601,6 +615,7 @@ export default function ConfigPage() {
             <AlertDialogCancel>Hủy</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
+              data-haptic="warning"
               className="bg-red-600 hover:bg-red-700"
             >
               Xóa

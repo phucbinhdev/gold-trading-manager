@@ -11,6 +11,7 @@ import {
   useSavingsActions,
   useSavingsState,
 } from "./SavingsContext";
+import { useWebHaptics } from "web-haptics/react";
 
 function WireBadge({ index, completed }: { index: number; completed: boolean }) {
   return (
@@ -59,6 +60,7 @@ function CellButton({
 function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
   const { removeRow, toggleCell } = useSavingsActions();
   const { saving } = useSavingsState();
+  const haptics = useWebHaptics();
   const totalCells = getTotalCells(row);
   const completedCells = getCompletedCellSet(row);
   const paidAmount = completedCells.size * (row.period_amount || 0);
@@ -90,7 +92,11 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
             size="icon-sm"
             className="absolute top-4 right-4 rounded-full text-muted-foreground hover:text-destructive"
             aria-label={`Xóa ${row.label}`}
-            onClick={() => removeRow(row.id)}
+            data-haptic="warning"
+            onClick={() => {
+              void haptics.trigger("warning");
+              removeRow(row.id);
+            }}
             disabled={saving}
           >
             <Trash2 className="h-4 w-4" />
@@ -126,7 +132,10 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
                 number={number}
                 checked={checked}
                 disabled={saving}
-                onToggle={() => toggleCell(row, number)}
+                onToggle={() => {
+                  void haptics.trigger("selection");
+                  toggleCell(row, number);
+                }}
               />
             );
           })}
@@ -148,7 +157,11 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
           size="icon-sm"
           className="absolute top-4 right-4 rounded-full text-muted-foreground hover:text-destructive"
           aria-label={`Xóa ${row.label}`}
-          onClick={() => removeRow(row.id)}
+          data-haptic="warning"
+          onClick={() => {
+            void haptics.trigger("warning");
+            removeRow(row.id);
+          }}
           disabled={saving}
         >
           <Trash2 className="h-4 w-4" />

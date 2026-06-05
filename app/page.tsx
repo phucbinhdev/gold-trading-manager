@@ -10,10 +10,12 @@ import { Plus, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/ui/PageLayout";
+import { useWebHaptics } from "web-haptics/react";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 
 export default function Home() {
+  const haptics = useWebHaptics();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [marketPrice, setMarketPrice] = useState<number>(8000000);
   const [loading, setLoading] = useState(true);
@@ -100,8 +102,12 @@ export default function Home() {
       )}
 
       <Button
-        onClick={() => setIsAddOpen(true)}
+        onClick={() => {
+          void haptics.trigger("medium");
+          setIsAddOpen(true);
+        }}
         size="icon"
+        data-haptic="medium"
         className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-[0_18px_34px_-18px_rgba(0,0,0,0.55)] hover:bg-primary/90"
         aria-label="Thêm giao dịch vàng"
       >

@@ -30,6 +30,7 @@ import {
 import { formatCurrency, formatGoldWeight, cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
+import { useWebHaptics } from "web-haptics/react";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 
@@ -46,6 +47,7 @@ export function TransactionList({
 }: TransactionListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>("all");
+  const haptics = useWebHaptics();
 
   // Calculate unique years from transactions
   const years = Array.from(
@@ -67,15 +69,18 @@ export function TransactionList({
         .delete()
         .eq("id", id);
       if (error) throw error;
+      void haptics.trigger("success");
       toast.success("Đã xóa giao dịch");
       onUpdate();
     } catch (error) {
       console.error(error);
+      void haptics.trigger("error");
       toast.error("Không thể xóa giao dịch");
     }
   };
 
   const handleExport = () => {
+    void haptics.trigger("success");
     const data = transactions.map((t) => ({
       Ngày: format(parseISO(t.transaction_date), "dd/MM/yyyy"),
       "Số lượng (Chỉ)": t.amount_chi,
@@ -100,7 +105,10 @@ export function TransactionList({
           <Button
             variant={selectedYear === "all" ? "default" : "outline"}
             size="sm"
-            onClick={() => setSelectedYear("all")}
+            onClick={() => {
+              void haptics.trigger("selection");
+              setSelectedYear("all");
+            }}
             className="rounded-full px-4 numeric-stable"
           >
             Tất cả
@@ -110,7 +118,10 @@ export function TransactionList({
               key={year}
               variant={selectedYear === year ? "default" : "outline"}
               size="sm"
-              onClick={() => setSelectedYear(year)}
+              onClick={() => {
+                void haptics.trigger("selection");
+                setSelectedYear(year);
+              }}
               className="rounded-full px-4 numeric-stable"
             >
               {year}
@@ -121,6 +132,7 @@ export function TransactionList({
             variant="ghost"
             size="icon"
             onClick={handleExport}
+            data-haptic="success"
             title="Xuất Excel"
             className="ml-auto shrink-0 text-muted-foreground hover:text-foreground"
           >
@@ -212,6 +224,7 @@ export function TransactionList({
                       <Button
                         variant="ghost"
                         size="icon"
+                        data-haptic="warning"
                         className="h-10 w-10 text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="h-3 w-3" />
@@ -228,6 +241,7 @@ export function TransactionList({
                         <AlertDialogCancel>Hủy</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDelete(t.id)}
+                          data-haptic="warning"
                           className="bg-destructive"
                         >
                           Xóa

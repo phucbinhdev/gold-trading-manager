@@ -13,6 +13,7 @@ import { formatCurrency } from "@/lib/utils";
 import { ArrowDownRight, ArrowUpRight, Edit2, Wallet } from "lucide-react";
 import { useState } from "react";
 import { NumericFormat } from "react-number-format";
+import { useWebHaptics } from "web-haptics/react";
 
 interface OverviewProps {
   totalChi: number;
@@ -33,9 +34,11 @@ export function Overview({
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [tempPrice, setTempPrice] = useState(marketPrice);
   const [showMoney, setShowMoney] = useState(true);
+  const haptics = useWebHaptics();
 
   const handlePriceSave = () => {
     setMarketPrice(tempPrice);
+    void haptics.trigger("success");
     setIsEditingPrice(false);
   };
 
@@ -126,7 +129,7 @@ export function Overview({
                 </p>
                 <Dialog open={isEditingPrice} onOpenChange={setIsEditingPrice}>
                   <DialogTrigger asChild>
-                    <button className="tap-target inline-grid place-items-center rounded-full transition-[background-color,transform] duration-150 ease-out hover:bg-black/5 active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100" aria-label="Cập nhật giá vàng">
+                    <button className="tap-target inline-grid place-items-center rounded-full transition-[background-color,transform] duration-150 ease-out hover:bg-black/5 active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100" aria-label="Cập nhật giá vàng" data-haptic="medium">
                       <Edit2 className="w-4 h-4 opacity-70" />
                     </button>
                   </DialogTrigger>
@@ -156,6 +159,7 @@ export function Overview({
                       </div>
                       <Button
                         onClick={handlePriceSave}
+                        data-haptic="success"
                         className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12 text-lg"
                       >
                         Lưu Thay Đổi

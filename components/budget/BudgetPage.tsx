@@ -22,11 +22,13 @@ import { Database } from "@/lib/supabase/types";
 import { ExpenseItem } from "./ExpenseItem";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
+import { useWebHaptics } from "web-haptics/react";
 
 type BudgetMonth = Database["public"]["Tables"]["budget_months"]["Row"];
 type Expense = Database["public"]["Tables"]["budget_expenses"]["Row"];
 
 export function BudgetPage() {
+  const haptics = useWebHaptics();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [budget, setBudget] = useState<BudgetMonth | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -161,18 +163,21 @@ export function BudgetPage() {
       .single();
 
     if (error) {
+      void haptics.trigger("error");
       toast.error("Lỗi thêm khoản chi");
     } else {
       setExpenses([...expenses, data]);
       setNewExpenseName("");
       setNewExpenseAmount("");
       setNewExpenseNote("");
+      void haptics.trigger("success");
       toast.success("Đã thêm khoản chi");
     }
     setIsAdding(false);
   };
 
   const toggleSelect = async (id: string, currentSelected: boolean) => {
+    void haptics.trigger("selection");
     // Optimistic
     setExpenses((prev) =>
       prev.map((e) =>
@@ -197,11 +202,15 @@ export function BudgetPage() {
       .update({ is_paid: !currentPaid })
       .eq("id", id);
     if (!currentPaid) {
+      void haptics.trigger("success");
       toast.success("Đã đánh dấu hoàn thành!");
+    } else {
+      void haptics.trigger("selection");
     }
   };
 
   const deleteExpense = async (id: string) => {
+    void haptics.trigger("warning");
     setExpenses((prev) => prev.filter((e) => e.id !== id));
     await supabase.from("budget_expenses").delete().eq("id", id);
     toast.success("Đã xóa khoản chi");
@@ -222,7 +231,10 @@ export function BudgetPage() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+          onClick={() => {
+            void haptics.trigger("selection");
+            setCurrentMonth(subMonths(currentMonth, 1));
+          }}
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
@@ -237,7 +249,10 @@ export function BudgetPage() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+          onClick={() => {
+            void haptics.trigger("selection");
+            setCurrentMonth(addMonths(currentMonth, 1));
+          }}
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
@@ -250,7 +265,11 @@ export function BudgetPage() {
         </div>
 
         <button
-          onClick={() => setShowMoney(!showMoney)}
+          onClick={() => {
+            void haptics.trigger("light");
+            setShowMoney(!showMoney);
+          }}
+          aria-label={showMoney ? "Ẩn số tiền" : "Hiện số tiền"}
           className="absolute top-4 right-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors z-20"
         >
           {showMoney ? (
@@ -278,7 +297,10 @@ export function BudgetPage() {
             ) : (
               <p
                 className="text-3xl font-bold text-white cursor-pointer"
-                onClick={() => setShowMoney(true)}
+                onClick={() => {
+                  void haptics.trigger("light");
+                  setShowMoney(true);
+                }}
               >
                 ******
               </p>
@@ -341,6 +363,7 @@ export function BudgetPage() {
             onClick={handleAddExpense}
             disabled={isAdding || !newExpenseName || newExpenseAmount === ""}
             size="icon"
+            data-haptic="success"
             className="h-12 w-12 shrink-0 bg-indigo-600 hover:bg-indigo-700 shadow-lg"
           >
             {isAdding ? (
@@ -385,5 +408,4 @@ export function BudgetPage() {
     </div>
   );
 }
-
 

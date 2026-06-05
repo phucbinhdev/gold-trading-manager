@@ -27,9 +27,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useWebHaptics } from "web-haptics/react";
 
 export default function RoomRentalPage() {
   const router = useRouter();
+  const haptics = useWebHaptics();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -97,7 +100,8 @@ export default function RoomRentalPage() {
 
   function calculateTotal() {
     if (!settings) {
-      alert("Vui lòng cấu hình giá trước!");
+      void haptics.trigger("warning");
+      toast.warning("Vui lòng cấu hình giá trước");
       router.push("/config");
       return;
     }
@@ -166,6 +170,7 @@ export default function RoomRentalPage() {
     };
 
     setCalculationResult(result);
+    void haptics.trigger(newWarnings.length > 0 ? "warning" : "success");
   }
 
   async function handleSave() {
@@ -193,7 +198,8 @@ export default function RoomRentalPage() {
       });
 
       if (!record) {
-        alert("Có lỗi xảy ra khi lưu hóa đơn!");
+        void haptics.trigger("error");
+        toast.error("Không thể lưu hóa đơn");
         setSaving(false);
         return;
       }
@@ -212,11 +218,13 @@ export default function RoomRentalPage() {
         await createRecordCustomFees(record.id, customFeesData);
       }
 
-      alert("Đã lưu hóa đơn thành công!");
+      void haptics.trigger("success");
+      toast.success("Đã lưu hóa đơn");
       router.push("/history");
     } catch (error) {
       console.error("Error saving record:", error);
-      alert("Có lỗi xảy ra khi lưu hóa đơn!");
+      void haptics.trigger("error");
+      toast.error("Không thể lưu hóa đơn");
     } finally {
       setSaving(false);
     }
@@ -424,6 +432,7 @@ if (!settings) {
       {/* Calculate Button */}
       <Button
         onClick={calculateTotal}
+        data-haptic="medium"
         className="w-full h-12 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium shadow-lg shadow-green-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
       >
         <Zap className="w-5 h-5 mr-2" />
@@ -454,6 +463,7 @@ if (!settings) {
           <Button
             onClick={handleSave}
             disabled={saving}
+            data-haptic="success"
             className="w-full h-12 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-medium shadow-lg shadow-gray-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Save className="w-5 h-5 mr-2" />
