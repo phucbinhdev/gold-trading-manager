@@ -6,9 +6,10 @@ import { Database } from "@/lib/supabase/types";
 import { Overview } from "@/components/gold/Overview";
 import { TransactionForm } from "@/components/gold/TransactionForm";
 import { TransactionList } from "@/components/gold/TransactionList";
-import { Loader2, Plus, Wallet } from "lucide-react";
+import { Plus, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/button";
+import { Loading } from "@/components/ui/PageLayout";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 
@@ -65,7 +66,7 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-background font-sans text-foreground pb-24 px-4 py-6 space-y-8">
+    <div className="page-shell mx-auto max-w-md space-y-8 bg-background font-sans text-foreground">
       <PageHeader 
         title="Quản Lý Vàng" 
         subtitle="Xin chào! Chúc bạn ngày mới tốt lành."
@@ -75,9 +76,7 @@ export default function Home() {
       />
 
       {loading && transactions.length === 0 ? (
-        <div className="flex justify-center p-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <Loading />
       ) : (
         <>
           <Overview
@@ -103,7 +102,8 @@ export default function Home() {
       <Button
         onClick={() => setIsAddOpen(true)}
         size="icon"
-        className="fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-[0_18px_34px_-18px_rgba(0,0,0,0.55)] hover:bg-primary/90"
+        aria-label="Thêm giao dịch vàng"
       >
         <Plus className="h-8 w-8" />
       </Button>

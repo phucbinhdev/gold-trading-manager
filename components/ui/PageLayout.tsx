@@ -10,7 +10,7 @@ interface PageLayoutProps {
 
 export function PageLayout({ children, className }: PageLayoutProps) {
   return (
-    <div className={cn("p-4 space-y-6", className)}>
+    <div className={cn("page-shell space-y-6", className)}>
       {children}
     </div>
   );
@@ -24,11 +24,13 @@ export function Loading({ className }: LoadingProps) {
   return (
     <div
       className={cn(
-        "flex justify-center items-center h-[50vh]",
+        "space-y-4 py-8",
         className
       )}
     >
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="h-28 animate-pulse rounded-[28px] bg-muted/70" />
+      <div className="h-20 animate-pulse rounded-[24px] bg-muted/50" />
+      <div className="h-20 animate-pulse rounded-[24px] bg-muted/40" />
     </div>
   );
 }
@@ -51,19 +53,19 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center py-12 text-center gap-4",
+        "soft-surface flex flex-col items-center justify-center gap-4 rounded-[28px] border border-border/50 px-5 py-10 text-center",
         className
       )}
     >
       {icon && (
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
           {icon}
         </div>
       )}
       <div>
-        <p className="font-semibold text-foreground">{title}</p>
+        <p className="text-base font-bold leading-6 text-foreground">{title}</p>
         {description && (
-          <p className="text-sm text-muted-foreground mt-1">{description}</p>
+          <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
         )}
       </div>
       {action}

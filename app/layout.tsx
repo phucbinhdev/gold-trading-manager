@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className="antialiased max-w-md mx-auto">
+      <body className="min-h-dvh antialiased selection:bg-primary/30">
         {children}
         <BottomNav />
       </body>

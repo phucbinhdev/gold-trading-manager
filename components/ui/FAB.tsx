@@ -21,7 +21,7 @@ export function FAB({
     <button
       onClick={onClick}
       className={cn(
-        "fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95",
+        "fixed bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-[0_18px_34px_-18px_rgba(0,0,0,0.55)] transition-[background-color,box-shadow,transform] duration-150 ease-out hover:scale-[1.02] active:scale-[0.96] motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:active:scale-100",
         color,
         className
       )}

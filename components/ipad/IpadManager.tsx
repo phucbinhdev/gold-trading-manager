@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState, Loading } from "@/components/ui/PageLayout";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
@@ -372,14 +373,14 @@ export function IpadManager() {
   };
 
   return (
-    <div className="min-h-screen bg-background px-4 py-6 pb-24 text-foreground">
+    <div className="page-shell mx-auto max-w-md bg-background text-foreground">
       <PageHeader
         title="Mua bán iPad"
         icon={<Tablet className="h-6 w-6 text-white" />}
         iconColor="bg-gradient-to-br from-sky-500 to-emerald-500"
       />
 
-      <div className="mt-6 space-y-5">
+      <div className="mt-4 space-y-5">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {monthOptions.map((month) => (
             <Button
@@ -471,21 +472,13 @@ export function IpadManager() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center p-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <Loading />
         ) : monthlyTransactions.length === 0 ? (
-          <Card className="rounded-2xl border-dashed py-0">
-            <CardContent className="flex flex-col items-center justify-center p-10 text-center">
-              <Tablet className="h-10 w-10 text-muted-foreground/40" />
-              <p className="mt-3 font-semibold">
-                Chưa có giao dịch iPad trong {monthLabel(selectedMonth)}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Chọn tháng cũ hoặc thêm giao dịch mới để theo dõi lời lỗ.
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={<Tablet className="h-7 w-7" />}
+            title={`Chưa có giao dịch iPad trong ${monthLabel(selectedMonth)}`}
+            description="Chọn tháng cũ hoặc thêm giao dịch mới để theo dõi lời lỗ."
+          />
         ) : (
           <div className="space-y-3">
             {monthlyTransactions.map((item) => {

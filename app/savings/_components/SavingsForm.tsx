@@ -73,7 +73,7 @@ export function SavingsForm() {
         <Button
           type="button"
           size="icon"
-          className="fixed right-5 bottom-24 z-40 h-14 w-14 rounded-full bg-emerald-600 text-white shadow-[0_12px_24px_rgba(5,150,105,0.35)] hover:bg-emerald-700"
+          className="fixed right-5 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 h-14 w-14 rounded-full bg-emerald-600 text-white shadow-[0_12px_24px_rgba(5,150,105,0.35)] hover:bg-emerald-700"
           aria-label="Thêm dây tích góp"
         >
           <Plus className="h-7 w-7" />
@@ -81,7 +81,7 @@ export function SavingsForm() {
       </DialogTrigger>
 
       <DialogContent className="rounded-[28px] border-0 bg-transparent p-0 shadow-none sm:max-w-md">
-        <Card className="rounded-[28px] border-emerald-100/80 bg-white py-0 shadow-xl">
+        <Card className="rounded-[28px] border-emerald-100/80 bg-card py-0 shadow-xl">
           <CardHeader className="pb-3 pr-12">
             <CardTitle className="text-base">Thêm dây tích góp</CardTitle>
             <DialogHeader className="sr-only">

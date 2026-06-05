@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Loading } from "@/components/ui/PageLayout";
 import {
   createCustomFee,
   deleteCustomFee,
@@ -35,7 +36,6 @@ import { formatCurrency } from "@/lib/utils";
 import type { CustomFee } from "@/types";
 import {
   Droplet,
-  Home,
   HomeIcon,
   Lightbulb,
   Plus,
@@ -47,16 +47,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getBanks, type Bank } from "@/lib/vietqr";
-import { cn } from "@/lib/utils";
-
-// Simple Loading Component
-function Loading() {
-  return (
-    <div className="flex justify-center items-center h-[50vh]">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>
-  );
-}
 
 export default function ConfigPage() {
   const [loading, setLoading] = useState(true);
@@ -236,7 +226,7 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="px-4 py-6 space-y-6 max-w-md mx-auto">
+    <div className="page-shell mx-auto max-w-md space-y-6">
       <PageHeader 
         title="Cấu hình giá" 
         subtitle="Thiết lập giá nhà, điện, nước"
@@ -247,7 +237,7 @@ export default function ConfigPage() {
       <div className="space-y-4">
         <div className="flex items-center gap-2 px-1">
           <Sparkles className="w-5 h-5 text-yellow-500" />
-          <h2 className="font-bold text-lg text-gray-900">Cấu hình cơ bản</h2>
+          <h2 className="text-lg font-bold text-foreground">Cấu hình cơ bản</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -275,7 +265,7 @@ export default function ConfigPage() {
                   setSettings({ ...settings, rent_price: e.target.value })
                 }
                 placeholder="0"
-                className="h-14 bg-white border-transparent shadow-sm text-lg font-bold pl-5 pr-12 rounded-2xl focus-visible:ring-[#e11d48] hover:shadow-md transition-all placeholder:text-gray-300 text-[#881337]"
+                className="h-14 border-transparent bg-background/90 pl-5 pr-12 text-lg font-bold text-[#881337] shadow-sm transition-[border-color,box-shadow] placeholder:text-muted-foreground/45 hover:shadow-md focus-visible:ring-[#e11d48] dark:bg-background/80"
               />
               <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[#fb7185] font-bold text-sm pointer-events-none">
                 VND
@@ -303,7 +293,7 @@ export default function ConfigPage() {
                     setSettings({ ...settings, electric_price: e.target.value })
                   }
                   placeholder="0"
-                  className="h-14 bg-white border-transparent shadow-sm text-lg font-bold pl-4 pr-12 rounded-2xl focus-visible:ring-[#ca8a04] hover:shadow-md transition-all placeholder:text-gray-300 text-[#713f12]"
+                  className="h-14 border-transparent bg-background/90 pl-4 pr-12 text-lg font-bold text-[#713f12] shadow-sm transition-[border-color,box-shadow] placeholder:text-muted-foreground/45 hover:shadow-md focus-visible:ring-[#ca8a04] dark:bg-background/80"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#facc15] font-bold text-xs pointer-events-none">
                   /kWh
@@ -330,7 +320,7 @@ export default function ConfigPage() {
                     setSettings({ ...settings, water_price: e.target.value })
                   }
                   placeholder="0"
-                  className="h-14 bg-white border-transparent shadow-sm text-lg font-bold pl-4 pr-10 rounded-2xl focus-visible:ring-[#2563eb] hover:shadow-md transition-all placeholder:text-gray-300 text-[#1e3a8a]"
+                  className="h-14 border-transparent bg-background/90 pl-4 pr-10 text-lg font-bold text-[#1e3a8a] shadow-sm transition-[border-color,box-shadow] placeholder:text-muted-foreground/45 hover:shadow-md focus-visible:ring-[#2563eb] dark:bg-background/80"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#60a5fa] font-bold text-xs pointer-events-none">
                   /m³
@@ -406,8 +396,8 @@ export default function ConfigPage() {
                 </div>
 
                 {settings.bank_id && settings.account_number && (
-                  <div className="mt-2 p-4 bg-gray-50 rounded-xl flex flex-col items-center">
-                    <p className="text-sm text-gray-500 mb-2">Xem trước QR:</p>
+                  <div className="mt-2 flex flex-col items-center rounded-2xl bg-muted/45 p-4">
+                    <p className="mb-2 text-sm text-muted-foreground">Xem trước QR:</p>
                     <img
                       src={`https://img.vietqr.io/image/${settings.bank_id}-${settings.account_number}-compact.png?accountName=${encodeURIComponent(settings.account_name || "")}`}
                       alt="QR Preview"
@@ -421,7 +411,7 @@ export default function ConfigPage() {
 
           <Button
             type="submit"
-            className="w-full h-12 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-medium shadow-lg shadow-gray-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="h-12 w-full rounded-2xl bg-foreground text-background shadow-lg transition-[background-color,box-shadow,transform] hover:scale-[1.01] hover:bg-foreground/90 active:scale-[0.98]"
             disabled={saving}
           >
             <Save className="w-5 h-5 mr-2" />
@@ -440,9 +430,9 @@ export default function ConfigPage() {
         <CardContent className="space-y-6">
           <form
             onSubmit={handleAddCustomFee}
-            className="space-y-4 p-4 border rounded-xl bg-gray-50/50"
+            className="space-y-4 rounded-2xl border bg-muted/35 p-4"
           >
-            <h4 className="font-medium text-sm text-gray-700">
+            <h4 className="text-sm font-medium text-foreground">
               Thêm chi phí mới
             </h4>
             <div className="grid gap-4">
@@ -513,19 +503,19 @@ export default function ConfigPage() {
 
           {customFees.length > 0 && (
             <div className="space-y-3">
-              <h4 className="font-medium text-sm text-gray-700">
+              <h4 className="text-sm font-medium text-foreground">
                 Danh sách chi phí
               </h4>
               <div className="space-y-2">
                 {customFees.map((fee) => (
                   <div
                     key={fee.id}
-                    className="flex items-center justify-between p-3 border rounded-xl bg-white hover:border-primary/50 transition-colors"
+                    className="flex items-center justify-between rounded-2xl border bg-background/80 p-3 transition-colors hover:border-primary/50"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`font-medium ${fee.is_active ? "text-gray-900" : "text-gray-400"}`}
+                          className={`font-medium ${fee.is_active ? "text-foreground" : "text-muted-foreground"}`}
                         >
                           {fee.name}
                         </span>
@@ -588,7 +578,7 @@ export default function ConfigPage() {
             <ul className="text-xs text-yellow-700 space-y-1 list-disc pl-3">
               <li>Cấu hình 1 lần, dùng mãi mãi!</li>
               <li>Giá này sẽ tự động áp dụng cho hóa đơn.</li>
-              <li>Chi phí "Đang bật" (Switch ON) sẽ được tính.</li>
+              <li>Chi phí &quot;Đang bật&quot; (Switch ON) sẽ được tính.</li>
             </ul>
           </div>
         </div>
@@ -604,7 +594,7 @@ export default function ConfigPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Xóa chi phí?</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc muốn xóa chi phí "{deleteConfirm.feeName}"?
+              Bạn có chắc muốn xóa chi phí &quot;{deleteConfirm.feeName}&quot;?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

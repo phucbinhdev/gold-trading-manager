@@ -12,8 +12,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState, Loading } from "@/components/ui/PageLayout";
 import { deleteRecord, getRecords, getSettings } from "@/lib/supabase";
 import type { Record as RecordType, Settings } from "@/types";
 import { generateQuickLink } from "@/lib/vietqr";
@@ -24,20 +25,10 @@ import {
   QrCode,
   Receipt,
   Trash2,
-  X,
   Wallet,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-// Simple Loading Component
-function Loading() {
-  return (
-    <div className="flex justify-center items-center h-[50vh]">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>
-  );
-}
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -112,7 +103,7 @@ export default function HistoryPage() {
 
   if (records.length === 0) {
     return (
-      <div className="px-4 py-6 space-y-6 max-w-md mx-auto">
+      <div className="page-shell mx-auto max-w-md space-y-6">
         <PageHeader 
           title="Lịch sử" 
           subtitle="Danh sách hóa đơn"
@@ -120,26 +111,20 @@ export default function HistoryPage() {
           iconColor="bg-gradient-to-br from-purple-500 to-indigo-600 shadow-purple-200"
         />
 
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-10 text-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-              <Receipt className="w-8 h-8 text-gray-400" />
-            </div>
-            <div>
-              <p className="font-semibold text-gray-900">Chưa có hóa đơn nào</p>
-              <p className="text-sm text-gray-500">
-                Hãy tạo hóa đơn đầu tiên của bạn
-              </p>
-            </div>
+        <EmptyState
+          icon={<Receipt className="h-7 w-7" />}
+          title="Chưa có hóa đơn nào"
+          description="Tạo hóa đơn đầu tiên để theo dõi tiền trọ hằng tháng."
+          action={
             <Button onClick={() => router.push("/")}>Tạo hóa đơn mới</Button>
-          </CardContent>
-        </Card>
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-6 space-y-6 max-w-md mx-auto">
+    <div className="page-shell mx-auto max-w-md space-y-6">
       <PageHeader 
         title="Lịch sử" 
         subtitle="Quản lý chi tiêu"
@@ -149,7 +134,7 @@ export default function HistoryPage() {
 
       {/* Latest Record Highlight or List */}
       <div className="space-y-4">
-        {records.map((record, index) => {
+        {records.map((record) => {
           const isSelected = selectedRecord?.id === record.id;
 
           return (
@@ -161,7 +146,7 @@ export default function HistoryPage() {
                 className={`cursor-pointer transition-all border shadow-sm ${
                   isSelected
                     ? "ring ring-primary border-primary"
-                    : "border-gray-100 hover:shadow-md"
+                    : "border-border/60 hover:shadow-md"
                 }`}
               >
                 <div
@@ -180,11 +165,11 @@ export default function HistoryPage() {
                     </div>
 
                     <div className="min-w-0 space-y-2">
-                      <h3 className="font-bold text-gray-900 text-[16px] md:text-[17px] leading-tight mb-2 truncated">
+                      <h3 className="mb-2 truncate text-[16px] font-bold leading-tight text-foreground md:text-[17px]">
                         {formatMonth(record.month)}
                       </h3>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs md:text-[13px] text-gray-500 font-medium whitespace-nowrap">
+                        <span className="whitespace-nowrap text-xs font-medium text-muted-foreground md:text-[13px]">
                           {new Date(record.created_at).toLocaleDateString(
                             "vi-VN",
                           )}
@@ -194,14 +179,14 @@ export default function HistoryPage() {
                   </div>
 
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className="font-bold text-gray-900 text-[16px] md:text-[17px]">
+                    <span className="text-[16px] font-bold text-foreground md:text-[17px]">
                       {new Intl.NumberFormat("vi-VN").format(
                         record.total_amount,
                       )}
                       đ
                     </span>
                     <ChevronRight
-                      className={`w-5 h-5 text-gray-300 transition-transform duration-300 ${
+                      className={`h-5 w-5 text-muted-foreground/40 transition-transform duration-300 ${
                         isSelected ? "rotate-90" : ""
                       }`}
                     />
@@ -209,7 +194,7 @@ export default function HistoryPage() {
                 </div>
 
                 {isSelected && (
-                  <div className="bg-gray-50/50 space-y-4 animate-accordion-down">
+                  <div className="animate-accordion-down space-y-4 bg-muted/35">
                     <BillResult
                       borderLess
                       month={record.month}
@@ -279,7 +264,7 @@ export default function HistoryPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Xóa bản ghi?</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc muốn xóa bản ghi "{deleteConfirm.recordMonth}"? Hành
+              Bạn có chắc muốn xóa bản ghi &quot;{deleteConfirm.recordMonth}&quot;? Hành
               động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>

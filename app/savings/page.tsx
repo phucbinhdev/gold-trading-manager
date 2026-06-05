@@ -11,6 +11,7 @@ import {
   useSavingsState,
 } from "./_components/SavingsContext";
 import { SavingsForm } from "./_components/SavingsForm";
+import { Loading } from "@/components/ui/PageLayout";
 
 function SavingsPageContent() {
   const { rows, loading, error } = useSavingsState();
@@ -34,8 +35,8 @@ function SavingsPageContent() {
   const progress = summary.goal > 0 ? Math.round((summary.paid / summary.goal) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#d8f4ff_0%,#eefbf2_34%,#f8fafc_70%)] pb-24 text-foreground">
-      <div className="mx-auto max-w-5xl space-y-4 px-4 py-5">
+    <div className="min-h-dvh bg-[radial-gradient(circle_at_top,color-mix(in_oklab,var(--primary)_20%,transparent)_0%,color-mix(in_oklab,var(--muted)_88%,transparent)_42%,var(--background)_78%)] text-foreground">
+      <div className="page-shell mx-auto max-w-5xl space-y-4">
         <PageHeader
           title="Tích góp"
           subtitle="Theo dõi mục tiêu tiết kiệm"
@@ -49,7 +50,7 @@ function SavingsPageContent() {
           </p>
         )}
 
-        <Card className="overflow-hidden rounded-[32px] border-0 bg-white/90 py-0 shadow-[0_14px_35px_rgba(15,23,42,0.10)] backdrop-blur">
+        <Card className="overflow-hidden rounded-[32px] border-0 bg-card/90 py-0 shadow-[0_14px_35px_rgba(15,23,42,0.10)] backdrop-blur">
           <CardContent className="p-0">
             <div className="grid gap-4 p-5 sm:grid-cols-[1fr_180px] sm:items-center">
               <div>
@@ -73,7 +74,7 @@ function SavingsPageContent() {
               <div className="flex justify-center text-7xl sm:text-8xl">🧰</div>
             </div>
 
-            <div className="grid grid-cols-2 border-t bg-white/80 px-5 py-4 text-sm">
+            <div className="grid grid-cols-2 border-t bg-background/60 px-5 py-4 text-sm">
               <div>
                 <p className="font-black uppercase text-slate-600">Đã đóng</p>
                 <p className="mt-1 text-lg font-black text-emerald-700">{formatCurrency(summary.paid)}</p>
@@ -89,11 +90,7 @@ function SavingsPageContent() {
         <SavingsForm />
 
         {loading ? (
-          <Card className="rounded-[28px] py-0 text-center text-sm text-muted-foreground">
-            <CardContent className="p-10">
-              Đang tải dữ liệu...
-            </CardContent>
-          </Card>
+          <Loading />
         ) : (
           <SavingsBoard />
         )}

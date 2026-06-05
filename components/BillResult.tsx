@@ -40,7 +40,7 @@ export default function BillResult({
   return (
     <Card
       className={clsx(
-        "bg-white/80 backdrop-blur-sm  shadow-xl shadow-blue-500/5",
+        "bg-card/85 shadow-xl shadow-blue-500/5 backdrop-blur-sm",
         {
           "border-none! p-0": borderLess,
           "border-blue-100": !borderLess,
@@ -55,7 +55,7 @@ export default function BillResult({
               <Zap className="w-3.5 h-3.5 text-yellow-600 fill-yellow-600" />
               <span className="text-xs font-medium text-yellow-700">Điện</span>
             </div>
-            <p className="font-bold text-lg text-gray-900">
+            <p className="font-bold text-lg text-foreground">
               {new Intl.NumberFormat("vi-VN").format(electricUsed)}{" "}
               <span className="text-xs font-normal text-gray-500">kWh</span>
             </p>
@@ -70,7 +70,7 @@ export default function BillResult({
               <Droplet className="w-3.5 h-3.5 text-blue-600 fill-blue-600" />
               <span className="text-xs font-medium text-blue-700">Nước</span>
             </div>
-            <p className="font-bold text-lg text-gray-900">
+            <p className="font-bold text-lg text-foreground">
               {new Intl.NumberFormat("vi-VN").format(waterUsed)}{" "}
               <span className="text-xs font-normal text-gray-500">m³</span>
             </p>
@@ -85,12 +85,12 @@ export default function BillResult({
         <div className="space-y-3 pt-2">
           <div className="flex justify-between items-center text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
                 <Home className="w-3.5 h-3.5 text-gray-500" />
               </div>
               Tiền nhà
             </div>
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-foreground">
               {formatCurrency(rentAmount)}
             </span>
           </div>
@@ -102,7 +102,7 @@ export default function BillResult({
               </div>
               Tiền điện
             </div>
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-foreground">
               {formatCurrency(electricAmount)}
             </span>
           </div>
@@ -114,7 +114,7 @@ export default function BillResult({
               </div>
               Tiền nước
             </div>
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-foreground">
               {formatCurrency(waterAmount)}
             </span>
           </div>
@@ -125,7 +125,7 @@ export default function BillResult({
               className="flex justify-between items-center text-sm"
             >
               <div className="flex items-center gap-2 text-muted-foreground">
-                <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center">
+                <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
                   <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
                 </div>
                 {fee.name}{" "}
@@ -133,7 +133,7 @@ export default function BillResult({
                   <span className="text-xs text-gray-400">x{fee.quantity}</span>
                 )}
               </div>
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-foreground">
                 {formatCurrency(fee.amount)}
               </span>
             </div>

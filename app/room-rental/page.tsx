@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState, Loading } from "@/components/ui/PageLayout";
 import {
   createRecord,
   createRecordCustomFees,
@@ -26,15 +27,6 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-// Simple Loading Component
-function Loading() {
-  return (
-    <div className="flex justify-center items-center h-[50vh]">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>
-  );
-}
 
 export default function RoomRentalPage() {
   const router = useRouter();
@@ -236,7 +228,7 @@ export default function RoomRentalPage() {
 
 if (!settings) {
     return (
-      <div className="px-4 py-6 space-y-6 max-w-md mx-auto">
+      <div className="page-shell mx-auto max-w-md space-y-6">
         <PageHeader 
           title="Tính tiền trọ" 
           subtitle="Tạo hóa đơn hàng tháng"
@@ -245,30 +237,22 @@ if (!settings) {
           showSettings
         />
 
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-10 text-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-              <SettingsIcon className="w-8 h-8 text-gray-400" />
-            </div>
-            <div>
-              <p className="font-semibold text-gray-900">
-                Chưa có cấu hình giá
-              </p>
-              <p className="text-sm text-gray-500">
-                Vui lòng cấu hình giá nhà, điện, nước trước
-              </p>
-            </div>
+        <EmptyState
+          icon={<SettingsIcon className="h-7 w-7" />}
+          title="Chưa có cấu hình giá"
+          description="Vui lòng cấu hình giá nhà, điện, nước trước khi tạo hóa đơn."
+          action={
             <Button onClick={() => router.push("/config")}>
               Đi đến cấu hình
             </Button>
-          </CardContent>
-        </Card>
+          }
+        />
       </div>
     );
   }
 
   return (
-<div className="px-4 py-6 space-y-6 max-w-md mx-auto">
+<div className="page-shell mx-auto max-w-md space-y-6">
         <PageHeader 
           title="Tính tiền trọ" 
           subtitle="Tạo hóa đơn hàng tháng"

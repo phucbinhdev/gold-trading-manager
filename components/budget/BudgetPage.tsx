@@ -15,8 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card } from "@/components/ui/card";
-import { NumericFormat } from "react-number-format";
+import { EmptyState, Loading } from "@/components/ui/PageLayout";
+import { NumericFormat, type NumberFormatValues } from "react-number-format";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
 import { ExpenseItem } from "./ExpenseItem";
@@ -126,7 +126,7 @@ export function BudgetPage() {
   }, [budget, expenses]);
 
   // Handlers
-  const handleIncomeChange = async (values: any) => {
+  const handleIncomeChange = async (values: NumberFormatValues) => {
     const value = values.floatValue || 0;
     // Optimistic update
     setBudget((prev) => (prev ? { ...prev, total_income: value } : null));
@@ -208,9 +208,9 @@ export function BudgetPage() {
   };
 
   return (
-    <div className="pb-24 px-4 space-y-6 max-w-md mx-auto">
+    <div className="page-shell mx-auto max-w-md space-y-6">
       <PageHeader 
-        title="Tính Rợ" 
+        title="Tính nợ" 
         subtitle="Quản lý chi tiêu hàng tháng"
         icon={<Wallet className="w-6 h-6" />}
         iconColor="bg-gradient-to-br from-indigo-500 to-purple-600"
@@ -309,7 +309,7 @@ export function BudgetPage() {
       </div>
 
       {/* Add Expense Form */}
-      <div className="space-y-3 bg-muted/30 p-3 rounded-2xl border border-dashed border-muted-foreground/30">
+      <div className="space-y-3 rounded-3xl border border-dashed border-muted-foreground/30 bg-muted/30 p-3">
         <Input
           placeholder="Tên khoản chi (vd: Tiền nhà)"
           value={newExpenseName}
@@ -359,13 +359,13 @@ export function BudgetPage() {
         </p>
 
         {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
+          <Loading className="py-2" />
         ) : expenses.length === 0 ? (
-          <div className="text-center py-10 opacity-50">
-            <p>Chưa có khoản chi nào</p>
-          </div>
+          <EmptyState
+            title="Chưa có khoản chi nào"
+            description="Thêm khoản chi đầu tiên để tính nhanh số tiền còn lại trong tháng."
+            icon={<Wallet className="h-7 w-7" />}
+          />
         ) : (
           expenses.map((expense) => (
             <ExpenseItem
@@ -380,31 +380,10 @@ export function BudgetPage() {
       </div>
 
       <div className="text-center text-xs text-muted-foreground w-full px-8 pb-4 opacity-70">
-        Tip: Nhấn giữ để đánh dấu "Đã chi". Chạm để chọn/bỏ chọn tính toán.
+        Tip: Nhấn giữ để đánh dấu &quot;Đã chi&quot;. Chạm để chọn/bỏ chọn tính toán.
       </div>
     </div>
   );
 }
 
-// Helper icon
-function FileText({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-      <polyline points="14 2 14 8 20 8" />
-      <path d="M12 13v6" />
-      <path d="M9 16h6" />
-    </svg>
-  );
-}
+

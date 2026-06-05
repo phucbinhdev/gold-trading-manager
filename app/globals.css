@@ -47,7 +47,7 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.875rem;
   --font-plus-jakarta: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -117,10 +117,17 @@
 }
 
 @layer base {
+  :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--ring) 72%, transparent);
+    outline-offset: 3px;
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    background: var(--background);
   }
 
   * {
@@ -143,6 +150,27 @@
 
   body {
     @apply bg-background text-foreground;
+    min-height: 100dvh;
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    touch-action: manipulation;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 45%, transparent);
   }
 }
 
@@ -152,8 +180,28 @@
   }
 
   .tap-target {
-    min-height: 40px;
-    min-width: 40px;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .page-shell {
+    min-height: 100dvh;
+    padding: calc(env(safe-area-inset-top) + 1rem) 1rem calc(env(safe-area-inset-bottom) + 6rem);
+  }
+
+  .keyboard-safe {
+    max-height: min(90dvh, 720px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .soft-surface {
+    background: color-mix(in oklab, var(--card) 92%, transparent);
+    box-shadow: 0 14px 36px -26px rgb(15 23 42 / 45%);
+  }
+
+  .dark .soft-surface {
+    box-shadow: 0 18px 44px -28px rgb(0 0 0 / 70%);
   }
 
   .image-outline {
