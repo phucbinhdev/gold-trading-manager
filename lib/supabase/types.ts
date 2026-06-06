@@ -41,20 +41,46 @@ export interface Database {
         Row: {
           id: string;
           month_key: string;
+          source_id: string;
           total_income: number;
           created_at: string;
         };
         Insert: {
           id?: string;
           month_key: string;
+          source_id: string;
           total_income?: number;
           created_at?: string;
         };
         Update: {
           id?: string;
           month_key?: string;
+          source_id?: string;
           total_income?: number;
           created_at?: string;
+        };
+      };
+      budget_sources: {
+        Row: {
+          id: string;
+          created_at: string;
+          name: string;
+          sort_order: number;
+          is_active: boolean;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          name: string;
+          sort_order?: number;
+          is_active?: boolean;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          name?: string;
+          sort_order?: number;
+          is_active?: boolean;
         };
       };
       budget_expenses: {
