@@ -5,6 +5,7 @@ import { format, parseISO } from "date-fns";
 import {
   Banknote,
   CheckCircle2,
+  ChevronDown,
   CircleDollarSign,
   HandCoins,
   Loader2,
@@ -163,6 +164,7 @@ export function IpadManager() {
   const [saleTarget, setSaleTarget] = useState<IpadTransaction | null>(null);
   const [editTarget, setEditTarget] = useState<IpadTransaction | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema) as unknown as Resolver<TransactionFormValues>,
@@ -473,6 +475,20 @@ export function IpadManager() {
     }
   };
 
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      return next;
+    });
+  };
+
   return (
     <div className="page-shell app-container bg-background text-foreground">
       <PageHeader
@@ -600,10 +616,15 @@ export function IpadManager() {
               const isSold = status === "sold";
               const profit = item.profit_amount || 0;
               const debtPaid = item.debt_paid;
+              const expanded = expandedIds.has(item.id);
 
               return (
-                <Card key={item.id} className="rounded-2xl py-0">
-                  <CardContent className="p-4">
+                <Card
+                  key={item.id}
+                  className="rounded-2xl py-0 transition-[border-color,box-shadow] hover:border-border/80"
+                  onClick={() => toggleExpanded(item.id)}
+                >
+                  <CardContent className="p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -637,67 +658,17 @@ export function IpadManager() {
                         )}
                       </div>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            data-haptic="warning"
-                            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Xóa giao dịch iPad?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Hành động này không thể hoàn tác.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Hủy</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(item.id)}
-                              data-haptic="warning"
-                              className="bg-destructive"
-                            >
-                              Xóa
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 text-muted-foreground transition-transform",
+                            expanded && "rotate-180",
+                          )}
+                        />
+                      </div>
                     </div>
 
-                    <div className="mx-auto mt-4 grid w-full max-w-sm grid-cols-3 gap-1 rounded-full bg-muted/70 p-1">
-                      {IPAD_STATUSES.map((statusOption) => {
-                        const active = status === statusOption.value;
-
-                        return (
-                          <button
-                            key={statusOption.value}
-                            type="button"
-                            className={cn(
-                              "inline-flex h-7 items-center justify-center rounded-full px-2 text-[11px] font-semibold text-muted-foreground transition hover:bg-background/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-                              active &&
-                                statusOption.value === "importing" &&
-                                "bg-sky-100 text-sky-700 shadow-sm hover:bg-sky-100 hover:text-sky-700",
-                              active &&
-                                statusOption.value === "in_stock" &&
-                                "bg-amber-100 text-amber-700 shadow-sm hover:bg-amber-100 hover:text-amber-700",
-                              active &&
-                                statusOption.value === "sold" &&
-                                "bg-emerald-100 text-emerald-700 shadow-sm hover:bg-emerald-100 hover:text-emerald-700",
-                            )}
-                            onClick={() => handleStatusChange(item, statusOption.value)}
-                          >
-                            {statusOption.shortLabel}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
                       <div>
                         <p className="text-xs text-muted-foreground">Giá mua</p>
                         <p className="font-semibold">
@@ -705,24 +676,23 @@ export function IpadManager() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Chi phí</p>
-                        <p className="font-semibold">
-                          {formatCurrency(item.extra_cost)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Giá bán</p>
-                        <p className="font-semibold">
-                          {item.selling_price
-                            ? formatCurrency(item.selling_price)
-                            : "Chưa bán"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Lời / lỗ</p>
+                        <p className="text-xs text-muted-foreground">Nợ</p>
                         <p
                           className={cn(
-                            "font-bold",
+                            "font-semibold",
+                            debtPaid ? "text-emerald-600" : "text-red-600",
+                          )}
+                        >
+                          {debtPaid ? "Đã trả" : formatCurrency(item.loan_amount)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          {isSold ? "Lời / lỗ" : "Giá bán"}
+                        </p>
+                        <p
+                          className={cn(
+                            "font-semibold",
                             !isSold
                               ? "text-muted-foreground"
                               : profit >= 0
@@ -732,78 +702,177 @@ export function IpadManager() {
                         >
                           {isSold
                             ? `${profit >= 0 ? "+" : ""}${formatCurrency(profit)}`
-                            : "Đang chờ"}
+                            : "Chưa bán"}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Nợ mua máy</p>
-                        <p
-                          className={cn(
-                            "font-bold",
-                            debtPaid ? "text-emerald-600" : "text-red-600",
+                    </div>
+
+                    {expanded && (
+                      <div
+                        className="mt-4 space-y-4 border-t border-border/60 pt-4"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <div className="mx-auto grid w-full max-w-sm grid-cols-3 gap-1 rounded-full bg-muted/70 p-1">
+                          {IPAD_STATUSES.map((statusOption) => {
+                            const active = status === statusOption.value;
+
+                            return (
+                              <button
+                                key={statusOption.value}
+                                type="button"
+                                className={cn(
+                                  "inline-flex h-7 items-center justify-center rounded-full px-2 text-[11px] font-semibold text-muted-foreground transition hover:bg-background/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+                                  active &&
+                                    statusOption.value === "importing" &&
+                                    "bg-sky-100 text-sky-700 shadow-sm hover:bg-sky-100 hover:text-sky-700",
+                                  active &&
+                                    statusOption.value === "in_stock" &&
+                                    "bg-amber-100 text-amber-700 shadow-sm hover:bg-amber-100 hover:text-amber-700",
+                                  active &&
+                                    statusOption.value === "sold" &&
+                                    "bg-emerald-100 text-emerald-700 shadow-sm hover:bg-emerald-100 hover:text-emerald-700",
+                                )}
+                                onClick={() =>
+                                  handleStatusChange(item, statusOption.value)
+                                }
+                              >
+                                {statusOption.shortLabel}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Chi phí</p>
+                            <p className="font-semibold">
+                              {formatCurrency(item.extra_cost)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Tổng vốn</p>
+                            <p className="font-semibold">
+                              {formatCurrency(item.total_cost)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Giá bán</p>
+                            <p className="font-semibold">
+                              {item.selling_price
+                                ? formatCurrency(item.selling_price)
+                                : "Chưa bán"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Lời / lỗ</p>
+                            <p
+                              className={cn(
+                                "font-bold",
+                                !isSold
+                                  ? "text-muted-foreground"
+                                  : profit >= 0
+                                    ? "text-emerald-600"
+                                    : "text-red-600",
+                              )}
+                            >
+                              {isSold
+                                ? `${profit >= 0 ? "+" : ""}${formatCurrency(profit)}`
+                                : "Đang chờ"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          {item.sale_date && (
+                            <p>Bán ngày {compactDate(item.sale_date)}</p>
                           )}
-                        >
-                          {debtPaid ? "Đã trả xong" : formatCurrency(item.loan_amount)}
-                        </p>
-                      </div>
-                    </div>
+                          {item.debt_paid_at && (
+                            <p>Trả nợ ngày {compactDate(item.debt_paid_at)}</p>
+                          )}
+                        </div>
 
-                    {item.sale_date && (
-                      <p className="mt-3 text-xs text-muted-foreground">
-                        Bán ngày {compactDate(item.sale_date)}
-                      </p>
-                    )}
-                    {item.debt_paid_at && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Trả nợ ngày {compactDate(item.debt_paid_at)}
-                      </p>
-                    )}
-                    {item.note && (
-                      <p className="mt-3 rounded-xl bg-muted/50 p-3 text-sm">
-                        {item.note}
-                      </p>
-                    )}
-
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          void haptics.trigger("medium");
-                          setEditTarget(item);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Sửa nhập hàng
-                      </Button>
-                      <Button
-                        variant={isSold ? "outline" : "default"}
-                        onClick={() => {
-                          void haptics.trigger("medium");
-                          setSaleTarget(item);
-                        }}
-                      >
-                        {isSold ? (
-                          <Pencil className="h-4 w-4" />
-                        ) : (
-                          <CheckCircle2 className="h-4 w-4" />
+                        {item.note && (
+                          <p className="rounded-xl bg-muted/50 p-3 text-sm">
+                            {item.note}
+                          </p>
                         )}
-                        {isSold ? "Sửa giá bán" : "Nhập giá bán"}
-                      </Button>
-                    </div>
 
-                    <Button
-                      variant={debtPaid ? "outline" : "secondary"}
-                      className="mt-2 w-full"
-                      data-haptic={debtPaid ? "selection" : "success"}
-                      onClick={() => handleDebtToggle(item)}
-                    >
-                      {debtPaid ? (
-                        <Undo2 className="h-4 w-4" />
-                      ) : (
-                        <HandCoins className="h-4 w-4" />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              void haptics.trigger("medium");
+                              setEditTarget(item);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Sửa nhập hàng
+                          </Button>
+                          <Button
+                            variant={isSold ? "outline" : "default"}
+                            onClick={() => {
+                              void haptics.trigger("medium");
+                              setSaleTarget(item);
+                            }}
+                          >
+                            {isSold ? (
+                              <Pencil className="h-4 w-4" />
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4" />
+                            )}
+                            {isSold ? "Sửa giá bán" : "Nhập giá bán"}
+                          </Button>
+                        </div>
+
+                        <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                          <Button
+                            variant={debtPaid ? "outline" : "secondary"}
+                            data-haptic={debtPaid ? "selection" : "success"}
+                            onClick={() => handleDebtToggle(item)}
+                          >
+                            {debtPaid ? (
+                              <Undo2 className="h-4 w-4" />
+                            ) : (
+                              <HandCoins className="h-4 w-4" />
+                            )}
+                            {debtPaid ? "Chưa trả nợ" : "Đã trả nợ"}
+                          </Button>
+
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                data-haptic="warning"
+                                className="text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Xóa
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Xóa giao dịch iPad?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Hành động này không thể hoàn tác.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(item.id)}
+                                  data-haptic="warning"
+                                  className="bg-destructive"
+                                >
+                                  Xóa
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
                       )}
-                      {debtPaid ? "Chưa trả nợ" : "Đã trả nợ"}
-                    </Button>
                   </CardContent>
                 </Card>
               );

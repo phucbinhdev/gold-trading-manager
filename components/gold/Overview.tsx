@@ -44,7 +44,7 @@ export function Overview({
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#F8DA3B] via-[#F4D125] to-[#EAA20D] p-6 text-yellow-950 shadow-[0_24px_70px_-36px_rgba(146,91,0,0.75),inset_0_1px_0_rgba(255,255,255,0.45)] ring-1 ring-black/10">
+      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#F8DA3B] via-[#F4D125] to-[#EAA20D] p-6 text-yellow-950 shadow-[0_24px_70px_-36px_rgba(146,91,0,0.75),inset_0_1px_0_rgba(255,255,255,0.45)]">
         {/* Decorative Circles */}
         <div className="absolute -right-16 -top-14 h-44 w-44 rounded-full bg-white/30 blur-3xl" />
         <div className="absolute -bottom-10 -left-10 h-36 w-36 rounded-full bg-yellow-800/10 blur-2xl" />

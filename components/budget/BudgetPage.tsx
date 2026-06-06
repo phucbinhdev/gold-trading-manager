@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { addMonths, format, subMonths } from "date-fns";
 import { vi } from "date-fns/locale";
 import {
+  ArrowDownLeft,
+  ArrowUpRight,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -51,6 +53,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 type BudgetMonth = Database["public"]["Tables"]["budget_months"]["Row"];
 type BudgetSource = Database["public"]["Tables"]["budget_sources"]["Row"];
 type Expense = Database["public"]["Tables"]["budget_expenses"]["Row"];
+type BudgetRecordType = Expense["record_type"];
 
 const DEFAULT_SOURCE_NAME = "Nguồn chính";
 
@@ -68,6 +71,7 @@ export function BudgetPage() {
   const [newExpenseName, setNewExpenseName] = useState("");
   const [newExpenseAmount, setNewExpenseAmount] = useState<number | "">("");
   const [newExpenseNote, setNewExpenseNote] = useState("");
+  const [newRecordType, setNewRecordType] = useState<BudgetRecordType>("expense");
   const [isAddingExpense, setIsAddingExpense] = useState(false);
 
   const [isSourceDialogOpen, setIsSourceDialogOpen] = useState(false);
@@ -217,28 +221,38 @@ export function BudgetPage() {
   }, [loadBudgetData]);
 
   const calculations = useMemo(() => {
-    const totalIncome = budget?.total_income || 0;
-    const totalDeducted = expenses.reduce((sum, item) => {
-      if (item.is_paid || item.is_selected) {
+    const baseIncome = budget?.total_income || 0;
+    const activeRecords = expenses.filter((item) => item.is_paid || item.is_selected);
+    const recordIncome = activeRecords.reduce((sum, item) => {
+      if (item.record_type === "income") {
         return sum + item.amount;
       }
 
       return sum;
     }, 0);
-    const remaining = totalIncome - totalDeducted;
+    const totalDeducted = activeRecords.reduce((sum, item) => {
+      if (item.record_type === "expense") {
+        return sum + item.amount;
+      }
 
-    return { totalIncome, totalDeducted, remaining };
+      return sum;
+    }, 0);
+    const availableIncome = baseIncome + recordIncome;
+    const remaining = availableIncome - totalDeducted;
+
+    return { baseIncome, recordIncome, availableIncome, totalDeducted, remaining };
   }, [budget, expenses]);
 
   const handleIncomeChange = async (values: NumberFormatValues) => {
     if (!budget) return;
 
     const value = values.floatValue || 0;
-    setBudget((prev) => (prev ? { ...prev, total_income: value } : null));
+    const baseValue = value - calculations.recordIncome;
+    setBudget((prev) => (prev ? { ...prev, total_income: baseValue } : null));
 
     const { error } = await supabase
       .from("budget_months")
-      .update({ total_income: value })
+      .update({ total_income: baseValue })
       .eq("id", budget.id);
 
     if (error) {
@@ -256,6 +270,7 @@ export function BudgetPage() {
       .from("budget_expenses")
       .insert({
         budget_id: budget.id,
+        record_type: newRecordType,
         name: newExpenseName,
         amount: Number(newExpenseAmount),
         is_selected: true,
@@ -267,14 +282,14 @@ export function BudgetPage() {
 
     if (error) {
       void haptics.trigger("error");
-      toast.error("Lỗi thêm khoản chi");
+      toast.error("Lỗi thêm khoản thu chi");
     } else {
       setExpenses((current) => [...current, data]);
       setNewExpenseName("");
       setNewExpenseAmount("");
       setNewExpenseNote("");
       void haptics.trigger("success");
-      toast.success("Đã thêm khoản chi");
+      toast.success(newRecordType === "income" ? "Đã thêm khoản thu" : "Đã thêm khoản chi");
     }
 
     setIsAddingExpense(false);
@@ -608,7 +623,7 @@ export function BudgetPage() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Xóa nguồn tiền?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Nguồn “{selectedSource?.name}” sẽ bị ẩn khỏi danh sách ví. Các khoản chi cũ vẫn giữ trong dữ liệu.
+                              Nguồn “{selectedSource?.name}” sẽ bị ẩn khỏi danh sách ví. Các khoản thu chi cũ vẫn giữ trong dữ liệu.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -636,7 +651,7 @@ export function BudgetPage() {
                 </p>
                 {showMoney ? (
                   <NumericFormat
-                    value={calculations.totalIncome}
+                    value={calculations.availableIncome}
                     onValueChange={handleIncomeChange}
                     thousandSeparator="."
                     decimalSeparator=","
@@ -658,22 +673,40 @@ export function BudgetPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4 border-t border-white/20 pt-4">
+              <div className="grid grid-cols-2 gap-3 border-t border-white/20 pt-4">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase text-indigo-100">
+                    Gốc nhập tay
+                  </p>
+                  <p className="text-base font-semibold">
+                    {showMoney ? formatCurrency(calculations.baseIncome) : "******"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase text-indigo-100">
+                    Thu vào
+                  </p>
+                  <p className="text-base font-semibold text-emerald-50">
+                    {showMoney
+                      ? `+${formatCurrency(calculations.recordIncome)}`
+                      : "******"}
+                  </p>
+                </div>
                 <div>
                   <p className="text-[10px] font-semibold uppercase text-indigo-100">
                     Dự kiến chi
                   </p>
-                  <p className="text-lg font-semibold">
+                  <p className="text-base font-semibold">
                     {showMoney
-                      ? formatCurrency(calculations.totalDeducted)
+                      ? `-${formatCurrency(calculations.totalDeducted)}`
                       : "******"}
                   </p>
                 </div>
-                <div className="text-right">
+                <div>
                   <p className="text-[10px] font-semibold uppercase text-indigo-100">
                     Còn lại
                   </p>
-                  <p className="text-xl font-bold">
+                  <p className="text-lg font-bold">
                     {showMoney ? formatCurrency(calculations.remaining) : "******"}
                   </p>
                 </div>
@@ -682,8 +715,59 @@ export function BudgetPage() {
           </div>
 
           <div className="space-y-3 rounded-3xl border border-dashed border-muted-foreground/30 bg-muted/30 p-3 md:p-4">
+            <div
+              role="tablist"
+              aria-label="Loại record"
+              className="grid grid-cols-2 gap-1 rounded-2xl bg-background p-1"
+            >
+              {(
+                [
+                  {
+                    value: "expense",
+                    label: "Chi",
+                    icon: ArrowDownLeft,
+                  },
+                  {
+                    value: "income",
+                    label: "Thu",
+                    icon: ArrowUpRight,
+                  },
+                ] satisfies Array<{
+                  value: BudgetRecordType;
+                  label: string;
+                  icon: typeof ArrowDownLeft;
+                }>
+              ).map((option) => {
+                const Icon = option.icon;
+                const active = newRecordType === option.value;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => {
+                      void haptics.trigger("selection");
+                      setNewRecordType(option.value);
+                    }}
+                    className={cn(
+                      "flex h-10 items-center justify-center gap-2 rounded-xl text-sm font-bold transition",
+                      active
+                        ? option.value === "income"
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "bg-indigo-600 text-white shadow-sm"
+                        : "text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
             <Input
-              placeholder={`Tên khoản chi cho ${selectedSource?.name || "nguồn này"}`}
+              placeholder={`Tên khoản ${newRecordType === "income" ? "thu" : "chi"} cho ${selectedSource?.name || "nguồn này"}`}
               value={newExpenseName}
               onChange={(e) => setNewExpenseName(e.target.value)}
               className="h-12 w-full bg-background text-lg"
@@ -697,7 +781,7 @@ export function BudgetPage() {
             <div className="flex gap-3">
               <NumericFormat
                 customInput={Input}
-                placeholder="Số tiền"
+                placeholder={newRecordType === "income" ? "Số tiền thu vào" : "Số tiền chi"}
                 value={newExpenseAmount}
                 onValueChange={(values) => {
                   setNewExpenseAmount(
@@ -719,7 +803,12 @@ export function BudgetPage() {
                 }
                 size="icon"
                 data-haptic="success"
-                className="h-12 w-12 shrink-0 bg-indigo-600 shadow-lg hover:bg-indigo-700"
+                className={cn(
+                  "h-12 w-12 shrink-0 shadow-lg",
+                  newRecordType === "income"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-indigo-600 hover:bg-indigo-700",
+                )}
               >
                 {isAddingExpense ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -738,7 +827,7 @@ export function BudgetPage() {
                 {selectedSource?.name || "Nguồn tiền"}
               </p>
               <p className="text-sm font-semibold text-muted-foreground">
-                Danh sách chi tiêu
+                Danh sách thu chi
               </p>
             </div>
             <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">
@@ -750,8 +839,8 @@ export function BudgetPage() {
             <Loading className="py-2" />
           ) : expenses.length === 0 ? (
             <EmptyState
-              title="Chưa có khoản chi nào"
-              description="Thêm khoản chi đầu tiên để tính nhanh số tiền còn lại cho nguồn này."
+              title="Chưa có khoản thu chi nào"
+              description="Thêm khoản thu hoặc chi đầu tiên để tính nhanh số tiền còn lại cho nguồn này."
               icon={<Wallet className="h-7 w-7" />}
             />
           ) : (
@@ -779,7 +868,7 @@ export function BudgetPage() {
           <DialogHeader>
             <DialogTitle>Thêm nguồn tiền</DialogTitle>
             <DialogDescription>
-              Nguồn mới sẽ có ngân sách và danh sách khoản chi riêng cho từng tháng.
+              Nguồn mới sẽ có ngân sách và danh sách thu chi riêng cho từng tháng.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">

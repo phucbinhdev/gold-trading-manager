@@ -1,6 +1,11 @@
 "use client";
 
-import { Check, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Trash2,
+} from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Database } from "@/lib/supabase/types";
 import { useState } from "react";
@@ -23,6 +28,7 @@ export function ExpenseItem({
   isHidden = false,
 }: ExpenseItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const isIncome = expense.record_type === "income";
 
   const handleTogglePaid = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -80,16 +86,32 @@ export function ExpenseItem({
             >
               {expense.name}
             </p>
-            <p className="text-xs text-muted-foreground font-mono">
-              {isHidden ? "******" : formatCurrency(expense.amount)}
+            <p
+              className={cn(
+                "text-xs font-mono",
+                isIncome
+                  ? "text-emerald-700 dark:text-emerald-400"
+                  : "text-red-600 dark:text-red-400",
+              )}
+            >
+              {isHidden
+                ? "******"
+                : `${isIncome ? "+" : "-"}${formatCurrency(expense.amount)}`}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {expense.is_paid && (
-            <div className="px-2 py-0.5 rounded text-[10px] font-bold bg-green-200 text-green-800 dark:bg-green-900 dark:text-green-300">
-              ĐÃ CHI
+            <div
+              className={cn(
+                "px-2 py-0.5 rounded text-[10px] font-bold",
+                isIncome
+                  ? "bg-emerald-200 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                  : "bg-green-200 text-green-800 dark:bg-green-900 dark:text-green-300",
+              )}
+            >
+              {isIncome ? "ĐÃ THU" : "ĐÃ CHI"}
             </div>
           )}
 

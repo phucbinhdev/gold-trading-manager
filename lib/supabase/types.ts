@@ -87,6 +87,7 @@ export interface Database {
         Row: {
           id: string;
           budget_id: string;
+          record_type: "expense" | "income";
           name: string;
           amount: number;
           is_paid: boolean;
@@ -97,6 +98,7 @@ export interface Database {
         Insert: {
           id?: string;
           budget_id: string;
+          record_type?: "expense" | "income";
           name: string;
           amount?: number;
           is_paid?: boolean;
@@ -107,6 +109,7 @@ export interface Database {
         Update: {
           id?: string;
           budget_id?: string;
+          record_type?: "expense" | "income";
           name?: string;
           amount?: number;
           is_paid?: boolean;
