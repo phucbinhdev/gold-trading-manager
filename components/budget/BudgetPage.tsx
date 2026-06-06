@@ -412,51 +412,84 @@ export function BudgetPage() {
 
       <div className="grid gap-6 md:grid-cols-[minmax(20rem,24rem)_1fr] md:items-start">
         <div className="space-y-4">
-          <div className="flex items-center justify-between rounded-2xl border bg-card p-2 shadow-sm">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                void haptics.trigger("selection");
-                setCurrentMonth(subMonths(currentMonth, 1));
-              }}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <div className="text-center">
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Ngân sách tháng
-              </p>
-              <p className="text-lg font-bold capitalize text-foreground">
-                {format(currentMonth, "MMMM - yyyy", { locale: vi })}
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                void haptics.trigger("selection");
-                setCurrentMonth(addMonths(currentMonth, 1));
-              }}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
+          <section className="rounded-2xl border bg-card p-2 shadow-sm">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-8 shrink-0"
+                onClick={() => {
+                  void haptics.trigger("selection");
+                  setCurrentMonth(subMonths(currentMonth, 1));
+                }}
+                aria-label="Tháng trước"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
 
-          <section className="rounded-3xl border bg-card p-3 shadow-sm">
-            <div className="mb-3 flex items-center justify-between px-1">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Nguồn tiền
+              <div className="min-w-[4.75rem] flex-1 text-center">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Tháng
                 </p>
-                <p className="text-sm font-semibold text-foreground">
-                  {selectedSource?.name || "Chưa chọn nguồn"}
+                <p className="truncate text-sm font-black capitalize text-foreground">
+                  {format(currentMonth, "MM/yyyy", { locale: vi })}
                 </p>
               </div>
-              <div className="flex gap-2">
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-8 shrink-0"
+                onClick={() => {
+                  void haptics.trigger("selection");
+                  setCurrentMonth(addMonths(currentMonth, 1));
+                }}
+                aria-label="Tháng sau"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+
+              <div className="h-9 w-px shrink-0 bg-border" />
+
+              {loadingSources ? (
+                <div className="h-9 min-w-0 flex-[1.4] animate-pulse rounded-xl bg-muted/60" />
+              ) : (
+                <div
+                  role="tablist"
+                  aria-label="Nguồn tiền"
+                  className="flex min-w-0 flex-[1.4] gap-1 overflow-x-auto"
+                >
+                  {sources.map((source) => {
+                    const active = source.id === selectedSourceId;
+
+                    return (
+                      <button
+                        key={source.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => {
+                          void haptics.trigger("selection");
+                          setSelectedSourceId(source.id);
+                        }}
+                        className={cn(
+                          "min-h-9 shrink-0 rounded-xl border px-2.5 text-xs font-bold transition",
+                          active
+                            ? "border-indigo-300 bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                        )}
+                      >
+                        {source.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-9 w-8 shrink-0"
                   onClick={openRenameSourceDialog}
                   aria-label="Đổi tên nguồn tiền"
                   disabled={!selectedSource}
@@ -466,48 +499,13 @@ export function BudgetPage() {
                 <Button
                   variant="secondary"
                   size="icon"
+                  className="h-9 w-8 shrink-0"
                   onClick={() => setIsSourceDialogOpen(true)}
                   aria-label="Thêm nguồn tiền"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
-              </div>
             </div>
-
-            {loadingSources ? (
-              <div className="h-12 animate-pulse rounded-2xl bg-muted/60" />
-            ) : (
-              <div
-                role="tablist"
-                aria-label="Nguồn tiền"
-                className="flex gap-2 overflow-x-auto pb-1"
-              >
-                {sources.map((source) => {
-                  const active = source.id === selectedSourceId;
-
-                  return (
-                    <button
-                      key={source.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => {
-                        void haptics.trigger("selection");
-                        setSelectedSourceId(source.id);
-                      }}
-                      className={cn(
-                        "min-h-11 shrink-0 rounded-2xl border px-4 text-sm font-bold transition",
-                        active
-                          ? "border-indigo-300 bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
-                          : "border-border bg-background text-muted-foreground hover:bg-muted/70 hover:text-foreground",
-                      )}
-                    >
-                      {source.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </section>
 
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white shadow-xl">
