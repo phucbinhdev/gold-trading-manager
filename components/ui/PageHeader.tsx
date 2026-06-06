@@ -15,18 +15,19 @@ interface PageHeaderProps {
 }
 
 export function PageHeader(props: PageHeaderProps) {
-  const { title, className } = props;
+  const { actions, title, className } = props;
 
   return (
     <header
       className={cn(
-        "bg-transparent pb-2 pt-[calc(env(safe-area-inset-top)+6px)]",
+        "flex items-center justify-between gap-3 bg-transparent pb-2 pt-[calc(env(safe-area-inset-top)+6px)]",
         className,
       )}
     >
-      <h1 className="truncate py-1 text-[32px] font-black leading-[1.18] tracking-normal text-foreground md:text-[36px]">
+      <h1 className="min-w-0 truncate py-1 text-[32px] font-black leading-[1.18] tracking-normal text-foreground md:text-[36px]">
         {title}
       </h1>
+      {actions && <div className="shrink-0">{actions}</div>}
     </header>
   );
 }

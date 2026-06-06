@@ -1,17 +1,120 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { formatCurrency } from "@/lib/utils";
-import { PiggyBank } from "lucide-react";
+import { History, PiggyBank } from "lucide-react";
 import { SavingsBoard } from "./_components/SavingsBoard";
 import {
+  getCompletedCellSet,
   getTotalCells,
   SavingsProvider,
   useSavingsState,
 } from "./_components/SavingsContext";
 import { SavingsForm } from "./_components/SavingsForm";
 import { Loading } from "@/components/ui/PageLayout";
+
+function formatPaidAt(value?: string) {
+  if (!value) return "Chưa lưu thời gian";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Chưa lưu thời gian";
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function SavingsHistorySheet() {
+  const { rows } = useSavingsState();
+  const historyItems = rows.flatMap((row) =>
+    Array.from(getCompletedCellSet(row))
+      .sort((a, b) => a - b)
+      .map((cellNumber) => ({
+        id: `${row.id}-${cellNumber}`,
+        rowLabel: row.label,
+        cellNumber,
+        amount: row.period_amount || 0,
+        paidAt: row.cell_paid_at?.[String(cellNumber)],
+      })),
+  ).sort((left, right) => {
+    const leftTime = left.paidAt ? new Date(left.paidAt).getTime() : 0;
+    const rightTime = right.paidAt ? new Date(right.paidAt).getTime() : 0;
+
+    if (leftTime !== rightTime) return rightTime - leftTime;
+    return left.cellNumber - right.cellNumber;
+  });
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          className="rounded-full bg-card/90 shadow-sm backdrop-blur"
+          aria-label="Mở lịch sử tích góp"
+        >
+          <History className="h-5 w-5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="fixed inset-x-0 bottom-0 top-auto left-0 max-h-[82dvh] w-full max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-t-[28px] rounded-b-none border-x-0 border-b-0 p-0 sm:left-[50%] sm:max-w-lg sm:translate-x-[-50%]">
+        <DialogHeader className="border-b px-5 pb-4 pt-5 text-left">
+          <DialogTitle className="text-xl font-black">Lịch sử tích góp</DialogTitle>
+          <DialogDescription>
+            {historyItems.length > 0
+              ? `${historyItems.length} lần đã tích`
+              : "Chưa có lần tích nào."}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="max-h-[calc(82dvh-96px)] overflow-y-auto px-5 py-4">
+          {historyItems.length === 0 ? (
+            <div className="rounded-2xl bg-muted/40 px-4 py-8 text-center text-sm font-semibold text-muted-foreground">
+              Chưa có lịch sử tích góp.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {historyItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-extrabold text-foreground">
+                      {item.rowLabel}
+                    </p>
+                    <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+                      Ô {item.cellNumber} đã đóng
+                    </p>
+                    <p className="mt-0.5 text-xs font-semibold text-slate-500">
+                      {formatPaidAt(item.paidAt)}
+                    </p>
+                  </div>
+                  <p className="shrink-0 text-sm font-black text-emerald-700 numeric-stable">
+                    {formatCurrency(item.amount)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function SavingsPageContent() {
   const { rows, loading, error } = useSavingsState();
@@ -42,6 +145,7 @@ function SavingsPageContent() {
           subtitle="Theo dõi mục tiêu tiết kiệm"
           icon={<PiggyBank className="h-6 w-6 text-white" />}
           iconColor="bg-gradient-to-br from-emerald-500 to-green-600"
+          actions={<SavingsHistorySheet />}
         />
 
         {error && (

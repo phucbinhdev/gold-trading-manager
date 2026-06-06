@@ -159,7 +159,7 @@ export function TransactionList({
             return (
               <div
                 key={t.id}
-                className="group relative flex flex-col gap-3 rounded-2xl border border-border/50 bg-card p-4 shadow-[0_12px_30px_-24px_rgba(0,0,0,0.45)] transition-[border-color,box-shadow,transform] duration-150 ease-out hover:border-border hover:shadow-[0_18px_42px_-28px_rgba(0,0,0,0.5)] active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100"
+                className="group relative flex flex-col gap-3 rounded-2xl border border-border/50 bg-card p-4 pr-12 shadow-[0_12px_30px_-24px_rgba(0,0,0,0.45)] transition-[border-color,box-shadow,transform] duration-150 ease-out hover:border-border hover:shadow-[0_18px_42px_-28px_rgba(0,0,0,0.5)] active:scale-[0.99] sm:pr-4 motion-reduce:transition-none motion-reduce:active:scale-100"
               >
                 <div className="flex justify-between items-start">
                   {/* Left: Info */}

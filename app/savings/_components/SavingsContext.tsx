@@ -9,6 +9,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
 } from "react";
 import { supabase } from "@/lib/supabase/client";
 
@@ -21,6 +22,7 @@ export type SavingsRow = {
   remaining_amount: number;
   closed: boolean;
   month_cells: Record<string, boolean>;
+  cell_paid_at: Record<string, string>;
   closed_count: number;
 };
 
@@ -34,6 +36,7 @@ type SavingsState = {
   rows: SavingsRow[];
   loading: boolean;
   saving: boolean;
+  pendingRowIds: string[];
   error: string | null;
 };
 
@@ -43,6 +46,10 @@ type SavingsAction =
   | { type: "load_error"; error: string }
   | { type: "saving_start" }
   | { type: "saving_end" }
+  | { type: "row_saving_start"; rowId: string }
+  | { type: "row_saving_end"; rowId: string }
+  | { type: "update_row"; row: SavingsRow }
+  | { type: "remove_row"; rowId: string }
   | { type: "set_error"; error: string | null };
 
 type SavingsActions = {
@@ -56,6 +63,7 @@ const initialState: SavingsState = {
   rows: [],
   loading: true,
   saving: false,
+  pendingRowIds: [],
   error: null,
 };
 
@@ -74,6 +82,29 @@ function savingsReducer(
       return { ...state, saving: true, error: null };
     case "saving_end":
       return { ...state, saving: false };
+    case "row_saving_start":
+      return {
+        ...state,
+        pendingRowIds: state.pendingRowIds.includes(action.rowId)
+          ? state.pendingRowIds
+          : [...state.pendingRowIds, action.rowId],
+        error: null,
+      };
+    case "row_saving_end":
+      return {
+        ...state,
+        pendingRowIds: state.pendingRowIds.filter((rowId) => rowId !== action.rowId),
+      };
+    case "update_row":
+      return {
+        ...state,
+        rows: state.rows.map((row) => (row.id === action.row.id ? action.row : row)),
+      };
+    case "remove_row":
+      return {
+        ...state,
+        rows: state.rows.filter((row) => row.id !== action.rowId),
+      };
     case "set_error":
       return { ...state, error: action.error };
     default:
@@ -113,28 +144,67 @@ export function getCompletedCellSet(row: SavingsRow) {
 }
 
 function normalizeRows(rows: SavingsRow[] | null): SavingsRow[] {
-  return (rows || []).map((row) => {
-    const monthCells = row.month_cells || {};
-    const totalCells = Math.max(
-      row.closed_count || 0,
-      (row.periods_left || 0) + (row.closed_count || 0),
-    );
-    const closedCount = Math.min(row.closed_count || 0, totalCells);
+  return (rows || []).map(normalizeRow);
+}
 
-    return {
-      ...row,
-      period_amount: row.period_amount || 0,
-      periods_left: Math.max(0, totalCells - closedCount),
-      remaining_amount: Math.max(0, (totalCells - closedCount) * (row.period_amount || 0)),
-      month_cells: monthCells,
-      closed_count: closedCount,
-      closed: totalCells > 0 && closedCount >= totalCells,
-    };
+function normalizeRow(row: SavingsRow): SavingsRow {
+  const monthCells = row.month_cells || {};
+  const cellPaidAt = row.cell_paid_at || {};
+  const totalCells = Math.max(
+    row.closed_count || 0,
+    (row.periods_left || 0) + (row.closed_count || 0),
+  );
+  const closedCount = Math.min(row.closed_count || 0, totalCells);
+
+  return {
+    ...row,
+    period_amount: row.period_amount || 0,
+    periods_left: Math.max(0, totalCells - closedCount),
+    remaining_amount: Math.max(0, (totalCells - closedCount) * (row.period_amount || 0)),
+    month_cells: monthCells,
+    cell_paid_at: cellPaidAt,
+    closed_count: closedCount,
+    closed: totalCells > 0 && closedCount >= totalCells,
+  };
+}
+
+function getNextRowState(
+  row: SavingsRow,
+  completedCells: Set<number>,
+  cellPaidAt: Record<string, string>,
+) {
+  const totalCells = getTotalCells(row);
+  const nextMonthCells: Record<string, boolean> = {};
+  const nextCellPaidAt: Record<string, string> = {};
+
+  Array.from(completedCells)
+    .sort((a, b) => a - b)
+    .forEach((number) => {
+      nextMonthCells[String(number)] = true;
+      if (cellPaidAt[String(number)]) {
+        nextCellPaidAt[String(number)] = cellPaidAt[String(number)];
+      }
+    });
+
+  const closedCount = completedCells.size;
+  const periodsLeft = Math.max(0, totalCells - closedCount);
+  const remainingAmount = periodsLeft * (row.period_amount || 0);
+  const closed = totalCells > 0 && closedCount >= totalCells;
+
+  return normalizeRow({
+    ...row,
+    closed,
+    month_cells: nextMonthCells,
+    cell_paid_at: nextCellPaidAt,
+    periods_left: periodsLeft,
+    remaining_amount: remainingAmount,
+    closed_count: closedCount,
   });
 }
 
 export function SavingsProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(savingsReducer, initialState);
+  const lockedRowIdsRef = useRef(new Set<string>());
 
   const fetchRows = useCallback(async (showLoading = true) => {
     if (showLoading) {
@@ -173,6 +243,7 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
           remaining_amount: totalCells * periodAmount,
           closed: false,
           month_cells: {},
+          cell_paid_at: {},
           closed_count: 0,
         });
 
@@ -186,93 +257,105 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
       },
 
       async toggleCell(row, cellNumber) {
-        dispatch({ type: "set_error", error: null });
+        if (lockedRowIdsRef.current.has(row.id)) return;
 
         const totalCells = getTotalCells(row);
         if (cellNumber < 1 || cellNumber > totalCells) return;
 
+        lockedRowIdsRef.current.add(row.id);
+        dispatch({ type: "row_saving_start", rowId: row.id });
+
         const completedCells = getCompletedCellSet(row);
+        const nextCellPaidAt = { ...(row.cell_paid_at || {}) };
         if (completedCells.has(cellNumber)) {
           completedCells.delete(cellNumber);
+          delete nextCellPaidAt[String(cellNumber)];
         } else {
           completedCells.add(cellNumber);
+          nextCellPaidAt[String(cellNumber)] = new Date().toISOString();
         }
 
-        const nextMonthCells: Record<string, boolean> = {};
-        Array.from(completedCells)
-          .sort((a, b) => a - b)
-          .forEach((number) => {
-            nextMonthCells[String(number)] = true;
-          });
-
-        const closedCount = completedCells.size;
-        const periodsLeft = Math.max(0, totalCells - closedCount);
-        const remainingAmount = periodsLeft * (row.period_amount || 0);
-        const closed = totalCells > 0 && closedCount >= totalCells;
+        const nextRow = getNextRowState(row, completedCells, nextCellPaidAt);
+        dispatch({ type: "update_row", row: nextRow });
 
         const { error } = await supabase
           .from("savings")
           .update({
-            closed,
-            month_cells: nextMonthCells,
-            periods_left: periodsLeft,
-            remaining_amount: remainingAmount,
-            closed_count: closedCount,
+            closed: nextRow.closed,
+            month_cells: nextRow.month_cells,
+            cell_paid_at: nextRow.cell_paid_at,
+            periods_left: nextRow.periods_left,
+            remaining_amount: nextRow.remaining_amount,
+            closed_count: nextRow.closed_count,
           })
           .eq("id", row.id);
 
         if (error) {
           dispatch({ type: "set_error", error: error.message });
-        } else {
           await fetchRows(false);
         }
+
+        lockedRowIdsRef.current.delete(row.id);
+        dispatch({ type: "row_saving_end", rowId: row.id });
       },
 
       async toggleClosed(row) {
-        dispatch({ type: "set_error", error: null });
+        if (lockedRowIdsRef.current.has(row.id)) return;
 
         const totalCells = getTotalCells(row);
         const shouldComplete = !row.closed;
-        const nextMonthCells: Record<string, boolean> = {};
-        const closedCount = shouldComplete ? totalCells : 0;
+        const completedCells = new Set<number>();
+        const nextCellPaidAt: Record<string, string> = {};
+        const paidAt = new Date().toISOString();
 
         if (shouldComplete) {
           for (let index = 1; index <= totalCells; index += 1) {
-            nextMonthCells[String(index)] = true;
+            completedCells.add(index);
+            nextCellPaidAt[String(index)] = row.cell_paid_at?.[String(index)] || paidAt;
           }
         }
 
-        const periodsLeft = shouldComplete ? 0 : totalCells;
-        const remainingAmount = periodsLeft * (row.period_amount || 0);
+        lockedRowIdsRef.current.add(row.id);
+        dispatch({ type: "row_saving_start", rowId: row.id });
+        const nextRow = getNextRowState(row, completedCells, nextCellPaidAt);
+        dispatch({ type: "update_row", row: nextRow });
 
         const { error } = await supabase
           .from("savings")
           .update({
-            closed: shouldComplete,
-            month_cells: nextMonthCells,
-            periods_left: periodsLeft,
-            remaining_amount: remainingAmount,
-            closed_count: closedCount,
+            closed: nextRow.closed,
+            month_cells: nextRow.month_cells,
+            cell_paid_at: nextRow.cell_paid_at,
+            periods_left: nextRow.periods_left,
+            remaining_amount: nextRow.remaining_amount,
+            closed_count: nextRow.closed_count,
           })
           .eq("id", row.id);
 
         if (error) {
           dispatch({ type: "set_error", error: error.message });
-        } else {
           await fetchRows(false);
         }
+
+        lockedRowIdsRef.current.delete(row.id);
+        dispatch({ type: "row_saving_end", rowId: row.id });
       },
 
       async removeRow(rowId) {
-        dispatch({ type: "set_error", error: null });
+        if (lockedRowIdsRef.current.has(rowId)) return;
 
+        lockedRowIdsRef.current.add(rowId);
+        dispatch({ type: "row_saving_start", rowId });
         const { error } = await supabase.from("savings").delete().eq("id", rowId);
 
         if (error) {
           dispatch({ type: "set_error", error: error.message });
         } else {
-          await fetchRows(false);
+          dispatch({ type: "remove_row", rowId });
         }
+
+        lockedRowIdsRef.current.delete(rowId);
+        dispatch({ type: "row_saving_end", rowId });
       },
     }),
     [fetchRows],

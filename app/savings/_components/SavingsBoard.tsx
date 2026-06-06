@@ -110,18 +110,19 @@ function DeleteSavingsRowButton({
 
 function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
   const { removeRow, toggleCell } = useSavingsActions();
-  const { saving } = useSavingsState();
+  const { pendingRowIds, saving } = useSavingsState();
   const haptics = useWebHaptics();
   const totalCells = getTotalCells(row);
   const completedCells = getCompletedCellSet(row);
   const paidAmount = completedCells.size * (row.period_amount || 0);
   const remainingAmount = Math.max(0, (totalCells - completedCells.size) * (row.period_amount || 0));
   const completed = totalCells > 0 && completedCells.size >= totalCells;
+  const rowPending = pendingRowIds.includes(row.id);
 
   if (completed) {
     return (
       <Card className="relative overflow-hidden rounded-[24px] border-0 bg-card/95 py-0 shadow-[0_8px_22px_rgba(15,23,42,0.07)]">
-        <CardContent className="flex items-center gap-3 p-4">
+        <CardContent className={cn("flex items-center gap-3 p-4 transition-opacity", rowPending && "opacity-70")}>
           <WireBadge index={index} completed />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -140,7 +141,7 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
           </div>
           <DeleteSavingsRowButton
             label={row.label}
-            disabled={saving}
+            disabled={saving || rowPending}
             onConfirm={() => {
               void haptics.trigger("warning");
               removeRow(row.id);
@@ -153,7 +154,7 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
 
   return (
     <Card className="relative overflow-hidden rounded-[26px] border-0 bg-card/95 py-0 shadow-[0_10px_28px_rgba(15,23,42,0.08)]">
-      <CardContent className="grid gap-3 p-4 md:grid-cols-[160px_1fr_145px] md:items-center md:gap-4">
+      <CardContent className={cn("grid gap-3 p-4 transition-opacity md:grid-cols-[160px_1fr_145px] md:items-center md:gap-4", rowPending && "opacity-80")}>
         <div className="flex items-center gap-3">
           <WireBadge index={index} completed={completed} />
           <div className="min-w-0">
@@ -176,7 +177,7 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
                 key={number}
                 number={number}
                 checked={checked}
-                disabled={saving}
+                disabled={rowPending}
                 onToggle={() => {
                   void haptics.trigger("selection");
                   toggleCell(row, number);
@@ -199,7 +200,7 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
 
         <DeleteSavingsRowButton
           label={row.label}
-          disabled={saving}
+          disabled={saving || rowPending}
           onConfirm={() => {
             void haptics.trigger("warning");
             removeRow(row.id);
