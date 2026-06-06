@@ -236,7 +236,7 @@ export default function RoomRentalPage() {
 
 if (!settings) {
     return (
-      <div className="page-shell mx-auto max-w-md space-y-6">
+      <div className="page-shell app-container-narrow space-y-6">
         <PageHeader 
           title="Tính tiền trọ" 
           subtitle="Tạo hóa đơn hàng tháng"
@@ -260,7 +260,7 @@ if (!settings) {
   }
 
   return (
-<div className="page-shell mx-auto max-w-md space-y-6">
+    <div className="page-shell app-container space-y-6">
         <PageHeader 
           title="Tính tiền trọ" 
           subtitle="Tạo hóa đơn hàng tháng"
@@ -269,208 +269,214 @@ if (!settings) {
           showSettings
         />
 
-      {/* Month Selection */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-green-500" />
-            Tháng tính tiền
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Input
-            type="month"
-            value={month.slice(0, 7)}
-            onChange={(e) => setMonth(`${e.target.value}-01`)}
-            className="h-12 rounded-xl"
-          />
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] md:items-start">
+        <div className="space-y-4">
+          {/* Month Selection */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-green-500" />
+                Tháng tính tiền
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Input
+                type="month"
+                value={month.slice(0, 7)}
+                onChange={(e) => setMonth(`${e.target.value}-01`)}
+                className="h-12 rounded-xl"
+              />
+            </CardContent>
+          </Card>
 
-      {/* Meter Readings */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Zap className="w-4 h-4 text-yellow-500" />
-            Chỉ số công tơ
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Electricity */}
-          <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-yellow-600 fill-yellow-600" />
-              <span className="font-bold text-yellow-800">Điện (kWh)</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-yellow-700 mb-1 block">
-                  Chỉ số cũ
-                </label>
-                <Input
-                  type="number"
-                  value={electricOld}
-                  onChange={(e) => setElectricOld(e.target.value)}
-                  placeholder="0"
-                  className="h-12 bg-white border-yellow-200 rounded-xl"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-yellow-700 mb-1 block">
-                  Chỉ số mới
-                </label>
-                <Input
-                  type="number"
-                  value={electricNew}
-                  onChange={(e) => setElectricNew(e.target.value)}
-                  placeholder="0"
-                  className="h-12 bg-white border-yellow-200 rounded-xl"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Water */}
-          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <Droplet className="w-5 h-5 text-blue-600 fill-blue-600" />
-              <span className="font-bold text-blue-800">Nước (m³)</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-blue-700 mb-1 block">
-                  Chỉ số cũ
-                </label>
-                <Input
-                  type="number"
-                  value={waterOld}
-                  onChange={(e) => setWaterOld(e.target.value)}
-                  placeholder="0"
-                  className="h-12 bg-white border-blue-200 rounded-xl"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-blue-700 mb-1 block">
-                  Chỉ số mới
-                </label>
-                <Input
-                  type="number"
-                  value={waterNew}
-                  onChange={(e) => setWaterNew(e.target.value)}
-                  placeholder="0"
-                  className="h-12 bg-white border-blue-200 rounded-xl"
-                />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Custom Fees Quantities */}
-      {customFees.filter((fee) => fee.type === "unit").length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <SettingsIcon className="w-4 h-4 text-gray-500" />
-              Chi phí khác
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {customFees
-              .filter((fee) => fee.type === "unit")
-              .map((fee) => (
-                <div
-                  key={fee.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
-                >
+          {/* Meter Readings */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Zap className="w-4 h-4 text-yellow-500" />
+                Chỉ số công tơ
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 xl:grid-cols-2">
+              {/* Electricity */}
+              <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-yellow-600 fill-yellow-600" />
+                  <span className="font-bold text-yellow-800">Điện (kWh)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="font-medium text-sm">{fee.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrency(fee.unit_price || 0)}/{fee.unit_name}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">Số lượng:</span>
+                    <label className="text-xs text-yellow-700 mb-1 block">
+                      Chỉ số cũ
+                    </label>
                     <Input
                       type="number"
-                      value={customFeeQuantities[fee.id] || "1"}
-                      onChange={(e) =>
-                        setCustomFeeQuantities({
-                          ...customFeeQuantities,
-                          [fee.id]: e.target.value,
-                        })
-                      }
-                      className="w-20 h-10 bg-white rounded-xl"
-                      min="0"
+                      value={electricOld}
+                      onChange={(e) => setElectricOld(e.target.value)}
+                      placeholder="0"
+                      className="h-12 bg-white border-yellow-200 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-yellow-700 mb-1 block">
+                      Chỉ số mới
+                    </label>
+                    <Input
+                      type="number"
+                      value={electricNew}
+                      onChange={(e) => setElectricNew(e.target.value)}
+                      placeholder="0"
+                      className="h-12 bg-white border-yellow-200 rounded-xl"
                     />
                   </div>
                 </div>
-              ))}
-          </CardContent>
-        </Card>
-      )}
+              </div>
 
-      {/* Warnings */}
-      {warnings.length > 0 && (
-        <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 space-y-2">
-          <div className="flex items-start gap-3">
-            <Lightbulb className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <h3 className="font-semibold text-yellow-800 text-sm">
-                Cảnh báo:
-              </h3>
-              <ul className="text-xs text-yellow-700 space-y-1 list-disc pl-3">
-                {warnings.map((warning, index) => (
-                  <li key={index}>{warning}</li>
-                ))}
-              </ul>
+              {/* Water */}
+              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Droplet className="w-5 h-5 text-blue-600 fill-blue-600" />
+                  <span className="font-bold text-blue-800">Nước (m³)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-blue-700 mb-1 block">
+                      Chỉ số cũ
+                    </label>
+                    <Input
+                      type="number"
+                      value={waterOld}
+                      onChange={(e) => setWaterOld(e.target.value)}
+                      placeholder="0"
+                      className="h-12 bg-white border-blue-200 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-blue-700 mb-1 block">
+                      Chỉ số mới
+                    </label>
+                    <Input
+                      type="number"
+                      value={waterNew}
+                      onChange={(e) => setWaterNew(e.target.value)}
+                      placeholder="0"
+                      className="h-12 bg-white border-blue-200 rounded-xl"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Custom Fees Quantities */}
+          {customFees.filter((fee) => fee.type === "unit").length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <SettingsIcon className="w-4 h-4 text-gray-500" />
+                  Chi phí khác
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3 xl:grid-cols-2">
+                {customFees
+                  .filter((fee) => fee.type === "unit")
+                  .map((fee) => (
+                    <div
+                      key={fee.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
+                    >
+                      <div>
+                        <p className="font-medium text-sm">{fee.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatCurrency(fee.unit_price || 0)}/{fee.unit_name}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">Số lượng:</span>
+                        <Input
+                          type="number"
+                          value={customFeeQuantities[fee.id] || "1"}
+                          onChange={(e) =>
+                            setCustomFeeQuantities({
+                              ...customFeeQuantities,
+                              [fee.id]: e.target.value,
+                            })
+                          }
+                          className="w-20 h-10 bg-white rounded-xl"
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                  ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Warnings */}
+          {warnings.length > 0 && (
+            <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-100 space-y-2">
+              <div className="flex items-start gap-3">
+                <Lightbulb className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h3 className="font-semibold text-yellow-800 text-sm">
+                    Cảnh báo:
+                  </h3>
+                  <ul className="text-xs text-yellow-700 space-y-1 list-disc pl-3">
+                    {warnings.map((warning, index) => (
+                      <li key={index}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Calculate Button */}
-      <Button
-        onClick={calculateTotal}
-        data-haptic="medium"
-        className="w-full h-12 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium shadow-lg shadow-green-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
-      >
-        <Zap className="w-5 h-5 mr-2" />
-        Tính tiền
-      </Button>
-
-      {/* Calculation Result */}
-      {calculationResult && (
-        <div className="space-y-4">
-          <BillResult
-            month={month}
-            electricOld={parseFloat(electricOld) || 0}
-            electricNew={parseFloat(electricNew) || 0}
-            waterOld={parseFloat(waterOld) || 0}
-            waterNew={parseFloat(waterNew) || 0}
-            rentAmount={calculationResult.rent_amount}
-            electricAmount={calculationResult.electric_amount}
-            waterAmount={calculationResult.water_amount}
-            customFees={calculationResult.custom_fees_details.map((fee) => ({
-              name: fee.fee_name,
-              amount: fee.amount,
-              quantity: fee.quantity,
-            }))}
-            totalAmount={calculationResult.total_amount}
-          />
-
-          {/* Save Button */}
+          {/* Calculate Button */}
           <Button
-            onClick={handleSave}
-            disabled={saving}
-            data-haptic="success"
-            className="w-full h-12 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-medium shadow-lg shadow-gray-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            onClick={calculateTotal}
+            data-haptic="medium"
+            className="w-full h-12 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium shadow-lg shadow-green-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
-            <Save className="w-5 h-5 mr-2" />
-            {saving ? "Đang lưu..." : "Lưu hóa đơn"}
+            <Zap className="w-5 h-5 mr-2" />
+            Tính tiền
           </Button>
         </div>
-      )}
+
+        <div className="space-y-4">
+          {/* Calculation Result */}
+          {calculationResult && (
+            <div className="space-y-4">
+              <BillResult
+                month={month}
+                electricOld={parseFloat(electricOld) || 0}
+                electricNew={parseFloat(electricNew) || 0}
+                waterOld={parseFloat(waterOld) || 0}
+                waterNew={parseFloat(waterNew) || 0}
+                rentAmount={calculationResult.rent_amount}
+                electricAmount={calculationResult.electric_amount}
+                waterAmount={calculationResult.water_amount}
+                customFees={calculationResult.custom_fees_details.map((fee) => ({
+                  name: fee.fee_name,
+                  amount: fee.amount,
+                  quantity: fee.quantity,
+                }))}
+                totalAmount={calculationResult.total_amount}
+              />
+
+              {/* Save Button */}
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                data-haptic="success"
+                className="w-full h-12 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-medium shadow-lg shadow-gray-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Save className="w-5 h-5 mr-2" />
+                {saving ? "Đang lưu..." : "Lưu hóa đơn"}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Quick Navigation */}
       <div className="space-y-3">

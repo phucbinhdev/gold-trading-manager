@@ -385,14 +385,15 @@ export function IpadManager() {
   };
 
   return (
-    <div className="page-shell mx-auto max-w-md bg-background text-foreground">
+    <div className="page-shell app-container bg-background text-foreground">
       <PageHeader
         title="Mua bán iPad"
         icon={<Tablet className="h-6 w-6 text-white" />}
         iconColor="bg-gradient-to-br from-sky-500 to-emerald-500"
       />
 
-      <div className="mt-4 space-y-5">
+      <div className="mt-4 grid gap-6 md:grid-cols-[minmax(20rem,24rem)_1fr] md:items-start">
+        <div className="space-y-5">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {monthOptions.map((month) => (
             <Button
@@ -477,32 +478,34 @@ export function IpadManager() {
             </CardContent>
           </Card>
         </div>
-
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">Danh sách máy</h2>
-          <Button
-            onClick={() => {
-              void haptics.trigger("medium");
-              setIsAddOpen(true);
-            }}
-            size="sm"
-            data-haptic="medium"
-          >
-            <Plus className="h-4 w-4" />
-            Thêm iPad
-          </Button>
         </div>
 
-        {loading ? (
-          <Loading />
-        ) : monthlyTransactions.length === 0 ? (
-          <EmptyState
-            icon={<Tablet className="h-7 w-7" />}
-            title={`Chưa có giao dịch iPad trong ${monthLabel(selectedMonth)}`}
-            description="Chọn tháng cũ hoặc thêm giao dịch mới để theo dõi lời lỗ."
-          />
-        ) : (
-          <div className="space-y-3">
+        <div className="min-w-0 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold">Danh sách máy</h2>
+            <Button
+              onClick={() => {
+                void haptics.trigger("medium");
+                setIsAddOpen(true);
+              }}
+              size="sm"
+              data-haptic="medium"
+            >
+              <Plus className="h-4 w-4" />
+              Thêm iPad
+            </Button>
+          </div>
+
+          {loading ? (
+            <Loading />
+          ) : monthlyTransactions.length === 0 ? (
+            <EmptyState
+              icon={<Tablet className="h-7 w-7" />}
+              title={`Chưa có giao dịch iPad trong ${monthLabel(selectedMonth)}`}
+              description="Chọn tháng cũ hoặc thêm giao dịch mới để theo dõi lời lỗ."
+            />
+          ) : (
+            <div className="grid gap-3 xl:grid-cols-2">
             {monthlyTransactions.map((item) => {
               const isSold = item.status === "sold";
               const profit = item.profit_amount || 0;
@@ -684,8 +687,9 @@ export function IpadManager() {
                 </Card>
               );
             })}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>

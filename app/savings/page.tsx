@@ -36,7 +36,7 @@ function SavingsPageContent() {
 
   return (
     <div className="min-h-dvh bg-[radial-gradient(circle_at_top,color-mix(in_oklab,var(--primary)_20%,transparent)_0%,color-mix(in_oklab,var(--muted)_88%,transparent)_42%,var(--background)_78%)] text-foreground">
-      <div className="page-shell mx-auto max-w-5xl space-y-4">
+      <div className="page-shell app-container space-y-4">
         <PageHeader
           title="Tích góp"
           subtitle="Theo dõi mục tiêu tiết kiệm"
@@ -52,7 +52,7 @@ function SavingsPageContent() {
 
         <Card className="overflow-hidden rounded-[32px] border-0 bg-card/90 py-0 shadow-[0_14px_35px_rgba(15,23,42,0.10)] backdrop-blur">
           <CardContent className="p-0">
-            <div className="grid gap-4 p-5 sm:grid-cols-[1fr_180px] sm:items-center">
+            <div className="grid gap-4 p-5 md:grid-cols-[1fr_180px] md:items-center">
               <div>
                 <div className="flex items-center gap-3">
                   <div className="text-5xl">🎯</div>
@@ -71,7 +71,7 @@ function SavingsPageContent() {
                   <span className="min-w-12 text-right text-sm font-black text-slate-700">{progress}%</span>
                 </div>
               </div>
-              <div className="flex justify-center text-7xl sm:text-8xl">🧰</div>
+              <div className="flex justify-center text-7xl md:text-8xl">🧰</div>
             </div>
 
             <div className="grid grid-cols-2 border-t bg-background/60 px-5 py-4 text-sm">

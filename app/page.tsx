@@ -68,7 +68,7 @@ export default function Home() {
   );
 
   return (
-    <div className="page-shell mx-auto max-w-md space-y-8 bg-background font-sans text-foreground">
+    <div className="page-shell app-container space-y-8 bg-background font-sans text-foreground">
       <PageHeader 
         title="Quản Lý Vàng" 
         subtitle="Xin chào! Chúc bạn ngày mới tốt lành."
@@ -80,7 +80,7 @@ export default function Home() {
       {loading && transactions.length === 0 ? (
         <Loading />
       ) : (
-        <>
+        <div className="grid gap-6 md:grid-cols-[minmax(20rem,24rem)_1fr] md:items-start">
           <Overview
             totalChi={totalChi}
             totalInvested={totalInvested}
@@ -88,7 +88,7 @@ export default function Home() {
             setMarketPrice={handlePriceChange}
           />
 
-          <div>
+          <div className="min-w-0">
             <div className="mb-2 px-1">
               <h3 className="font-bold text-lg">Lịch sử giao dịch</h3>
             </div>
@@ -98,7 +98,7 @@ export default function Home() {
               onUpdate={fetchData}
             />
           </div>
-        </>
+        </div>
       )}
 
       <Button
@@ -108,7 +108,7 @@ export default function Home() {
         }}
         size="icon"
         data-haptic="medium"
-        className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-[0_18px_34px_-18px_rgba(0,0,0,0.55)] hover:bg-primary/90"
+        className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-[0_18px_34px_-18px_rgba(0,0,0,0.55)] hover:bg-primary/90 md:right-[calc((100vw-min(100vw,72rem))/2+1.5rem)]"
         aria-label="Thêm giao dịch vàng"
       >
         <Plus className="h-8 w-8" />

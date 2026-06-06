@@ -238,7 +238,7 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="page-shell mx-auto max-w-md space-y-6">
+    <div className="page-shell app-container space-y-6">
       <PageHeader 
         title="Cấu hình giá" 
         subtitle="Thiết lập giá nhà, điện, nước"
@@ -246,7 +246,8 @@ export default function ConfigPage() {
         iconColor="bg-gradient-to-br from-blue-500 to-indigo-500 shadow-blue-200"
       />
 
-      <div className="space-y-4">
+      <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] md:items-start">
+        <div className="space-y-4">
         <div className="flex items-center gap-2 px-1">
           <Sparkles className="w-5 h-5 text-yellow-500" />
           <h2 className="text-lg font-bold text-foreground">Cấu hình cơ bản</h2>
@@ -285,7 +286,7 @@ export default function ConfigPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
             {/* Electricity - Yellow Theme */}
             <div className="bg-[#fefce8] border border-[#fef9c3] rounded-2xl p-4 space-y-4">
               <div className="flex items-center gap-3">
@@ -349,7 +350,7 @@ export default function ConfigPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4">
+              <div className="grid gap-4 xl:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium mb-1 inline-block">
                     Ngân hàng
@@ -408,7 +409,7 @@ export default function ConfigPage() {
                 </div>
 
                 {settings.bank_id && settings.account_number && (
-                  <div className="mt-2 flex flex-col items-center rounded-2xl bg-muted/45 p-4">
+                  <div className="mt-2 flex flex-col items-center rounded-2xl bg-muted/45 p-4 xl:col-span-2">
                     <p className="mb-2 text-sm text-muted-foreground">Xem trước QR:</p>
                     <img
                       src={`https://img.vietqr.io/image/${settings.bank_id}-${settings.account_number}-compact.png?accountName=${encodeURIComponent(settings.account_name || "")}`}
@@ -431,9 +432,9 @@ export default function ConfigPage() {
             {saving ? "Đang lưu..." : "Lưu thay đổi"}
           </Button>
         </form>
-      </div>
+        </div>
 
-      <Card>
+        <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Plus className="w-4 h-4 text-green-500" />
@@ -448,7 +449,7 @@ export default function ConfigPage() {
             <h4 className="text-sm font-medium text-foreground">
               Thêm chi phí mới
             </h4>
-            <div className="grid gap-4">
+              <div className="grid gap-4">
               <Input
                 placeholder="Tên chi phí (VD: Internet)"
                 value={newFee.name}
@@ -456,7 +457,7 @@ export default function ConfigPage() {
                 required
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 xl:grid-cols-2">
                 <Select
                   value={newFee.type}
                   onValueChange={(val: "fixed" | "unit") =>
@@ -568,7 +569,8 @@ export default function ConfigPage() {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </div>
 
       {message && (
         <div

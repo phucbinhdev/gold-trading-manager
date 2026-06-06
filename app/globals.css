@@ -202,6 +202,22 @@
     padding: calc(env(safe-area-inset-top) + 1rem) 1rem calc(env(safe-area-inset-bottom) + 6rem);
   }
 
+  @media (min-width: 768px) {
+    .page-shell {
+      padding: calc(env(safe-area-inset-top) + 1.25rem) 1.5rem calc(env(safe-area-inset-bottom) + 6.5rem);
+    }
+  }
+
+  .app-container {
+    width: min(100%, 72rem);
+    margin-inline: auto;
+  }
+
+  .app-container-narrow {
+    width: min(100%, 48rem);
+    margin-inline: auto;
+  }
+
   .keyboard-safe {
     max-height: min(90dvh, 720px);
     overflow-y: auto;

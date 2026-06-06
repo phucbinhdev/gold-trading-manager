@@ -77,7 +77,7 @@ export function SavingsForm() {
           type="button"
           size="icon"
           data-haptic="medium"
-          className="fixed right-5 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 h-14 w-14 rounded-full bg-emerald-600 text-white shadow-[0_12px_24px_rgba(5,150,105,0.35)] hover:bg-emerald-700"
+          className="fixed right-5 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 h-14 w-14 rounded-full bg-emerald-600 text-white shadow-[0_12px_24px_rgba(5,150,105,0.35)] hover:bg-emerald-700 md:right-[calc((100vw-min(100vw,72rem))/2+1.5rem)]"
           aria-label="Thêm dây tích góp"
         >
           <Plus className="h-7 w-7" />
@@ -95,7 +95,7 @@ export function SavingsForm() {
           </CardHeader>
           <CardContent>
             <form className="space-y-3" onSubmit={handleSubmit}>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-3">
                 <Input
                   value={label}
                   onChange={(event) => setLabel(event.target.value)}
@@ -120,7 +120,7 @@ export function SavingsForm() {
                 />
               </div>
 
-              <div className="flex flex-col gap-3 rounded-2xl bg-emerald-50/80 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 rounded-2xl bg-emerald-50/80 p-3 text-sm md:flex-row md:items-center md:justify-between">
                 <span className="text-muted-foreground">
                   Mục tiêu dây: <b className="text-emerald-700">{formatCurrency(previewTotal || 0)}</b>
                 </span>

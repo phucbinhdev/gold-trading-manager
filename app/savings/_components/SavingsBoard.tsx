@@ -153,7 +153,7 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
 
   return (
     <Card className="relative overflow-hidden rounded-[26px] border-0 bg-card/95 py-0 shadow-[0_10px_28px_rgba(15,23,42,0.08)]">
-      <CardContent className="grid gap-3 p-4 sm:grid-cols-[160px_1fr_145px] sm:items-center sm:gap-4">
+      <CardContent className="grid gap-3 p-4 md:grid-cols-[160px_1fr_145px] md:items-center md:gap-4">
         <div className="flex items-center gap-3">
           <WireBadge index={index} completed={completed} />
           <div className="min-w-0">
@@ -167,7 +167,7 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-5 justify-items-start gap-x-3 gap-y-3 sm:grid-cols-[repeat(auto-fit,2.75rem)] sm:justify-start">
+        <div className="grid grid-cols-5 justify-items-start gap-x-3 gap-y-3 md:grid-cols-[repeat(auto-fit,2.75rem)] md:justify-start">
           {Array.from({ length: totalCells }, (_, cellIndex) => {
             const number = cellIndex + 1;
             const checked = completedCells.has(number);
@@ -186,12 +186,12 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
           })}
         </div>
 
-        <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-3 text-sm sm:block sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
+        <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-3 text-sm md:block md:border-l md:border-t-0 md:pl-4 md:pt-0">
           <div>
             <p className="text-xs font-semibold text-muted-foreground">Đã đóng</p>
             <p className="font-extrabold text-emerald-700">{formatCurrency(paidAmount)}</p>
           </div>
-          <div className="sm:mt-3">
+          <div className="md:mt-3">
             <p className="text-xs font-semibold text-muted-foreground">Còn lại</p>
             <p className="font-extrabold text-orange-600">{formatCurrency(remainingAmount)}</p>
           </div>

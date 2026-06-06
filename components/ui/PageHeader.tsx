@@ -24,7 +24,7 @@ export function PageHeader(props: PageHeaderProps) {
         className,
       )}
     >
-      <h1 className="truncate py-1 text-[32px] font-black leading-[1.18] tracking-[-0.02em] text-foreground sm:text-[36px]">
+      <h1 className="truncate py-1 text-[32px] font-black leading-[1.18] tracking-normal text-foreground md:text-[36px]">
         {title}
       </h1>
     </header>

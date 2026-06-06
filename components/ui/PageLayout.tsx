@@ -10,7 +10,7 @@ interface PageLayoutProps {
 
 export function PageLayout({ children, className }: PageLayoutProps) {
   return (
-    <div className={cn("page-shell space-y-6", className)}>
+    <div className={cn("page-shell app-container space-y-6", className)}>
       {children}
     </div>
   );
@@ -28,9 +28,11 @@ export function Loading({ className }: LoadingProps) {
         className
       )}
     >
-      <div className="h-28 animate-pulse rounded-[28px] bg-muted/70" />
-      <div className="h-20 animate-pulse rounded-[24px] bg-muted/50" />
-      <div className="h-20 animate-pulse rounded-[24px] bg-muted/40" />
+      <div className="h-28 animate-pulse rounded-[28px] bg-muted/70 md:h-36" />
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="h-20 animate-pulse rounded-[24px] bg-muted/50 md:h-28" />
+        <div className="h-20 animate-pulse rounded-[24px] bg-muted/40 md:h-28" />
+      </div>
     </div>
   );
 }

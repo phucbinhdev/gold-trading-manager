@@ -217,7 +217,7 @@ export function BudgetPage() {
   };
 
   return (
-    <div className="page-shell mx-auto max-w-md space-y-6">
+    <div className="page-shell app-container space-y-6">
       <PageHeader 
         title="Tính nợ" 
         subtitle="Quản lý chi tiêu hàng tháng"
@@ -226,180 +226,186 @@ export function BudgetPage() {
         showSettings
       />
 
-      {/* Month Selector */}
-      <div className="flex items-center justify-between bg-card p-2 rounded-2xl shadow-sm border">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            void haptics.trigger("selection");
-            setCurrentMonth(subMonths(currentMonth, 1));
-          }}
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
-            Ngân sách tháng
-          </p>
-          <p className="text-lg font-bold text-foreground capitalize">
-            {format(currentMonth, "MMMM - yyyy", { locale: vi })}
-          </p>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            void haptics.trigger("selection");
-            setCurrentMonth(addMonths(currentMonth, 1));
-          }}
-        >
-          <ChevronRight className="h-5 w-5" />
-        </Button>
-      </div>
+      <div className="grid gap-6 md:grid-cols-[minmax(20rem,24rem)_1fr] md:items-start">
+        <div className="space-y-4">
+          {/* Month Selector */}
+          <div className="flex items-center justify-between rounded-2xl border bg-card p-2 shadow-sm">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                void haptics.trigger("selection");
+                setCurrentMonth(subMonths(currentMonth, 1));
+              }}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div className="text-center">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Ngân sách tháng
+              </p>
+              <p className="text-lg font-bold capitalize text-foreground">
+                {format(currentMonth, "MMMM - yyyy", { locale: vi })}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                void haptics.trigger("selection");
+                setCurrentMonth(addMonths(currentMonth, 1));
+              }}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
 
-      {/* Summary Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white shadow-xl">
-        <div className="absolute top-0 right-0 p-3 opacity-20">
-          <div className="h-32 w-32 bg-white rounded-full blur-3xl translate-x-12 -translate-y-12"></div>
-        </div>
+          {/* Summary Card */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white shadow-xl">
+            <div className="absolute top-0 right-0 p-3 opacity-20">
+              <div className="h-32 w-32 translate-x-12 -translate-y-12 rounded-full bg-white blur-3xl"></div>
+            </div>
 
-        <button
-          onClick={() => {
-            void haptics.trigger("light");
-            setShowMoney(!showMoney);
-          }}
-          aria-label={showMoney ? "Ẩn số tiền" : "Hiện số tiền"}
-          className="absolute top-4 right-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors z-20"
-        >
-          {showMoney ? (
-            <Eye className="w-5 h-5 text-indigo-100" />
-          ) : (
-            <EyeOff className="w-5 h-5 text-indigo-100" />
-          )}
-        </button>
+            <button
+              onClick={() => {
+                void haptics.trigger("light");
+                setShowMoney(!showMoney);
+              }}
+              aria-label={showMoney ? "Ẩn số tiền" : "Hiện số tiền"}
+              className="absolute top-4 right-4 z-20 rounded-full bg-white/20 p-2 backdrop-blur-sm transition-colors hover:bg-white/30"
+            >
+              {showMoney ? (
+                <Eye className="w-5 h-5 text-indigo-100" />
+              ) : (
+                <EyeOff className="w-5 h-5 text-indigo-100" />
+              )}
+            </button>
 
-        <div className="relative z-10 space-y-4">
-          <div>
-            <p className="text-indigo-100 text-xs font-semibold uppercase tracking-wider mb-1">
-              Tiền hiện có
-            </p>
-            {showMoney ? (
+            <div className="relative z-10 space-y-4">
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-indigo-100">
+                  Tiền hiện có
+                </p>
+                {showMoney ? (
+                  <NumericFormat
+                    value={calculations.totalIncome}
+                    onValueChange={handleIncomeChange}
+                    thousandSeparator="."
+                    decimalSeparator=","
+                    className="w-full bg-transparent text-3xl font-bold text-white placeholder-white/50 focus:outline-none"
+                    placeholder="0"
+                    inputMode="decimal"
+                  />
+                ) : (
+                  <p
+                    className="cursor-pointer text-3xl font-bold text-white"
+                    onClick={() => {
+                      void haptics.trigger("light");
+                      setShowMoney(true);
+                    }}
+                  >
+                    ******
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 border-t border-white/20 pt-4">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase text-indigo-100">
+                    Dự kiến chi
+                  </p>
+                  <p className="text-lg font-semibold">
+                    {showMoney
+                      ? formatCurrency(calculations.totalDeducted)
+                      : "******"}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-semibold uppercase text-indigo-100">
+                    Còn lại
+                  </p>
+                  <p className="text-xl font-bold">
+                    {showMoney ? formatCurrency(calculations.remaining) : "******"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Add Expense Form */}
+          <div className="space-y-3 rounded-3xl border border-dashed border-muted-foreground/30 bg-muted/30 p-3 md:p-4">
+            <Input
+              placeholder="Tên khoản chi (vd: Tiền nhà)"
+              value={newExpenseName}
+              onChange={(e) => setNewExpenseName(e.target.value)}
+              className="h-12 w-full bg-background text-lg"
+            />
+            <Input
+              placeholder="Ghi chú (tùy chọn)"
+              value={newExpenseNote}
+              onChange={(e) => setNewExpenseNote(e.target.value)}
+              className="h-10 w-full bg-background text-sm"
+            />
+            <div className="flex gap-3">
               <NumericFormat
-                value={calculations.totalIncome}
-                onValueChange={handleIncomeChange}
+                customInput={Input}
+                placeholder="Số tiền"
+                value={newExpenseAmount}
+                onValueChange={(values) => {
+                  setNewExpenseAmount(
+                    values.floatValue === undefined ? "" : values.floatValue,
+                  );
+                }}
                 thousandSeparator="."
                 decimalSeparator=","
-                className="bg-transparent text-3xl font-bold text-white placeholder-white/50 focus:outline-none w-full"
-                placeholder="0"
+                className="h-12 flex-1 bg-background text-lg font-medium"
                 inputMode="decimal"
               />
-            ) : (
-              <p
-                className="text-3xl font-bold text-white cursor-pointer"
-                onClick={() => {
-                  void haptics.trigger("light");
-                  setShowMoney(true);
-                }}
+              <Button
+                onClick={handleAddExpense}
+                disabled={isAdding || !newExpenseName || newExpenseAmount === ""}
+                size="icon"
+                data-haptic="success"
+                className="h-12 w-12 shrink-0 bg-indigo-600 shadow-lg hover:bg-indigo-700"
               >
-                ******
-              </p>
-            )}
-          </div>
-
-          <div className="pt-4 border-t border-white/20 grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-indigo-100 text-[10px] font-semibold uppercase">
-                Dự kiến chi
-              </p>
-              <p className="text-lg font-semibold">
-                {showMoney
-                  ? formatCurrency(calculations.totalDeducted)
-                  : "******"}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-indigo-100 text-[10px] font-semibold uppercase">
-                Còn lại
-              </p>
-              <p className="text-xl font-bold">
-                {showMoney ? formatCurrency(calculations.remaining) : "******"}
-              </p>
+                {isAdding ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Plus className="h-6 w-6" />
+                )}
+              </Button>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Add Expense Form */}
-      <div className="space-y-3 rounded-3xl border border-dashed border-muted-foreground/30 bg-muted/30 p-3">
-        <Input
-          placeholder="Tên khoản chi (vd: Tiền nhà)"
-          value={newExpenseName}
-          onChange={(e) => setNewExpenseName(e.target.value)}
-          className="w-full bg-background h-12 text-lg"
-        />
-        <Input
-          placeholder="Ghi chú (tùy chọn)"
-          value={newExpenseNote}
-          onChange={(e) => setNewExpenseNote(e.target.value)}
-          className="w-full bg-background h-10 text-sm"
-        />
-        <div className="flex gap-3">
-          <NumericFormat
-            customInput={Input}
-            placeholder="Số tiền"
-            value={newExpenseAmount}
-            onValueChange={(values) => {
-              setNewExpenseAmount(
-                values.floatValue === undefined ? "" : values.floatValue,
-              );
-            }}
-            thousandSeparator="."
-            decimalSeparator=","
-            className="flex-1 bg-background h-12 text-lg font-medium"
-            inputMode="decimal"
-          />
-          <Button
-            onClick={handleAddExpense}
-            disabled={isAdding || !newExpenseName || newExpenseAmount === ""}
-            size="icon"
-            data-haptic="success"
-            className="h-12 w-12 shrink-0 bg-indigo-600 hover:bg-indigo-700 shadow-lg"
-          >
-            {isAdding ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Plus className="h-6 w-6" />
-            )}
-          </Button>
-        </div>
-      </div>
+        {/* Expenses List */}
+        <div className="min-w-0 space-y-3">
+          <p className="ml-1 text-sm font-semibold text-muted-foreground">
+            Danh sách chi tiêu
+          </p>
 
-      {/* Expenses List */}
-      <div className="space-y-3">
-        <p className="text-sm font-semibold text-muted-foreground ml-1">
-          Danh sách chi tiêu
-        </p>
-
-        {loading ? (
-          <Loading className="py-2" />
-        ) : expenses.length === 0 ? (
-          <EmptyState
-            title="Chưa có khoản chi nào"
-            description="Thêm khoản chi đầu tiên để tính nhanh số tiền còn lại trong tháng."
-            icon={<Wallet className="h-7 w-7" />}
-          />
-        ) : (
-          expenses.map((expense) => (
-            <ExpenseItem
-              key={expense.id}
-              expense={expense}
-              onToggleSelect={toggleSelect}
-              onTogglePaid={togglePaid}
-              onDelete={deleteExpense}
+          {loading ? (
+            <Loading className="py-2" />
+          ) : expenses.length === 0 ? (
+            <EmptyState
+              title="Chưa có khoản chi nào"
+              description="Thêm khoản chi đầu tiên để tính nhanh số tiền còn lại trong tháng."
+              icon={<Wallet className="h-7 w-7" />}
             />
-          ))
-        )}
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {expenses.map((expense) => (
+                <ExpenseItem
+                  key={expense.id}
+                  expense={expense}
+                  onToggleSelect={toggleSelect}
+                  onTogglePaid={togglePaid}
+                  onDelete={deleteExpense}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="text-center text-xs text-muted-foreground w-full px-8 pb-4 opacity-70">
@@ -408,4 +414,3 @@ export function BudgetPage() {
     </div>
   );
 }
-

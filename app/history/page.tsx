@@ -108,7 +108,7 @@ export default function HistoryPage() {
 
   if (records.length === 0) {
     return (
-      <div className="page-shell mx-auto max-w-md space-y-6">
+      <div className="page-shell app-container-narrow space-y-6">
         <PageHeader 
           title="Lịch sử" 
           subtitle="Danh sách hóa đơn"
@@ -129,7 +129,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="page-shell mx-auto max-w-md space-y-6">
+    <div className="page-shell app-container space-y-6">
       <PageHeader 
         title="Lịch sử" 
         subtitle="Quản lý chi tiêu"
@@ -138,7 +138,7 @@ export default function HistoryPage() {
       />
 
       {/* Latest Record Highlight or List */}
-      <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {records.map((record) => {
           const isSelected = selectedRecord?.id === record.id;
 
@@ -202,7 +202,7 @@ export default function HistoryPage() {
                 </div>
 
                 {isSelected && (
-                  <div className="animate-accordion-down space-y-4 bg-muted/35">
+                <div className="animate-accordion-down space-y-4 bg-muted/35">
                     <BillResult
                       borderLess
                       month={record.month}
@@ -223,10 +223,10 @@ export default function HistoryPage() {
                       totalAmount={record.total_amount}
                     />
 
-                    <div className="flex gap-3 pt-2">
+                    <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                       <Button
                         variant="outline"
-                        className="flex-1 bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200 h-10 font-medium"
+                        className="h-10 flex-1 border-blue-200 bg-blue-50 font-medium text-blue-600 hover:bg-blue-100"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (settings?.bank_id && settings?.account_number) {
