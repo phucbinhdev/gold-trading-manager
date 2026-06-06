@@ -9,8 +9,10 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  MoreHorizontal,
   Pencil,
   Plus,
+  Trash2,
   Wallet,
 } from "lucide-react";
 import { NumericFormat, type NumberFormatValues } from "react-number-format";
@@ -18,6 +20,17 @@ import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
 
 import { ExpenseItem } from "./ExpenseItem";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,6 +43,7 @@ import {
 import { EmptyState, Loading } from "@/components/ui/PageLayout";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -59,6 +73,8 @@ export function BudgetPage() {
   const [isSourceDialogOpen, setIsSourceDialogOpen] = useState(false);
   const [newSourceName, setNewSourceName] = useState("");
   const [isAddingSource, setIsAddingSource] = useState(false);
+  const [isDeletingSource, setIsDeletingSource] = useState(false);
+  const [isSourceActionsOpen, setIsSourceActionsOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [renameSourceName, setRenameSourceName] = useState("");
   const [isRenamingSource, setIsRenamingSource] = useState(false);
@@ -332,6 +348,33 @@ export function BudgetPage() {
     setIsRenamingSource(false);
   };
 
+  const handleDeleteSource = async () => {
+    if (!selectedSource || sources.length <= 1) return;
+
+    const sourceToDelete = selectedSource;
+    const remainingSources = sources.filter((source) => source.id !== sourceToDelete.id);
+    const nextSelectedSource = remainingSources[0] || null;
+
+    setIsDeletingSource(true);
+
+    const { error } = await supabase
+      .from("budget_sources")
+      .update({ is_active: false })
+      .eq("id", sourceToDelete.id);
+
+    if (error) {
+      void haptics.trigger("error");
+      toast.error("Không thể xóa nguồn tiền");
+    } else {
+      setSources(remainingSources);
+      setSelectedSourceId(nextSelectedSource?.id || null);
+      void haptics.trigger("success");
+      toast.success("Đã xóa nguồn tiền");
+    }
+
+    setIsDeletingSource(false);
+  };
+
   const toggleSelect = async (id: string, currentSelected: boolean) => {
     void haptics.trigger("selection");
     setExpenses((prev) =>
@@ -413,11 +456,11 @@ export function BudgetPage() {
       <div className="grid gap-6 md:grid-cols-[minmax(20rem,24rem)_1fr] md:items-start">
         <div className="space-y-4">
           <section className="rounded-2xl border bg-card p-2 shadow-sm">
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-[2.75rem_1fr_2.75rem] items-center">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-8 shrink-0"
+                className="h-10 w-10 shrink-0 justify-self-start"
                 onClick={() => {
                   void haptics.trigger("selection");
                   setCurrentMonth(subMonths(currentMonth, 1));
@@ -427,11 +470,11 @@ export function BudgetPage() {
                 <ChevronLeft className="h-5 w-5" />
               </Button>
 
-              <div className="min-w-[4.75rem] flex-1 text-center">
+              <div className="min-w-0 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Tháng
                 </p>
-                <p className="truncate text-sm font-black capitalize text-foreground">
+                <p className="text-base font-black capitalize text-foreground">
                   {format(currentMonth, "MM/yyyy", { locale: vi })}
                 </p>
               </div>
@@ -439,7 +482,7 @@ export function BudgetPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-8 shrink-0"
+                className="h-10 w-10 shrink-0 justify-self-end"
                 onClick={() => {
                   void haptics.trigger("selection");
                   setCurrentMonth(addMonths(currentMonth, 1));
@@ -448,63 +491,6 @@ export function BudgetPage() {
               >
                 <ChevronRight className="h-5 w-5" />
               </Button>
-
-              <div className="h-9 w-px shrink-0 bg-border" />
-
-              {loadingSources ? (
-                <div className="h-9 min-w-0 flex-[1.4] animate-pulse rounded-xl bg-muted/60" />
-              ) : (
-                <div
-                  role="tablist"
-                  aria-label="Nguồn tiền"
-                  className="flex min-w-0 flex-[1.4] gap-1 overflow-x-auto"
-                >
-                  {sources.map((source) => {
-                    const active = source.id === selectedSourceId;
-
-                    return (
-                      <button
-                        key={source.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={active}
-                        onClick={() => {
-                          void haptics.trigger("selection");
-                          setSelectedSourceId(source.id);
-                        }}
-                        className={cn(
-                          "min-h-9 shrink-0 rounded-xl border px-2.5 text-xs font-bold transition",
-                          active
-                            ? "border-indigo-300 bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
-                            : "border-border bg-background text-muted-foreground hover:bg-muted/70 hover:text-foreground",
-                        )}
-                      >
-                        {source.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-8 shrink-0"
-                  onClick={openRenameSourceDialog}
-                  aria-label="Đổi tên nguồn tiền"
-                  disabled={!selectedSource}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-9 w-8 shrink-0"
-                  onClick={() => setIsSourceDialogOpen(true)}
-                  aria-label="Thêm nguồn tiền"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
             </div>
           </section>
 
@@ -513,22 +499,137 @@ export function BudgetPage() {
               <div className="h-32 w-32 translate-x-12 -translate-y-12 rounded-full bg-white blur-3xl"></div>
             </div>
 
-            <button
-              onClick={() => {
-                void haptics.trigger("light");
-                setShowMoney(!showMoney);
-              }}
-              aria-label={showMoney ? "Ẩn số tiền" : "Hiện số tiền"}
-              className="absolute top-4 right-4 z-20 rounded-full bg-white/20 p-2 backdrop-blur-sm transition-colors hover:bg-white/30"
-            >
-              {showMoney ? (
-                <Eye className="w-5 h-5 text-indigo-100" />
-              ) : (
-                <EyeOff className="w-5 h-5 text-indigo-100" />
-              )}
-            </button>
+            <div className="relative z-10 space-y-5">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  {loadingSources ? (
+                    <div className="h-10 min-w-0 flex-1 animate-pulse rounded-xl bg-white/15" />
+                  ) : (
+                    <div
+                      role="tablist"
+                      aria-label="Nguồn tiền"
+                      className="flex min-w-0 flex-1 gap-1 overflow-x-auto rounded-2xl bg-white/10 p-1"
+                    >
+                      {sources.map((source) => {
+                        const active = source.id === selectedSourceId;
 
-            <div className="relative z-10 space-y-4">
+                        return (
+                          <button
+                            key={source.id}
+                            type="button"
+                            role="tab"
+                            aria-selected={active}
+                            onClick={() => {
+                              void haptics.trigger("selection");
+                              setSelectedSourceId(source.id);
+                            }}
+                            className={cn(
+                              "min-h-9 max-w-32 shrink-0 truncate rounded-xl px-3 text-xs font-bold transition",
+                              active
+                                ? "bg-white text-indigo-700 shadow-sm"
+                                : "text-indigo-50 hover:bg-white/15",
+                            )}
+                          >
+                            {source.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 shrink-0 rounded-full bg-white/15 text-white hover:bg-white/25 hover:text-white"
+                    onClick={() => {
+                      void haptics.trigger("light");
+                      setShowMoney(!showMoney);
+                    }}
+                    aria-label={showMoney ? "Ẩn số tiền" : "Hiện số tiền"}
+                  >
+                    {showMoney ? (
+                      <Eye className="h-5 w-5" />
+                    ) : (
+                      <EyeOff className="h-5 w-5" />
+                    )}
+                  </Button>
+
+                  <Popover open={isSourceActionsOpen} onOpenChange={setIsSourceActionsOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 shrink-0 rounded-full bg-white/15 text-white hover:bg-white/25 hover:text-white"
+                        aria-label="Mở menu nguồn tiền"
+                      >
+                        <MoreHorizontal className="h-5 w-5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-48 p-1">
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                        onClick={() => {
+                          setIsSourceActionsOpen(false);
+                          openRenameSourceDialog();
+                        }}
+                        disabled={!selectedSource}
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Đổi tên
+                      </button>
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                        onClick={() => {
+                          setIsSourceActionsOpen(false);
+                          setIsSourceDialogOpen(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Thêm nguồn
+                      </button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:pointer-events-none disabled:opacity-50"
+                            disabled={!selectedSource || sources.length <= 1 || isDeletingSource}
+                          >
+                            {isDeletingSource ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                            Xóa nguồn
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Xóa nguồn tiền?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Nguồn “{selectedSource?.name}” sẽ bị ẩn khỏi danh sách ví. Các khoản chi cũ vẫn giữ trong dữ liệu.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Hủy</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => {
+                                setIsSourceActionsOpen(false);
+                                handleDeleteSource();
+                              }}
+                              className="bg-destructive"
+                            >
+                              Xóa
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
               <div>
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-indigo-100">
                   Tiền hiện có

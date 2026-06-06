@@ -57,6 +57,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState, Loading } from "@/components/ui/PageLayout";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
@@ -66,15 +73,53 @@ import { useWebHaptics } from "web-haptics/react";
 type IpadTransaction =
   Database["public"]["Tables"]["ipad_transactions"]["Row"];
 
+type IpadStatus = "importing" | "in_stock" | "sold";
+
+const IPAD_STATUSES = [
+  { value: "importing", label: "Đang nhập hàng", shortLabel: "Nhập hàng" },
+  { value: "in_stock", label: "Đang lưu kho", shortLabel: "Lưu kho" },
+  { value: "sold", label: "Đã bán", shortLabel: "Đã bán" },
+] as const satisfies ReadonlyArray<{
+  value: IpadStatus;
+  label: string;
+  shortLabel: string;
+}>;
+
+const statusLabels: Record<IpadStatus, string> = {
+  importing: "Đang nhập hàng",
+  in_stock: "Đang lưu kho",
+  sold: "Đã bán",
+};
+
+const statusBadgeClass: Record<IpadStatus, string> = {
+  importing: "bg-sky-100 text-sky-700 hover:bg-sky-100",
+  in_stock: "bg-amber-100 text-amber-700 hover:bg-amber-100",
+  sold: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100",
+};
+
+const normalizeStatus = (status: string): IpadStatus => {
+  if (status === "importing" || status === "sold") return status;
+  return "in_stock";
+};
+
 const transactionSchema = z.object({
   purchase_date: z.date(),
+  status: z.enum(["importing", "in_stock", "sold"]),
   purchase_price: z.coerce.number().min(0, "Giá mua không hợp lệ"),
   extra_cost: z.coerce.number().min(0, "Chi phí không hợp lệ"),
   loan_amount: z.coerce.number().min(0, "Số tiền vay không hợp lệ").optional(),
   selling_price: z.coerce.number().min(0).optional(),
   sale_date: z.date().optional(),
   note: z.string().optional(),
-});
+}).refine(
+  (values) =>
+    values.status !== "sold" ||
+    (values.selling_price !== undefined && values.selling_price > 0),
+  {
+    path: ["selling_price"],
+    message: "Nhập giá bán khi chọn trạng thái đã bán",
+  },
+);
 
 const saleSchema = z.object({
   selling_price: z.coerce.number().min(1, "Nhập giá bán"),
@@ -123,6 +168,7 @@ export function IpadManager() {
     resolver: zodResolver(transactionSchema) as unknown as Resolver<TransactionFormValues>,
     defaultValues: {
       purchase_date: new Date(),
+      status: "in_stock",
       purchase_price: 0,
       extra_cost: 0,
       loan_amount: undefined,
@@ -142,6 +188,7 @@ export function IpadManager() {
     resolver: zodResolver(transactionSchema) as unknown as Resolver<TransactionFormValues>,
     defaultValues: {
       purchase_date: new Date(),
+      status: "in_stock",
       purchase_price: 0,
       extra_cost: 0,
       loan_amount: undefined,
@@ -184,6 +231,7 @@ export function IpadManager() {
     if (!editTarget) return;
     editForm.reset({
       purchase_date: parseISO(editTarget.purchase_date),
+      status: normalizeStatus(editTarget.status),
       purchase_price: editTarget.purchase_price,
       extra_cost: editTarget.extra_cost,
       loan_amount: editTarget.loan_amount,
@@ -214,17 +262,20 @@ export function IpadManager() {
     () =>
       monthlyTransactions.reduce(
         (acc, item) => {
-          const sold = item.status === "sold";
+          const status = normalizeStatus(item.status);
+          const sold = status === "sold";
           return {
             totalCost: acc.totalCost + item.total_cost,
             totalPurchase: acc.totalPurchase + item.purchase_price,
             totalExtraCost: acc.totalExtraCost + item.extra_cost,
-            totalRevenue: acc.totalRevenue + (item.selling_price || 0),
-            totalProfit: acc.totalProfit + (item.profit_amount || 0),
+            totalRevenue: acc.totalRevenue + (sold ? item.selling_price || 0 : 0),
+            totalProfit: acc.totalProfit + (sold ? item.profit_amount || 0 : 0),
             debtRemaining:
               acc.debtRemaining + (item.debt_paid ? 0 : item.loan_amount),
             debtPaidCount: acc.debtPaidCount + (item.debt_paid ? 1 : 0),
             sellingCount: acc.sellingCount + (sold ? 0 : 1),
+            importingCount: acc.importingCount + (status === "importing" ? 1 : 0),
+            inStockCount: acc.inStockCount + (status === "in_stock" ? 1 : 0),
             soldCount: acc.soldCount + (sold ? 1 : 0),
           };
         },
@@ -237,6 +288,8 @@ export function IpadManager() {
           debtRemaining: 0,
           debtPaidCount: 0,
           sellingCount: 0,
+          importingCount: 0,
+          inStockCount: 0,
           soldCount: 0,
         },
       ),
@@ -247,10 +300,12 @@ export function IpadManager() {
     setSaving(true);
     try {
       const sellingPrice = values.selling_price || null;
+      const status = sellingPrice ? "sold" : values.status;
       const loanAmount =
         values.loan_amount ?? values.purchase_price + (values.extra_cost || 0);
       const { error } = await supabase.from("ipad_transactions").insert({
         purchase_date: format(values.purchase_date, "yyyy-MM-dd"),
+        status,
         device_name: "iPad",
         storage: null,
         color: null,
@@ -290,6 +345,7 @@ export function IpadManager() {
         .update({
           selling_price: values.selling_price,
           sale_date: format(values.sale_date, "yyyy-MM-dd"),
+          status: "sold",
         })
         .eq("id", saleTarget.id);
 
@@ -313,12 +369,14 @@ export function IpadManager() {
     setSaving(true);
     try {
       const sellingPrice = values.selling_price || null;
+      const status = sellingPrice ? "sold" : values.status;
       const loanAmount =
         values.loan_amount ?? values.purchase_price + (values.extra_cost || 0);
       const { error } = await supabase
         .from("ipad_transactions")
         .update({
           purchase_date: format(values.purchase_date, "yyyy-MM-dd"),
+          status,
           purchase_price: values.purchase_price,
           extra_cost: values.extra_cost || 0,
           loan_amount: loanAmount,
@@ -381,6 +439,37 @@ export function IpadManager() {
       console.error(error);
       void haptics.trigger("error");
       toast.error("Không thể cập nhật trạng thái nợ");
+    }
+  };
+
+  const handleStatusChange = async (item: IpadTransaction, status: IpadStatus) => {
+    if (normalizeStatus(item.status) === status) return;
+
+    if (status === "sold" && !item.selling_price) {
+      void haptics.trigger("medium");
+      setSaleTarget(item);
+      return;
+    }
+
+    try {
+      const resetSale = status !== "sold";
+      const { error } = await supabase
+        .from("ipad_transactions")
+        .update({
+          status,
+          selling_price: resetSale ? null : item.selling_price,
+          sale_date: resetSale ? null : item.sale_date,
+        })
+        .eq("id", item.id);
+
+      if (error) throw error;
+      void haptics.trigger("success");
+      toast.success(`Đã chuyển sang ${statusLabels[status].toLowerCase()}`);
+      fetchData();
+    } catch (error) {
+      console.error(error);
+      void haptics.trigger("error");
+      toast.error("Không thể cập nhật trạng thái iPad");
     }
   };
 
@@ -507,7 +596,8 @@ export function IpadManager() {
           ) : (
             <div className="grid gap-3 xl:grid-cols-2">
             {monthlyTransactions.map((item) => {
-              const isSold = item.status === "sold";
+              const status = normalizeStatus(item.status);
+              const isSold = status === "sold";
               const profit = item.profit_amount || 0;
               const debtPaid = item.debt_paid;
 
@@ -518,8 +608,11 @@ export function IpadManager() {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="truncate font-bold">{item.device_name}</h3>
-                          <Badge variant={isSold ? "secondary" : "outline"}>
-                            {isSold ? "Đã bán" : "Đang bán"}
+                          <Badge
+                            variant="secondary"
+                            className={cn(statusBadgeClass[status])}
+                          >
+                            {statusLabels[status]}
                           </Badge>
                           <Badge
                             variant={debtPaid ? "secondary" : "destructive"}
@@ -574,6 +667,34 @@ export function IpadManager() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                    </div>
+
+                    <div className="mx-auto mt-4 grid w-full max-w-sm grid-cols-3 gap-1 rounded-full bg-muted/70 p-1">
+                      {IPAD_STATUSES.map((statusOption) => {
+                        const active = status === statusOption.value;
+
+                        return (
+                          <button
+                            key={statusOption.value}
+                            type="button"
+                            className={cn(
+                              "inline-flex h-7 items-center justify-center rounded-full px-2 text-[11px] font-semibold text-muted-foreground transition hover:bg-background/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+                              active &&
+                                statusOption.value === "importing" &&
+                                "bg-sky-100 text-sky-700 shadow-sm hover:bg-sky-100 hover:text-sky-700",
+                              active &&
+                                statusOption.value === "in_stock" &&
+                                "bg-amber-100 text-amber-700 shadow-sm hover:bg-amber-100 hover:text-amber-700",
+                              active &&
+                                statusOption.value === "sold" &&
+                                "bg-emerald-100 text-emerald-700 shadow-sm hover:bg-emerald-100 hover:text-emerald-700",
+                            )}
+                            onClick={() => handleStatusChange(item, statusOption.value)}
+                          >
+                            {statusOption.shortLabel}
+                          </button>
+                        );
+                      })}
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
@@ -714,6 +835,31 @@ export function IpadManager() {
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Trạng thái</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Chọn trạng thái" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {IPAD_STATUSES.map((status) => (
+                          <SelectItem key={status.value} value={status.value}>
+                            {status.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="grid grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
@@ -844,6 +990,31 @@ export function IpadManager() {
                   <FormItem>
                     <FormLabel>Ngày mua</FormLabel>
                     <DatePicker date={field.value} setDate={field.onChange} />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Trạng thái</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Chọn trạng thái" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {IPAD_STATUSES.map((status) => (
+                          <SelectItem key={status.value} value={status.value}>
+                            {status.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

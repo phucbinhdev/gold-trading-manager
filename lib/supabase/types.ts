@@ -151,7 +151,7 @@ export interface Database {
           debt_paid_at: string | null;
           total_cost: number;
           profit_amount: number | null;
-          status: "selling" | "sold";
+          status: "importing" | "in_stock" | "sold";
         };
         Insert: {
           id?: string;
@@ -169,6 +169,7 @@ export interface Database {
           note?: string | null;
           debt_paid?: boolean;
           debt_paid_at?: string | null;
+          status?: "importing" | "in_stock" | "sold";
         };
         Update: {
           id?: string;
@@ -186,6 +187,7 @@ export interface Database {
           note?: string | null;
           debt_paid?: boolean;
           debt_paid_at?: string | null;
+          status?: "importing" | "in_stock" | "sold";
         };
       };
       wishlist: {
