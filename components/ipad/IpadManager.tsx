@@ -687,9 +687,7 @@ export function IpadManager() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">
-                          {isSold ? "Lời / lỗ" : "Giá bán"}
-                        </p>
+                        <p className="text-xs text-muted-foreground">Lời / lỗ</p>
                         <p
                           className={cn(
                             "font-semibold",
@@ -702,10 +700,16 @@ export function IpadManager() {
                         >
                           {isSold
                             ? `${profit >= 0 ? "+" : ""}${formatCurrency(profit)}`
-                            : "Chưa bán"}
+                            : "Đang chờ"}
                         </p>
                       </div>
                     </div>
+
+                    {item.note && (
+                      <p className="mt-3 rounded-xl bg-muted/45 px-3 py-2 text-xs leading-5 text-muted-foreground">
+                        {item.note}
+                      </p>
+                    )}
 
                     {expanded && (
                       <div
@@ -742,44 +746,13 @@ export function IpadManager() {
                           })}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <p className="text-xs text-muted-foreground">Chi phí</p>
-                            <p className="font-semibold">
-                              {formatCurrency(item.extra_cost)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Tổng vốn</p>
-                            <p className="font-semibold">
-                              {formatCurrency(item.total_cost)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Giá bán</p>
-                            <p className="font-semibold">
-                              {item.selling_price
-                                ? formatCurrency(item.selling_price)
-                                : "Chưa bán"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Lời / lỗ</p>
-                            <p
-                              className={cn(
-                                "font-bold",
-                                !isSold
-                                  ? "text-muted-foreground"
-                                  : profit >= 0
-                                    ? "text-emerald-600"
-                                    : "text-red-600",
-                              )}
-                            >
-                              {isSold
-                                ? `${profit >= 0 ? "+" : ""}${formatCurrency(profit)}`
-                                : "Đang chờ"}
-                            </p>
-                          </div>
+                        <div className="text-sm">
+                          <p className="text-xs text-muted-foreground">Giá bán</p>
+                          <p className="font-semibold">
+                            {item.selling_price
+                              ? formatCurrency(item.selling_price)
+                              : "Chưa bán"}
+                          </p>
                         </div>
 
                         <div className="space-y-1 text-xs text-muted-foreground">
@@ -790,12 +763,6 @@ export function IpadManager() {
                             <p>Trả nợ ngày {compactDate(item.debt_paid_at)}</p>
                           )}
                         </div>
-
-                        {item.note && (
-                          <p className="rounded-xl bg-muted/50 p-3 text-sm">
-                            {item.note}
-                          </p>
-                        )}
 
                         <div className="grid grid-cols-2 gap-2">
                           <Button
@@ -828,6 +795,10 @@ export function IpadManager() {
                           <Button
                             variant={debtPaid ? "outline" : "secondary"}
                             data-haptic={debtPaid ? "selection" : "success"}
+                            className={cn(
+                              !debtPaid &&
+                                "bg-emerald-600 text-white shadow-[0_10px_22px_rgba(5,150,105,0.22)] hover:bg-emerald-700 hover:text-white",
+                            )}
                             onClick={() => handleDebtToggle(item)}
                           >
                             {debtPaid ? (
@@ -841,9 +812,9 @@ export function IpadManager() {
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
-                                variant="outline"
+                                variant="secondary"
                                 data-haptic="warning"
-                                className="text-muted-foreground hover:text-destructive"
+                                className="bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
                               >
                                 <Trash2 className="h-4 w-4" />
                                 Xóa
