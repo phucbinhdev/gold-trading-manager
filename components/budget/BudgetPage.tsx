@@ -66,13 +66,19 @@ export function BudgetPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingSources, setLoadingSources] = useState(true);
-  const [showMoney, setShowMoney] = useState(false);
+  const [showMoney, setShowMoney] = useState(true);
 
   const [newExpenseName, setNewExpenseName] = useState("");
   const [newExpenseAmount, setNewExpenseAmount] = useState<number | "">("");
   const [newExpenseNote, setNewExpenseNote] = useState("");
   const [newRecordType, setNewRecordType] = useState<BudgetRecordType>("expense");
   const [isAddingExpense, setIsAddingExpense] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [editExpenseName, setEditExpenseName] = useState("");
+  const [editExpenseAmount, setEditExpenseAmount] = useState<number | "">("");
+  const [editExpenseNote, setEditExpenseNote] = useState("");
+  const [editRecordType, setEditRecordType] = useState<BudgetRecordType>("expense");
+  const [isUpdatingExpense, setIsUpdatingExpense] = useState(false);
 
   const [isSourceDialogOpen, setIsSourceDialogOpen] = useState(false);
   const [newSourceName, setNewSourceName] = useState("");
@@ -293,6 +299,48 @@ export function BudgetPage() {
     }
 
     setIsAddingExpense(false);
+  };
+
+  const openEditExpenseDialog = (expense: Expense) => {
+    setEditingExpense(expense);
+    setEditExpenseName(expense.name);
+    setEditExpenseAmount(expense.amount);
+    setEditExpenseNote(expense.note || "");
+    setEditRecordType(expense.record_type);
+  };
+
+  const handleUpdateExpense = async () => {
+    if (!editingExpense || !editExpenseName.trim() || editExpenseAmount === "") return;
+
+    setIsUpdatingExpense(true);
+
+    const payload = {
+      record_type: editRecordType,
+      name: editExpenseName.trim(),
+      amount: Number(editExpenseAmount),
+      note: editExpenseNote.trim() || null,
+    };
+
+    const { data, error } = await supabase
+      .from("budget_expenses")
+      .update(payload)
+      .eq("id", editingExpense.id)
+      .select()
+      .single();
+
+    if (error) {
+      void haptics.trigger("error");
+      toast.error("Không thể cập nhật khoản thu chi");
+    } else {
+      setExpenses((current) =>
+        current.map((expense) => (expense.id === data.id ? data : expense)),
+      );
+      setEditingExpense(null);
+      void haptics.trigger("success");
+      toast.success("Đã cập nhật khoản thu chi");
+    }
+
+    setIsUpdatingExpense(false);
   };
 
   const handleAddSource = async () => {
@@ -717,7 +765,14 @@ export function BudgetPage() {
             </div>
           </div>
 
-          <div className="space-y-3 rounded-3xl border border-dashed border-muted-foreground/30 bg-muted/30 p-3 md:p-4">
+          <div
+            className={cn(
+              "space-y-3 rounded-3xl border border-dashed p-3 transition-colors md:p-4",
+              newRecordType === "income"
+                ? "border-emerald-300 bg-emerald-50/80 dark:border-emerald-900/60 dark:bg-emerald-950/20"
+                : "border-red-300 bg-red-50/80 dark:border-red-900/60 dark:bg-red-950/20",
+            )}
+          >
             <div
               role="tablist"
               aria-label="Loại record"
@@ -759,7 +814,7 @@ export function BudgetPage() {
                       active
                         ? option.value === "income"
                           ? "bg-emerald-600 text-white shadow-sm"
-                          : "bg-indigo-600 text-white shadow-sm"
+                          : "bg-red-600 text-white shadow-sm"
                         : "text-muted-foreground hover:bg-muted",
                     )}
                   >
@@ -810,7 +865,7 @@ export function BudgetPage() {
                   "h-12 w-12 shrink-0 shadow-lg",
                   newRecordType === "income"
                     ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-indigo-600 hover:bg-indigo-700",
+                    : "bg-red-600 hover:bg-red-700",
                 )}
               >
                 {isAddingExpense ? (
@@ -854,6 +909,7 @@ export function BudgetPage() {
                   expense={expense}
                   onToggleSelect={toggleSelect}
                   onTogglePaid={togglePaid}
+                  onEdit={openEditExpenseDialog}
                   onDelete={deleteExpense}
                 />
               ))}
@@ -944,6 +1000,119 @@ export function BudgetPage() {
             >
               {isRenamingSource && <Loader2 className="h-4 w-4 animate-spin" />}
               Lưu tên
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!editingExpense}
+        onOpenChange={(open) => !open && setEditingExpense(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sửa khoản thu chi</DialogTitle>
+            <DialogDescription>
+              Cập nhật loại, tên, ghi chú và số tiền của record này.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div
+              role="tablist"
+              aria-label="Loại record cần sửa"
+              className="grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1"
+            >
+              {(
+                [
+                  { value: "expense", label: "Chi", icon: ArrowDownLeft },
+                  { value: "income", label: "Thu", icon: ArrowUpRight },
+                ] satisfies Array<{
+                  value: BudgetRecordType;
+                  label: string;
+                  icon: typeof ArrowDownLeft;
+                }>
+              ).map((option) => {
+                const Icon = option.icon;
+                const active = editRecordType === option.value;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => {
+                      void haptics.trigger("selection");
+                      setEditRecordType(option.value);
+                    }}
+                    className={cn(
+                      "flex h-10 items-center justify-center gap-2 rounded-xl text-sm font-bold transition",
+                      active
+                        ? option.value === "income"
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "bg-red-600 text-white shadow-sm"
+                        : "text-muted-foreground hover:bg-background",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <Input
+              autoFocus
+              placeholder={`Tên khoản ${editRecordType === "income" ? "thu" : "chi"}`}
+              value={editExpenseName}
+              onChange={(event) => setEditExpenseName(event.target.value)}
+            />
+            <Input
+              placeholder="Ghi chú (tùy chọn)"
+              value={editExpenseNote}
+              onChange={(event) => setEditExpenseNote(event.target.value)}
+            />
+            <NumericFormat
+              customInput={Input}
+              placeholder={editRecordType === "income" ? "Số tiền thu vào" : "Số tiền chi"}
+              value={editExpenseAmount}
+              onValueChange={(values) => {
+                setEditExpenseAmount(
+                  values.floatValue === undefined ? "" : values.floatValue,
+                );
+              }}
+              thousandSeparator="."
+              decimalSeparator=","
+              className="h-11"
+              inputMode="decimal"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditingExpense(null)}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              onClick={handleUpdateExpense}
+              disabled={
+                isUpdatingExpense ||
+                !editExpenseName.trim() ||
+                editExpenseAmount === ""
+              }
+              className={cn(
+                editRecordType === "income"
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : "bg-red-600 hover:bg-red-700",
+              )}
+            >
+              {isUpdatingExpense && <Loader2 className="h-4 w-4 animate-spin" />}
+              Lưu thay đổi
             </Button>
           </DialogFooter>
         </DialogContent>

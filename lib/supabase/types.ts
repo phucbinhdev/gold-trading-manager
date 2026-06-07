@@ -193,6 +193,47 @@ export interface Database {
           status?: "importing" | "in_stock" | "sold";
         };
       };
+      savings: {
+        Row: {
+          id: string;
+          created_at: string;
+          label: string;
+          period_amount: number;
+          periods_left: number;
+          remaining_amount: number;
+          closed: boolean;
+          month_cells: Record<string, boolean>;
+          cell_paid_at: Record<string, string>;
+          cell_notes: Record<string, string>;
+          closed_count: number;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          label: string;
+          period_amount: number;
+          periods_left?: number;
+          remaining_amount?: number;
+          closed?: boolean;
+          month_cells?: Record<string, boolean>;
+          cell_paid_at?: Record<string, string>;
+          cell_notes?: Record<string, string>;
+          closed_count?: number;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          label?: string;
+          period_amount?: number;
+          periods_left?: number;
+          remaining_amount?: number;
+          closed?: boolean;
+          month_cells?: Record<string, boolean>;
+          cell_paid_at?: Record<string, string>;
+          cell_notes?: Record<string, string>;
+          closed_count?: number;
+        };
+      };
       wishlist: {
         Row: {
           id: string;

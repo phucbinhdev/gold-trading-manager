@@ -4,6 +4,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Pencil,
   Trash2,
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -16,6 +17,7 @@ interface ExpenseItemProps {
   expense: Expense;
   onToggleSelect: (id: string, currentSelected: boolean) => void;
   onTogglePaid: (id: string, currentPaid: boolean) => void;
+  onEdit: (expense: Expense) => void;
   onDelete: (id: string) => void;
   isHidden?: boolean;
 }
@@ -24,6 +26,7 @@ export function ExpenseItem({
   expense,
   onToggleSelect,
   onTogglePaid,
+  onEdit,
   onDelete,
   isHidden = false,
 }: ExpenseItemProps) {
@@ -114,6 +117,17 @@ export function ExpenseItem({
               {isIncome ? "ĐÃ THU" : "ĐÃ CHI"}
             </div>
           )}
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(expense);
+            }}
+            className="p-2 text-muted-foreground/50 transition-colors hover:text-foreground"
+            aria-label="Sửa khoản thu chi"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
 
           {!expense.is_paid && (
             <button

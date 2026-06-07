@@ -8,6 +8,8 @@ create table if not exists public.savings (
   remaining_amount int not null default 0,
   closed boolean not null default false,
   month_cells jsonb not null default '{}'::jsonb,
+  cell_paid_at jsonb not null default '{}'::jsonb,
+  cell_notes jsonb not null default '{}'::jsonb,
   closed_count int not null default 0
 );
 

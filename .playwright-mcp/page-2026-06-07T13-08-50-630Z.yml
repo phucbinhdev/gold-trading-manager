@@ -1,0 +1,49 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - heading "Tích góp" [level=1] [ref=e5]
+      - button "Mở lịch sử tích góp" [ref=e7]:
+        - img
+    - complementary [ref=e9]:
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]:
+            - generic [ref=e14]: 🎯
+            - generic [ref=e15]:
+              - paragraph [ref=e16]: Mục tiêu
+              - paragraph [ref=e17]: 0 ₫
+          - generic [ref=e20]: 0%
+        - generic [ref=e21]:
+          - generic [ref=e22]:
+            - paragraph [ref=e23]: Đã đóng
+            - paragraph [ref=e24]: 0 ₫
+          - generic [ref=e25]:
+            - paragraph [ref=e26]: Còn lại
+            - paragraph [ref=e27]: 0 ₫
+      - button "Thêm dây tích góp" [ref=e28]:
+        - img
+  - navigation "Điều hướng chính" [ref=e35]:
+    - generic [ref=e36]:
+      - link "Vàng" [ref=e37] [cursor=pointer]:
+        - /url: /
+        - img [ref=e38]
+        - generic [ref=e41]: Vàng
+      - link "iPad" [ref=e42] [cursor=pointer]:
+        - /url: /ipad
+        - img [ref=e43]
+        - generic [ref=e45]: iPad
+      - link "Tính nợ" [ref=e46] [cursor=pointer]:
+        - /url: /budget
+        - img [ref=e47]
+        - generic [ref=e50]: Tính nợ
+      - link "Tích góp" [ref=e51] [cursor=pointer]:
+        - /url: /savings
+        - img [ref=e52]
+        - generic [ref=e55]: Tích góp
+      - link "Tiền Trọ" [ref=e56] [cursor=pointer]:
+        - /url: /room-rental
+        - img [ref=e57]
+        - generic [ref=e60]: Tiền Trọ
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e66] [cursor=pointer]:
+    - img [ref=e67]

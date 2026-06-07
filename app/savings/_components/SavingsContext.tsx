@@ -23,6 +23,7 @@ export type SavingsRow = {
   closed: boolean;
   month_cells: Record<string, boolean>;
   cell_paid_at: Record<string, string>;
+  cell_notes: Record<string, string>;
   closed_count: number;
 };
 
@@ -56,6 +57,7 @@ type SavingsActions = {
   addRow: (input: SavingsRowInput) => Promise<void>;
   toggleCell: (row: SavingsRow, cellNumber: number) => Promise<void>;
   toggleClosed: (row: SavingsRow) => Promise<void>;
+  updateCellNote: (row: SavingsRow, cellNumber: number, note: string) => Promise<void>;
   removeRow: (rowId: string) => Promise<void>;
 };
 
@@ -150,6 +152,7 @@ function normalizeRows(rows: SavingsRow[] | null): SavingsRow[] {
 function normalizeRow(row: SavingsRow): SavingsRow {
   const monthCells = row.month_cells || {};
   const cellPaidAt = row.cell_paid_at || {};
+  const cellNotes = row.cell_notes || {};
   const totalCells = Math.max(
     row.closed_count || 0,
     (row.periods_left || 0) + (row.closed_count || 0),
@@ -163,6 +166,7 @@ function normalizeRow(row: SavingsRow): SavingsRow {
     remaining_amount: Math.max(0, (totalCells - closedCount) * (row.period_amount || 0)),
     month_cells: monthCells,
     cell_paid_at: cellPaidAt,
+    cell_notes: cellNotes,
     closed_count: closedCount,
     closed: totalCells > 0 && closedCount >= totalCells,
   };
@@ -172,10 +176,12 @@ function getNextRowState(
   row: SavingsRow,
   completedCells: Set<number>,
   cellPaidAt: Record<string, string>,
+  cellNotes: Record<string, string> = row.cell_notes || {},
 ) {
   const totalCells = getTotalCells(row);
   const nextMonthCells: Record<string, boolean> = {};
   const nextCellPaidAt: Record<string, string> = {};
+  const nextCellNotes: Record<string, string> = {};
 
   Array.from(completedCells)
     .sort((a, b) => a - b)
@@ -183,6 +189,9 @@ function getNextRowState(
       nextMonthCells[String(number)] = true;
       if (cellPaidAt[String(number)]) {
         nextCellPaidAt[String(number)] = cellPaidAt[String(number)];
+      }
+      if (cellNotes[String(number)]) {
+        nextCellNotes[String(number)] = cellNotes[String(number)];
       }
     });
 
@@ -196,6 +205,7 @@ function getNextRowState(
     closed,
     month_cells: nextMonthCells,
     cell_paid_at: nextCellPaidAt,
+    cell_notes: nextCellNotes,
     periods_left: periodsLeft,
     remaining_amount: remainingAmount,
     closed_count: closedCount,
@@ -267,15 +277,17 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
 
         const completedCells = getCompletedCellSet(row);
         const nextCellPaidAt = { ...(row.cell_paid_at || {}) };
+        const nextCellNotes = { ...(row.cell_notes || {}) };
         if (completedCells.has(cellNumber)) {
           completedCells.delete(cellNumber);
           delete nextCellPaidAt[String(cellNumber)];
+          delete nextCellNotes[String(cellNumber)];
         } else {
           completedCells.add(cellNumber);
           nextCellPaidAt[String(cellNumber)] = new Date().toISOString();
         }
 
-        const nextRow = getNextRowState(row, completedCells, nextCellPaidAt);
+        const nextRow = getNextRowState(row, completedCells, nextCellPaidAt, nextCellNotes);
         dispatch({ type: "update_row", row: nextRow });
 
         const { error } = await supabase
@@ -306,6 +318,7 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
         const shouldComplete = !row.closed;
         const completedCells = new Set<number>();
         const nextCellPaidAt: Record<string, string> = {};
+        const nextCellNotes = { ...(row.cell_notes || {}) };
         const paidAt = new Date().toISOString();
 
         if (shouldComplete) {
@@ -317,7 +330,7 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
 
         lockedRowIdsRef.current.add(row.id);
         dispatch({ type: "row_saving_start", rowId: row.id });
-        const nextRow = getNextRowState(row, completedCells, nextCellPaidAt);
+        const nextRow = getNextRowState(row, completedCells, nextCellPaidAt, nextCellNotes);
         dispatch({ type: "update_row", row: nextRow });
 
         const { error } = await supabase
@@ -330,6 +343,44 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
             remaining_amount: nextRow.remaining_amount,
             closed_count: nextRow.closed_count,
           })
+          .eq("id", row.id);
+
+        if (error) {
+          dispatch({ type: "set_error", error: error.message });
+          await fetchRows(false);
+        }
+
+        lockedRowIdsRef.current.delete(row.id);
+        dispatch({ type: "row_saving_end", rowId: row.id });
+      },
+
+      async updateCellNote(row, cellNumber, note) {
+        if (lockedRowIdsRef.current.has(row.id)) return;
+
+        const completedCells = getCompletedCellSet(row);
+        if (!completedCells.has(cellNumber)) return;
+
+        const nextCellNotes = { ...(row.cell_notes || {}) };
+        const trimmedNote = note.trim();
+
+        if (trimmedNote) {
+          nextCellNotes[String(cellNumber)] = trimmedNote;
+        } else {
+          delete nextCellNotes[String(cellNumber)];
+        }
+
+        lockedRowIdsRef.current.add(row.id);
+        dispatch({ type: "row_saving_start", rowId: row.id });
+
+        const nextRow = normalizeRow({
+          ...row,
+          cell_notes: nextCellNotes,
+        });
+        dispatch({ type: "update_row", row: nextRow });
+
+        const { error } = await supabase
+          .from("savings")
+          .update({ cell_notes: nextRow.cell_notes })
           .eq("id", row.id);
 
         if (error) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,13 +11,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { formatCurrency } from "@/lib/utils";
-import { History, PiggyBank } from "lucide-react";
+import { History, Pencil, PiggyBank, Save } from "lucide-react";
 import { SavingsBoard } from "./_components/SavingsBoard";
 import {
   getCompletedCellSet,
   getTotalCells,
+  type SavingsRow,
+  useSavingsActions,
   SavingsProvider,
   useSavingsState,
 } from "./_components/SavingsContext";
@@ -38,6 +42,91 @@ function formatPaidAt(value?: string) {
   }).format(date);
 }
 
+type SavingsHistoryItem = {
+  id: string;
+  row: SavingsRow;
+  rowLabel: string;
+  cellNumber: number;
+  amount: number;
+  paidAt?: string;
+  note: string;
+};
+
+function SavingsHistoryRow({ item }: { item: SavingsHistoryItem }) {
+  const { updateCellNote } = useSavingsActions();
+  const { pendingRowIds } = useSavingsState();
+  const [editing, setEditing] = useState(false);
+  const [note, setNote] = useState(item.note);
+  const rowPending = pendingRowIds.includes(item.row.id);
+
+  const handleSaveNote = async () => {
+    await updateCellNote(item.row, item.cellNumber, note);
+    setEditing(false);
+  };
+
+  return (
+    <div className="rounded-2xl border bg-card px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-extrabold text-foreground">
+            {item.rowLabel}
+          </p>
+          <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+            Ô {item.cellNumber} đã đóng
+          </p>
+          <p className="mt-0.5 text-xs font-semibold text-slate-500">
+            {formatPaidAt(item.paidAt)}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <p className="text-sm font-black text-emerald-700 numeric-stable">
+            {formatCurrency(item.amount)}
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="rounded-full"
+            onClick={() => setEditing((current) => !current)}
+            aria-label="Ghi chú lịch sử tích góp"
+            disabled={rowPending}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {item.note && !editing && (
+        <p className="mt-2 rounded-xl bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground">
+          {item.note}
+        </p>
+      )}
+
+      {editing && (
+        <div className="mt-3 flex gap-2">
+          <Input
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="Thêm ghi chú"
+            className="h-10 rounded-xl text-sm"
+            disabled={rowPending}
+          />
+          <Button
+            type="button"
+            size="icon"
+            className="h-10 w-10 shrink-0 rounded-xl bg-emerald-600 hover:bg-emerald-700"
+            onClick={handleSaveNote}
+            disabled={rowPending}
+            aria-label="Lưu ghi chú"
+          >
+            <Save className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SavingsHistorySheet() {
   const { rows } = useSavingsState();
   const historyItems = rows.flatMap((row) =>
@@ -49,6 +138,8 @@ function SavingsHistorySheet() {
         cellNumber,
         amount: row.period_amount || 0,
         paidAt: row.cell_paid_at?.[String(cellNumber)],
+        note: row.cell_notes?.[String(cellNumber)] || "",
+        row,
       })),
   ).sort((left, right) => {
     const leftTime = left.paidAt ? new Date(left.paidAt).getTime() : 0;
@@ -88,25 +179,7 @@ function SavingsHistorySheet() {
           ) : (
             <div className="space-y-2">
               {historyItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-3"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-extrabold text-foreground">
-                      {item.rowLabel}
-                    </p>
-                    <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
-                      Ô {item.cellNumber} đã đóng
-                    </p>
-                    <p className="mt-0.5 text-xs font-semibold text-slate-500">
-                      {formatPaidAt(item.paidAt)}
-                    </p>
-                  </div>
-                  <p className="shrink-0 text-sm font-black text-emerald-700 numeric-stable">
-                    {formatCurrency(item.amount)}
-                  </p>
-                </div>
+                <SavingsHistoryRow key={item.id} item={item} />
               ))}
             </div>
           )}

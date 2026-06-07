@@ -9,6 +9,8 @@ alter table public.savings
   add column if not exists remaining_amount int not null default 0,
   add column if not exists closed boolean not null default false,
   add column if not exists month_cells jsonb not null default '{}'::jsonb,
+  add column if not exists cell_paid_at jsonb not null default '{}'::jsonb,
+  add column if not exists cell_notes jsonb not null default '{}'::jsonb,
   add column if not exists closed_count int not null default 0;
 
 -- The app does not send these older columns when creating a row. If they exist

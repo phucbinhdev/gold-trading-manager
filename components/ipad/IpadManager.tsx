@@ -75,6 +75,9 @@ type IpadTransaction =
   Database["public"]["Tables"]["ipad_transactions"]["Row"];
 
 type IpadStatus = "importing" | "in_stock" | "sold";
+type MonthFilter = string | "all";
+type DebtFilter = "all" | "paid" | "unpaid";
+type InventoryFilter = IpadStatus | "all";
 
 const IPAD_STATUSES = [
   { value: "importing", label: "Đang nhập hàng", shortLabel: "Nhập hàng" },
@@ -142,6 +145,9 @@ const monthLabel = (monthKey: string) => {
   return `Tháng ${Number(month)}/${year}`;
 };
 
+const selectedMonthLabel = (month: MonthFilter) =>
+  month === "all" ? "Tất cả" : monthLabel(month);
+
 const timestamp = (value: string | null) => {
   if (!value) return 0;
   const parsed = new Date(value).getTime();
@@ -183,7 +189,9 @@ export function IpadManager() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [saleTarget, setSaleTarget] = useState<IpadTransaction | null>(null);
   const [editTarget, setEditTarget] = useState<IpadTransaction | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
+  const [selectedMonth, setSelectedMonth] = useState<MonthFilter>(currentMonthKey);
+  const [debtFilter, setDebtFilter] = useState<DebtFilter>("all");
+  const [inventoryFilter, setInventoryFilter] = useState<InventoryFilter>("all");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const form = useForm<TransactionFormValues>({
@@ -273,17 +281,29 @@ export function IpadManager() {
     return Array.from(months).sort((a, b) => b.localeCompare(a));
   }, [transactions]);
 
-  const monthlyTransactions = useMemo(
+  const visibleTransactions = useMemo(
     () =>
       transactions
-        .filter((item) => monthKeyFromDate(item.purchase_date) === selectedMonth)
+        .filter((item) => {
+          const status = normalizeStatus(item.status);
+          const matchesMonth =
+            selectedMonth === "all" ||
+            monthKeyFromDate(item.purchase_date) === selectedMonth;
+          const matchesDebt =
+            debtFilter === "all" ||
+            (debtFilter === "paid" ? item.debt_paid : !item.debt_paid);
+          const matchesInventory =
+            inventoryFilter === "all" || status === inventoryFilter;
+
+          return matchesMonth && matchesDebt && matchesInventory;
+        })
         .sort(compareIpadTransactions),
-    [selectedMonth, transactions],
+    [debtFilter, inventoryFilter, selectedMonth, transactions],
   );
 
   const summary = useMemo(
     () =>
-      monthlyTransactions.reduce(
+      visibleTransactions.reduce(
         (acc, item) => {
           const status = normalizeStatus(item.status);
           const sold = status === "sold";
@@ -316,7 +336,7 @@ export function IpadManager() {
           soldCount: 0,
         },
       ),
-    [monthlyTransactions],
+    [visibleTransactions],
   );
 
   const onSubmit = async (values: TransactionFormValues) => {
@@ -523,6 +543,17 @@ export function IpadManager() {
         sidebar={
           <>
             <div className="flex gap-2 overflow-x-auto pb-1">
+              <Button
+                variant={selectedMonth === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  void haptics.trigger("selection");
+                  setSelectedMonth("all");
+                }}
+                className="shrink-0 rounded-full px-4"
+              >
+                Tất cả
+              </Button>
               {monthOptions.map((month) => (
                 <Button
                   key={month}
@@ -544,7 +575,7 @@ export function IpadManager() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-semibold uppercase text-white/60">
-                      Lợi nhuận {monthLabel(selectedMonth)}
+                      Lợi nhuận {selectedMonthLabel(selectedMonth)}
                     </p>
                     <p
                       className={cn(
@@ -625,17 +656,56 @@ export function IpadManager() {
             </Button>
           </div>
 
+          <div className="grid grid-cols-2 gap-2">
+            <Select
+              value={inventoryFilter}
+              onValueChange={(value) => {
+                void haptics.trigger("selection");
+                setInventoryFilter(value as InventoryFilter);
+              }}
+            >
+              <SelectTrigger className="h-10 w-full min-w-0 rounded-xl px-3 text-xs sm:text-sm">
+                <SelectValue placeholder="Tồn kho" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả tồn kho</SelectItem>
+                {IPAD_STATUSES.map((status) => (
+                  <SelectItem key={status.value} value={status.value}>
+                    {status.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={debtFilter}
+              onValueChange={(value) => {
+                void haptics.trigger("selection");
+                setDebtFilter(value as DebtFilter);
+              }}
+            >
+              <SelectTrigger className="h-10 w-full min-w-0 rounded-xl px-3 text-xs sm:text-sm">
+                <SelectValue placeholder="Trạng thái nợ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả trạng thái nợ</SelectItem>
+                <SelectItem value="unpaid">Còn nợ</SelectItem>
+                <SelectItem value="paid">Đã trả nợ</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {loading ? (
             <Loading />
-          ) : monthlyTransactions.length === 0 ? (
+          ) : visibleTransactions.length === 0 ? (
             <EmptyState
               icon={<Tablet className="h-7 w-7" />}
-              title={`Chưa có giao dịch iPad trong ${monthLabel(selectedMonth)}`}
-              description="Chọn tháng cũ hoặc thêm giao dịch mới để theo dõi lời lỗ."
+              title={`Chưa có giao dịch iPad trong ${selectedMonthLabel(selectedMonth)}`}
+              description="Đổi bộ lọc hoặc thêm giao dịch mới để theo dõi lời lỗ."
             />
           ) : (
             <div className="grid gap-3 xl:grid-cols-2">
-            {monthlyTransactions.map((item) => {
+            {visibleTransactions.map((item) => {
               const status = normalizeStatus(item.status);
               const isSold = status === "sold";
               const profit = item.profit_amount || 0;

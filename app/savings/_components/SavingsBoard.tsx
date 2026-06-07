@@ -39,17 +39,30 @@ function WireBadge({ index, completed }: { index: number; completed: boolean }) 
   );
 }
 
+function formatCellPaidLabel(value?: string) {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return `${date.getDate()}/${date.getMonth() + 1}`;
+}
+
 function CellButton({
   number,
   checked,
+  paidAt,
   disabled,
   onToggle,
 }: {
   number: number;
   checked: boolean;
+  paidAt?: string;
   disabled: boolean;
   onToggle: () => void;
 }) {
+  const paidLabel = formatCellPaidLabel(paidAt);
+
   return (
     <button
       type="button"
@@ -63,7 +76,15 @@ function CellButton({
           : "border-border bg-background text-foreground shadow-sm hover:border-emerald-300 hover:text-emerald-700",
       )}
     >
-      {checked ? <Check className="h-5 w-5 stroke-[4]" /> : number}
+      {checked ? (
+        paidLabel ? (
+          <span className="text-[10px] font-black leading-none">{paidLabel}</span>
+        ) : (
+          <Check className="h-5 w-5 stroke-[4]" />
+        )
+      ) : (
+        number
+      )}
     </button>
   );
 }
@@ -177,6 +198,7 @@ function SavingsWireCard({ row, index }: { row: SavingsRow; index: number }) {
                 key={number}
                 number={number}
                 checked={checked}
+                paidAt={row.cell_paid_at?.[String(number)]}
                 disabled={rowPending}
                 onToggle={() => {
                   void haptics.trigger("selection");
@@ -217,7 +239,7 @@ function getSavingsRowSortMeta(row: SavingsRow) {
   const completed = totalCells > 0 && completedCells >= totalCells;
   const totalAmount = totalCells * (row.period_amount || 0);
 
-  return { completed, completedCells, totalAmount };
+  return { completed, totalAmount };
 }
 
 export function SavingsBoard() {
@@ -242,10 +264,6 @@ export function SavingsBoard() {
 
     if (leftMeta.completed !== rightMeta.completed) {
       return leftMeta.completed ? -1 : 1;
-    }
-
-    if (leftMeta.completedCells !== rightMeta.completedCells) {
-      return rightMeta.completedCells - leftMeta.completedCells;
     }
 
     if (leftMeta.totalAmount !== rightMeta.totalAmount) {
