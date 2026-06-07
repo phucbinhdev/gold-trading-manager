@@ -9,7 +9,7 @@ import { TransactionList } from "@/components/gold/TransactionList";
 import { Plus, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Loading } from "@/components/ui/PageLayout";
+import { Loading, TabletSplitLayout } from "@/components/ui/PageLayout";
 import { useWebHaptics } from "web-haptics/react";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
@@ -80,25 +80,22 @@ export default function Home() {
       {loading && transactions.length === 0 ? (
         <Loading />
       ) : (
-        <div className="grid gap-6 md:grid-cols-[minmax(20rem,24rem)_1fr] md:items-start">
-          <Overview
-            totalChi={totalChi}
-            totalInvested={totalInvested}
-            marketPrice={marketPrice}
-            setMarketPrice={handlePriceChange}
-          />
-
-          <div className="min-w-0">
-            <div className="mb-2 px-1">
-              <h3 className="font-bold text-lg">Lịch sử giao dịch</h3>
-            </div>
-            <TransactionList
-              transactions={transactions}
+        <TabletSplitLayout
+          sidebar={
+            <Overview
+              totalChi={totalChi}
+              totalInvested={totalInvested}
               marketPrice={marketPrice}
-              onUpdate={fetchData}
+              setMarketPrice={handlePriceChange}
             />
-          </div>
-        </div>
+          }
+        >
+          <TransactionList
+            transactions={transactions}
+            marketPrice={marketPrice}
+            onUpdate={fetchData}
+          />
+        </TabletSplitLayout>
       )}
 
       <Button

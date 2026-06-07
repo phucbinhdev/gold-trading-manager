@@ -20,7 +20,7 @@ export function PageHeader(props: PageHeaderProps) {
   return (
     <header
       className={cn(
-        "flex items-center justify-between gap-3 bg-transparent pb-2 pt-[calc(env(safe-area-inset-top)+6px)]",
+        "flex items-center justify-between gap-3 bg-transparent pb-2",
         className,
       )}
     >

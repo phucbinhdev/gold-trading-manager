@@ -57,7 +57,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { EmptyState, Loading } from "@/components/ui/PageLayout";
+import { EmptyState, Loading, TabletSplitLayout } from "@/components/ui/PageLayout";
 import {
   Select,
   SelectContent,
@@ -497,95 +497,98 @@ export function IpadManager() {
         iconColor="bg-gradient-to-br from-sky-500 to-emerald-500"
       />
 
-      <div className="mt-4 grid gap-6 md:grid-cols-[minmax(20rem,24rem)_1fr] md:items-start">
-        <div className="space-y-5">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {monthOptions.map((month) => (
-            <Button
-              key={month}
-              variant={selectedMonth === month ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                void haptics.trigger("selection");
-                setSelectedMonth(month);
-              }}
-              className="shrink-0 rounded-full px-4"
-            >
-              {month === currentMonthKey() ? "Tháng này" : monthLabel(month)}
-            </Button>
-          ))}
-        </div>
-
-        <section className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-xl shadow-slate-950/20 ring-1 ring-white/10">
-          <div className="p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase text-white/60">
-                  Lợi nhuận {monthLabel(selectedMonth)}
-                </p>
-                <p
-                  className={cn(
-                    "mt-2 text-3xl font-bold",
-                    summary.totalProfit >= 0 ? "text-emerald-300" : "text-red-300",
-                  )}
+      <TabletSplitLayout
+        className="mt-4"
+        sidebar={
+          <>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {monthOptions.map((month) => (
+                <Button
+                  key={month}
+                  variant={selectedMonth === month ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    void haptics.trigger("selection");
+                    setSelectedMonth(month);
+                  }}
+                  className="shrink-0 rounded-full px-4"
                 >
-                  {summary.totalProfit >= 0 ? "+" : ""}
-                  {formatCurrency(summary.totalProfit)}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-white/10 p-3">
-                <CircleDollarSign className="h-6 w-6" />
-              </div>
+                  {month === currentMonthKey() ? "Tháng này" : monthLabel(month)}
+                </Button>
+              ))}
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-xl bg-white/10 p-3">
-                <p className="text-white/55">Tổng vốn</p>
-                <p className="mt-1 font-bold">{formatCurrency(summary.totalCost)}</p>
+            <section className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-xl shadow-slate-950/20 ring-1 ring-white/10">
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-white/60">
+                      Lợi nhuận {monthLabel(selectedMonth)}
+                    </p>
+                    <p
+                      className={cn(
+                        "mt-2 text-3xl font-bold",
+                        summary.totalProfit >= 0 ? "text-emerald-300" : "text-red-300",
+                      )}
+                    >
+                      {summary.totalProfit >= 0 ? "+" : ""}
+                      {formatCurrency(summary.totalProfit)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 p-3">
+                    <CircleDollarSign className="h-6 w-6" />
+                  </div>
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-xl bg-white/10 p-3">
+                    <p className="text-white/55">Tổng vốn</p>
+                    <p className="mt-1 font-bold">{formatCurrency(summary.totalCost)}</p>
+                  </div>
+                  <div className="rounded-xl bg-white/10 p-3">
+                    <p className="text-white/55">Doanh thu bán</p>
+                    <p className="mt-1 font-bold">
+                      {formatCurrency(summary.totalRevenue)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-white/10 p-3">
+                    <p className="text-white/55">Nợ chưa trả</p>
+                    <p className="mt-1 font-bold">
+                      {formatCurrency(summary.debtRemaining)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-white/10 p-3">
+                    <p className="text-white/55">Đã bán</p>
+                    <p className="mt-1 font-bold">{summary.soldCount} máy</p>
+                  </div>
+                </div>
               </div>
-              <div className="rounded-xl bg-white/10 p-3">
-                <p className="text-white/55">Doanh thu bán</p>
-                <p className="mt-1 font-bold">
-                  {formatCurrency(summary.totalRevenue)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-white/10 p-3">
-                <p className="text-white/55">Nợ chưa trả</p>
-                <p className="mt-1 font-bold">
-                  {formatCurrency(summary.debtRemaining)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-white/10 p-3">
-                <p className="text-white/55">Đã bán</p>
-                <p className="mt-1 font-bold">{summary.soldCount} máy</p>
-              </div>
+            </section>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Card className="rounded-2xl py-0">
+                <CardContent className="p-4">
+                  <Banknote className="h-5 w-5 text-sky-600" />
+                  <p className="mt-3 text-xs text-muted-foreground">Tiền mua máy</p>
+                  <p className="mt-1 text-sm font-bold">
+                    {formatCurrency(summary.totalPurchase)}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="rounded-2xl py-0">
+                <CardContent className="p-4">
+                  <HandCoins className="h-5 w-5 text-emerald-600" />
+                  <p className="mt-3 text-xs text-muted-foreground">Đã trả nợ</p>
+                  <p className="mt-1 text-sm font-bold">
+                    {summary.debtPaidCount} máy
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-          </div>
-        </section>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="rounded-2xl py-0">
-            <CardContent className="p-4">
-              <Banknote className="h-5 w-5 text-sky-600" />
-              <p className="mt-3 text-xs text-muted-foreground">Tiền mua máy</p>
-              <p className="mt-1 text-sm font-bold">
-                {formatCurrency(summary.totalPurchase)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="rounded-2xl py-0">
-            <CardContent className="p-4">
-              <HandCoins className="h-5 w-5 text-emerald-600" />
-              <p className="mt-3 text-xs text-muted-foreground">Đã trả nợ</p>
-              <p className="mt-1 text-sm font-bold">
-                {summary.debtPaidCount} máy
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-        </div>
-
-        <div className="min-w-0 space-y-4">
+          </>
+        }
+        contentClassName="space-y-4"
+      >
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">Danh sách máy</h2>
             <Button
@@ -850,8 +853,7 @@ export function IpadManager() {
             })}
             </div>
           )}
-        </div>
-      </div>
+      </TabletSplitLayout>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">

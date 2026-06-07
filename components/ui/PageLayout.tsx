@@ -16,6 +16,41 @@ export function PageLayout({ children, className }: PageLayoutProps) {
   );
 }
 
+interface TabletSplitLayoutProps {
+  sidebar: ReactNode;
+  children: ReactNode;
+  className?: string;
+  sidebarClassName?: string;
+  contentClassName?: string;
+}
+
+export function TabletSplitLayout({
+  sidebar,
+  children,
+  className,
+  sidebarClassName,
+  contentClassName,
+}: TabletSplitLayoutProps) {
+  return (
+    <div
+      className={cn(
+        "grid gap-6 md:grid-cols-[minmax(20rem,24rem)_minmax(0,1fr)] md:items-start",
+        className,
+      )}
+    >
+      <aside
+        className={cn(
+          "min-w-0 space-y-5 md:sticky md:top-[calc(env(safe-area-inset-top)+1.25rem)] md:max-h-[calc(100dvh-env(safe-area-inset-top)-7.5rem)] md:overflow-y-auto md:overscroll-contain md:pr-1",
+          sidebarClassName,
+        )}
+      >
+        {sidebar}
+      </aside>
+      <div className={cn("min-w-0", contentClassName)}>{children}</div>
+    </div>
+  );
+}
+
 interface LoadingProps {
   className?: string;
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { EmptyState, Loading } from "@/components/ui/PageLayout";
+import { EmptyState, Loading, TabletSplitLayout } from "@/components/ui/PageLayout";
 import {
   createRecord,
   createRecordCustomFees,
@@ -269,8 +269,12 @@ if (!settings) {
           showSettings
         />
 
-      <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] md:items-start">
-        <div className="space-y-4">
+      <TabletSplitLayout
+        className="md:grid-cols-[minmax(20rem,1fr)_minmax(18rem,22rem)]"
+        sidebarClassName="space-y-4"
+        contentClassName="space-y-4"
+        sidebar={
+          <>
           {/* Month Selection */}
           <Card>
             <CardHeader className="pb-3">
@@ -440,9 +444,9 @@ if (!settings) {
             <Zap className="w-5 h-5 mr-2" />
             Tính tiền
           </Button>
-        </div>
-
-        <div className="space-y-4">
+          </>
+        }
+      >
           {/* Calculation Result */}
           {calculationResult && (
             <div className="space-y-4">
@@ -475,8 +479,7 @@ if (!settings) {
               </Button>
             </div>
           )}
-        </div>
-      </div>
+      </TabletSplitLayout>
 
       {/* Quick Navigation */}
       <div className="space-y-3">

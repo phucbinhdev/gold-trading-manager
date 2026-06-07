@@ -42,7 +42,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { EmptyState, Loading } from "@/components/ui/PageLayout";
+import { EmptyState, Loading, TabletSplitLayout } from "@/components/ui/PageLayout";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -468,8 +468,11 @@ export function BudgetPage() {
         showSettings
       />
 
-      <div className="grid gap-6 md:grid-cols-[minmax(20rem,24rem)_1fr] md:items-start">
-        <div className="space-y-4">
+      <TabletSplitLayout
+        sidebarClassName="space-y-4"
+        contentClassName="space-y-3"
+        sidebar={
+          <>
           <section className="rounded-2xl border bg-card p-2 shadow-sm">
             <div className="grid grid-cols-[2.75rem_1fr_2.75rem] items-center">
               <Button
@@ -818,9 +821,9 @@ export function BudgetPage() {
               </Button>
             </div>
           </div>
-        </div>
-
-        <div className="min-w-0 space-y-3">
+          </>
+        }
+      >
           <div className="flex items-end justify-between gap-3">
             <div>
               <p className="text-lg font-bold text-foreground">
@@ -856,8 +859,7 @@ export function BudgetPage() {
               ))}
             </div>
           )}
-        </div>
-      </div>
+      </TabletSplitLayout>
 
       <div className="w-full px-8 pb-4 text-center text-xs text-muted-foreground opacity-70">
         Mỗi nguồn tiền là một tab riêng. Khoản chi chỉ thuộc tab đang chọn.
