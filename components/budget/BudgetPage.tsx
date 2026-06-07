@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { addMonths, format, subMonths } from "date-fns";
 import { vi } from "date-fns/locale";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -46,8 +47,11 @@ import { EmptyState, Loading, TabletSplitLayout } from "@/components/ui/PageLayo
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PullToRefresh } from "@/components/navigation/PullToRefresh";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
+import { useScreenState } from "@/lib/hooks/use-screen-state";
+import { queryKeys } from "@/lib/query-keys";
 import { cn, formatCurrency } from "@/lib/utils";
 
 type BudgetMonth = Database["public"]["Tables"]["budget_months"]["Row"];
@@ -59,14 +63,23 @@ const DEFAULT_SOURCE_NAME = "Nguồn chính";
 
 export function BudgetPage() {
   const haptics = useWebHaptics();
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [sources, setSources] = useState<BudgetSource[]>([]);
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
-  const [budget, setBudget] = useState<BudgetMonth | null>(null);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingSources, setLoadingSources] = useState(true);
-  const [showMoney, setShowMoney] = useState(true);
+  const queryClient = useQueryClient();
+  const [currentMonthValue, setCurrentMonthValue] = useScreenState(
+    "budget:current-month",
+    format(new Date(), "yyyy-MM"),
+  );
+  const currentMonth = useMemo(
+    () => new Date(`${currentMonthValue}-01T00:00:00`),
+    [currentMonthValue],
+  );
+  const setCurrentMonth = (date: Date) => {
+    setCurrentMonthValue(format(date, "yyyy-MM"));
+  };
+  const [selectedSourceId, setSelectedSourceId] = useScreenState<string | null>(
+    "budget:selected-source-id",
+    null,
+  );
+  const [showMoney, setShowMoney] = useScreenState("budget:show-money", true);
 
   const [newExpenseName, setNewExpenseName] = useState("");
   const [newExpenseAmount, setNewExpenseAmount] = useState<number | "">("");
@@ -90,12 +103,8 @@ export function BudgetPage() {
   const [isRenamingSource, setIsRenamingSource] = useState(false);
 
   const monthKey = format(currentMonth, "yyyy-MM");
-  const selectedSource = sources.find((source) => source.id === selectedSourceId) || null;
 
-  const loadSources = useCallback(async () => {
-    setLoadingSources(true);
-
-    try {
+  const fetchSources = useCallback(async () => {
       const { data, error } = await supabase
         .from("budget_sources")
         .select("*")
@@ -122,20 +131,7 @@ export function BudgetPage() {
         nextSources = defaultSource ? [defaultSource] : [];
       }
 
-      setSources(nextSources);
-      setSelectedSourceId((current) => {
-        if (current && nextSources.some((source) => source.id === current)) {
-          return current;
-        }
-
-        return nextSources[0]?.id || null;
-      });
-    } catch (error) {
-      console.error("Error loading budget sources:", error);
-      toast.error("Lỗi tải nguồn tiền");
-    } finally {
-      setLoadingSources(false);
-    }
+      return nextSources;
   }, []);
 
   const fetchBudgetMonth = useCallback(
@@ -184,22 +180,30 @@ export function BudgetPage() {
     [monthKey],
   );
 
-  const loadBudgetData = useCallback(async () => {
-    if (!selectedSourceId) {
-      setBudget(null);
-      setExpenses([]);
-      return;
-    }
+  const sourcesQuery = useQuery({
+    queryKey: queryKeys.budget.sources(),
+    queryFn: fetchSources,
+  });
 
-    setLoading(true);
+  const sources = sourcesQuery.data || [];
+  const effectiveSelectedSourceId =
+    selectedSourceId && sources.some((source) => source.id === selectedSourceId)
+      ? selectedSourceId
+      : sources[0]?.id || null;
+  const selectedSource =
+    sources.find((source) => source.id === effectiveSelectedSourceId) || null;
 
-    try {
-      const currentBudget = await fetchBudgetMonth(selectedSourceId);
-      setBudget(currentBudget);
+  const budgetDataQuery = useQuery({
+    queryKey: queryKeys.budget.month(effectiveSelectedSourceId, monthKey),
+    queryFn: async () => {
+      if (!effectiveSelectedSourceId) {
+        return { budget: null, expenses: [] as Expense[] };
+      }
+
+      const currentBudget = await fetchBudgetMonth(effectiveSelectedSourceId);
 
       if (!currentBudget) {
-        setExpenses([]);
-        return;
+        return { budget: null, expenses: [] as Expense[] };
       }
 
       const { data: expensesData, error: expensesError } = await supabase
@@ -209,22 +213,58 @@ export function BudgetPage() {
         .order("created_at", { ascending: true });
 
       if (expensesError) throw expensesError;
-      setExpenses(expensesData || []);
-    } catch (error) {
-      console.error("Error loading budget data:", error);
-      toast.error("Lỗi tải dữ liệu");
-    } finally {
-      setLoading(false);
+      return { budget: currentBudget, expenses: expensesData || [] };
+    },
+    enabled: !!effectiveSelectedSourceId,
+  });
+
+  const budget = budgetDataQuery.data?.budget || null;
+  const expenses = budgetDataQuery.data?.expenses || [];
+  const loadingSources = sourcesQuery.isLoading && sources.length === 0;
+  const loading = budgetDataQuery.isLoading && !budget;
+  const budgetDataQueryKey = queryKeys.budget.month(
+    effectiveSelectedSourceId,
+    monthKey,
+  );
+
+  const updateBudgetDataCache = (
+    updater: (current: {
+      budget: BudgetMonth | null;
+      expenses: Expense[];
+    }) => { budget: BudgetMonth | null; expenses: Expense[] },
+  ) => {
+    queryClient.setQueryData(budgetDataQueryKey, (current) =>
+      updater(
+        (current as { budget: BudgetMonth | null; expenses: Expense[] } | undefined) || {
+          budget,
+          expenses,
+        },
+      ),
+    );
+  };
+
+  const refreshData = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.budget.sources() }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.budget.month(effectiveSelectedSourceId, monthKey),
+      }),
+    ]);
+  };
+
+  useEffect(() => {
+    if (sourcesQuery.error) {
+      console.error("Error loading budget sources:", sourcesQuery.error);
+      toast.error("Lỗi tải nguồn tiền");
     }
-  }, [fetchBudgetMonth, selectedSourceId]);
+  }, [sourcesQuery.error]);
 
   useEffect(() => {
-    loadSources();
-  }, [loadSources]);
-
-  useEffect(() => {
-    loadBudgetData();
-  }, [loadBudgetData]);
+    if (budgetDataQuery.error) {
+      console.error("Error loading budget data:", budgetDataQuery.error);
+      toast.error("Lỗi tải dữ liệu");
+    }
+  }, [budgetDataQuery.error]);
 
   const calculations = useMemo(() => {
     const baseIncome = budget?.total_income || 0;
@@ -254,7 +294,12 @@ export function BudgetPage() {
 
     const value = values.floatValue || 0;
     const baseValue = value - calculations.recordIncome;
-    setBudget((prev) => (prev ? { ...prev, total_income: baseValue } : null));
+    updateBudgetDataCache((current) => ({
+      ...current,
+      budget: current.budget
+        ? { ...current.budget, total_income: baseValue }
+        : current.budget,
+    }));
 
     const { error } = await supabase
       .from("budget_months")
@@ -264,6 +309,8 @@ export function BudgetPage() {
     if (error) {
       console.error("Error updating budget income:", error);
       toast.error("Không thể cập nhật tiền hiện có");
+    } else {
+      void refreshData();
     }
   };
 
@@ -290,12 +337,16 @@ export function BudgetPage() {
       void haptics.trigger("error");
       toast.error("Lỗi thêm khoản thu chi");
     } else {
-      setExpenses((current) => [...current, data]);
+      updateBudgetDataCache((current) => ({
+        ...current,
+        expenses: [...current.expenses, data],
+      }));
       setNewExpenseName("");
       setNewExpenseAmount("");
       setNewExpenseNote("");
       void haptics.trigger("success");
       toast.success(newRecordType === "income" ? "Đã thêm khoản thu" : "Đã thêm khoản chi");
+      void refreshData();
     }
 
     setIsAddingExpense(false);
@@ -332,12 +383,16 @@ export function BudgetPage() {
       void haptics.trigger("error");
       toast.error("Không thể cập nhật khoản thu chi");
     } else {
-      setExpenses((current) =>
-        current.map((expense) => (expense.id === data.id ? data : expense)),
-      );
+      updateBudgetDataCache((current) => ({
+        ...current,
+        expenses: current.expenses.map((expense) =>
+          expense.id === data.id ? data : expense,
+        ),
+      }));
       setEditingExpense(null);
       void haptics.trigger("success");
       toast.success("Đã cập nhật khoản thu chi");
+      void refreshData();
     }
 
     setIsUpdatingExpense(false);
@@ -363,12 +418,16 @@ export function BudgetPage() {
       void haptics.trigger("error");
       toast.error("Không thể thêm nguồn tiền");
     } else {
-      setSources((current) => [...current, data]);
+      queryClient.setQueryData(queryKeys.budget.sources(), (current) => [
+        ...((current as BudgetSource[] | undefined) || sources),
+        data,
+      ]);
       setSelectedSourceId(data.id);
       setNewSourceName("");
       setIsSourceDialogOpen(false);
       void haptics.trigger("success");
       toast.success("Đã thêm nguồn tiền");
+      void queryClient.invalidateQueries({ queryKey: queryKeys.budget.sources() });
     }
 
     setIsAddingSource(false);
@@ -399,13 +458,16 @@ export function BudgetPage() {
       void haptics.trigger("error");
       toast.error("Không thể đổi tên nguồn tiền");
     } else {
-      setSources((current) =>
-        current.map((source) => (source.id === data.id ? data : source)),
+      queryClient.setQueryData(queryKeys.budget.sources(), (current) =>
+        ((current as BudgetSource[] | undefined) || sources).map((source) =>
+          source.id === data.id ? data : source,
+        ),
       );
       setRenameSourceName("");
       setIsRenameDialogOpen(false);
       void haptics.trigger("success");
       toast.success("Đã đổi tên nguồn tiền");
+      void queryClient.invalidateQueries({ queryKey: queryKeys.budget.sources() });
     }
 
     setIsRenamingSource(false);
@@ -429,10 +491,11 @@ export function BudgetPage() {
       void haptics.trigger("error");
       toast.error("Không thể xóa nguồn tiền");
     } else {
-      setSources(remainingSources);
+      queryClient.setQueryData(queryKeys.budget.sources(), remainingSources);
       setSelectedSourceId(nextSelectedSource?.id || null);
       void haptics.trigger("success");
       toast.success("Đã xóa nguồn tiền");
+      void queryClient.invalidateQueries({ queryKey: queryKeys.budget.sources() });
     }
 
     setIsDeletingSource(false);
@@ -440,13 +503,14 @@ export function BudgetPage() {
 
   const toggleSelect = async (id: string, currentSelected: boolean) => {
     void haptics.trigger("selection");
-    setExpenses((prev) =>
-      prev.map((expense) =>
+    updateBudgetDataCache((current) => ({
+      ...current,
+      expenses: current.expenses.map((expense) =>
         expense.id === id
           ? { ...expense, is_selected: !currentSelected }
           : expense,
       ),
-    );
+    }));
 
     const { error } = await supabase
       .from("budget_expenses")
@@ -456,16 +520,19 @@ export function BudgetPage() {
     if (error) {
       console.error("Error toggling expense selection:", error);
       toast.error("Không thể cập nhật khoản chi");
-      loadBudgetData();
+      void refreshData();
+    } else {
+      void refreshData();
     }
   };
 
   const togglePaid = async (id: string, currentPaid: boolean) => {
-    setExpenses((prev) =>
-      prev.map((expense) =>
+    updateBudgetDataCache((current) => ({
+      ...current,
+      expenses: current.expenses.map((expense) =>
         expense.id === id ? { ...expense, is_paid: !currentPaid } : expense,
       ),
-    );
+    }));
 
     const { error } = await supabase
       .from("budget_expenses")
@@ -476,7 +543,7 @@ export function BudgetPage() {
       console.error("Error toggling expense paid state:", error);
       void haptics.trigger("error");
       toast.error("Không thể cập nhật khoản chi");
-      loadBudgetData();
+      void refreshData();
       return;
     }
 
@@ -486,28 +553,40 @@ export function BudgetPage() {
     } else {
       void haptics.trigger("selection");
     }
+    void refreshData();
   };
 
   const deleteExpense = async (id: string) => {
     const previousExpenses = expenses;
 
     void haptics.trigger("warning");
-    setExpenses((prev) => prev.filter((expense) => expense.id !== id));
+    updateBudgetDataCache((current) => ({
+      ...current,
+      expenses: current.expenses.filter((expense) => expense.id !== id),
+    }));
 
     const { error } = await supabase.from("budget_expenses").delete().eq("id", id);
 
     if (error) {
       console.error("Error deleting expense:", error);
-      setExpenses(previousExpenses);
+      updateBudgetDataCache((current) => ({
+        ...current,
+        expenses: previousExpenses,
+      }));
       toast.error("Không thể xóa khoản chi");
       return;
     }
 
     toast.success("Đã xóa khoản chi");
+    void refreshData();
   };
 
   return (
-    <div className="page-shell app-container space-y-6">
+    <PullToRefresh
+      onRefresh={refreshData}
+      refreshing={sourcesQuery.isFetching || budgetDataQuery.isFetching}
+      className="page-shell app-container space-y-6"
+    >
       <PageHeader
         title="Tính nợ"
         subtitle="Quản lý chi tiêu hàng tháng"
@@ -577,7 +656,7 @@ export function BudgetPage() {
                       className="flex min-w-0 flex-1 gap-1 overflow-x-auto rounded-2xl bg-white/10 p-1"
                     >
                       {sources.map((source) => {
-                        const active = source.id === selectedSourceId;
+                        const active = source.id === effectiveSelectedSourceId;
 
                         return (
                           <button
@@ -1117,6 +1196,6 @@ export function BudgetPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PullToRefresh>
   );
 }

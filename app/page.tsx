@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
 import { Overview } from "@/components/gold/Overview";
@@ -11,55 +12,66 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Loading, TabletSplitLayout } from "@/components/ui/PageLayout";
 import { useWebHaptics } from "web-haptics/react";
+import { PullToRefresh } from "@/components/navigation/PullToRefresh";
+import { queryKeys } from "@/lib/query-keys";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 
 export default function Home() {
   const haptics = useWebHaptics();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [marketPrice, setMarketPrice] = useState<number>(8000000);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const { data: txData, error: txError } = await supabase
+  const transactionsQuery = useQuery({
+    queryKey: queryKeys.gold.transactions(),
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from("transactions")
         .select("*")
         .order("transaction_date", { ascending: false });
 
-      if (txError) throw txError;
-      setTransactions(txData || []);
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
-      const { data: settingsData } = await supabase
+  const marketPriceQuery = useQuery({
+    queryKey: queryKeys.gold.currentPrice(),
+    queryFn: async () => {
+      const { data } = await supabase
         .from("app_settings")
         .select("value")
         .eq("key", "current_gold_price")
         .single();
 
-      if (settingsData?.value) {
-        setMarketPrice(Number(settingsData.value));
-      }
-    } catch (error) {
-      console.error("Error loading data:", error);
-    } finally {
-      setLoading(false);
-    }
+      return data?.value ? Number(data.value) : 8000000;
+    },
+  });
+
+  const transactions: Transaction[] = transactionsQuery.data || [];
+  const marketPrice = marketPriceQuery.data || 8000000;
+  const loading =
+    (transactionsQuery.isLoading || marketPriceQuery.isLoading) &&
+    transactions.length === 0;
+
+  const refreshData = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.gold.transactions() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.gold.currentPrice() }),
+    ]);
   };
 
   const handlePriceChange = async (newPrice: number) => {
-    setMarketPrice(newPrice);
+    queryClient.setQueryData(queryKeys.gold.currentPrice(), newPrice);
     await supabase.from("app_settings").upsert({
       key: "current_gold_price",
       value: String(newPrice),
       updated_at: new Date().toISOString(),
     });
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.gold.currentPrice(),
+    });
   };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const totalChi = transactions.reduce((acc, t) => acc + t.amount_chi, 0);
   const totalInvested = transactions.reduce(
@@ -68,7 +80,11 @@ export default function Home() {
   );
 
   return (
-    <div className="page-shell app-container space-y-8 bg-background font-sans text-foreground">
+    <PullToRefresh
+      onRefresh={refreshData}
+      refreshing={transactionsQuery.isFetching || marketPriceQuery.isFetching}
+      className="page-shell app-container space-y-8 bg-background font-sans text-foreground"
+    >
       <PageHeader 
         title="Quản Lý Vàng" 
         subtitle="Xin chào! Chúc bạn ngày mới tốt lành."
@@ -93,7 +109,7 @@ export default function Home() {
           <TransactionList
             transactions={transactions}
             marketPrice={marketPrice}
-            onUpdate={fetchData}
+            onUpdate={refreshData}
           />
         </TabletSplitLayout>
       )}
@@ -114,8 +130,8 @@ export default function Home() {
       <TransactionForm
         open={isAddOpen}
         onOpenChange={setIsAddOpen}
-        onSuccess={fetchData}
+        onSuccess={refreshData}
       />
-    </div>
+    </PullToRefresh>
   );
 }

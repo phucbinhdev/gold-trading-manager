@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import { useSavingsActions, useSavingsState } from "./SavingsContext";
 import { useWebHaptics } from "web-haptics/react";
+import { useScreenState } from "@/lib/hooks/use-screen-state";
 
 function toDigits(value: string) {
   return value.replace(/\D/g, "");
@@ -36,10 +37,16 @@ export function SavingsForm() {
   const { addRow } = useSavingsActions();
   const { saving, rows } = useSavingsState();
   const haptics = useWebHaptics();
-  const [open, setOpen] = useState(false);
-  const [label, setLabel] = useState("");
-  const [periodAmount, setPeriodAmount] = useState("5.000.000");
-  const [totalCells, setTotalCells] = useState("20");
+  const [open, setOpen] = useScreenState("savings:form-open", false);
+  const [label, setLabel] = useScreenState("savings:form-label", "");
+  const [periodAmount, setPeriodAmount] = useScreenState(
+    "savings:form-period-amount",
+    "5.000.000",
+  );
+  const [totalCells, setTotalCells] = useScreenState(
+    "savings:form-total-cells",
+    "20",
+  );
 
   const nextName = useMemo(() => `Dây ${rows.length + 1}`, [rows.length]);
   const previewTotal = Number(toDigits(periodAmount)) * Number(toDigits(totalCells));

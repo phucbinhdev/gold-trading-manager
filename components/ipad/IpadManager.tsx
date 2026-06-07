@@ -16,6 +16,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Resolver, useForm } from "react-hook-form";
 import { NumericFormat } from "react-number-format";
 import { toast } from "sonner";
@@ -68,6 +69,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
+import { PullToRefresh } from "@/components/navigation/PullToRefresh";
+import { useScreenState } from "@/lib/hooks/use-screen-state";
+import { queryKeys } from "@/lib/query-keys";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useWebHaptics } from "web-haptics/react";
 
@@ -183,16 +187,26 @@ function moneyInput(onChange: (value?: number) => void) {
 
 export function IpadManager() {
   const haptics = useWebHaptics();
-  const [transactions, setTransactions] = useState<IpadTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [saleTarget, setSaleTarget] = useState<IpadTransaction | null>(null);
   const [editTarget, setEditTarget] = useState<IpadTransaction | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<MonthFilter>(currentMonthKey);
-  const [debtFilter, setDebtFilter] = useState<DebtFilter>("all");
-  const [inventoryFilter, setInventoryFilter] = useState<InventoryFilter>("all");
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [selectedMonth, setSelectedMonth] = useScreenState<MonthFilter>(
+    "ipad:selected-month",
+    currentMonthKey(),
+  );
+  const [debtFilter, setDebtFilter] = useScreenState<DebtFilter>(
+    "ipad:debt-filter",
+    "all",
+  );
+  const [inventoryFilter, setInventoryFilter] =
+    useScreenState<InventoryFilter>("ipad:inventory-filter", "all");
+  const [expandedIdList, setExpandedIdList] = useScreenState<string[]>(
+    "ipad:expanded-ids",
+    [],
+  );
+  const expandedIds = useMemo(() => new Set(expandedIdList), [expandedIdList]);
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema) as unknown as Resolver<TransactionFormValues>,
@@ -226,9 +240,9 @@ export function IpadManager() {
     },
   });
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
+  const transactionsQuery = useQuery({
+    queryKey: queryKeys.ipad.transactions(),
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("ipad_transactions")
         .select("*")
@@ -237,18 +251,25 @@ export function IpadManager() {
         .order("id", { ascending: true });
 
       if (error) throw error;
-      setTransactions([...(data || [])].sort(compareIpadTransactions));
-    } catch (error) {
-      console.error(error);
-      toast.error("Không thể tải danh sách iPad");
-    } finally {
-      setLoading(false);
-    }
+      return [...(data || [])].sort(compareIpadTransactions);
+    },
+  });
+
+  const transactions = transactionsQuery.data || [];
+  const loading = transactionsQuery.isLoading && transactions.length === 0;
+
+  const refreshData = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.ipad.transactions(),
+    });
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (transactionsQuery.error) {
+      console.error(transactionsQuery.error);
+      toast.error("Không thể tải danh sách iPad");
+    }
+  }, [transactionsQuery.error]);
 
   useEffect(() => {
     if (!saleTarget) return;
@@ -368,7 +389,7 @@ export function IpadManager() {
       toast.success("Đã thêm giao dịch iPad");
       setIsAddOpen(false);
       form.reset();
-      fetchData();
+      void refreshData();
     } catch (error) {
       console.error(error);
       void haptics.trigger("error");
@@ -396,7 +417,7 @@ export function IpadManager() {
       void haptics.trigger("success");
       toast.success("Đã cập nhật giá bán");
       setSaleTarget(null);
-      fetchData();
+      void refreshData();
     } catch (error) {
       console.error(error);
       void haptics.trigger("error");
@@ -435,7 +456,7 @@ export function IpadManager() {
       void haptics.trigger("success");
       toast.success("Đã cập nhật thông tin nhập hàng");
       setEditTarget(null);
-      fetchData();
+      void refreshData();
     } catch (error) {
       console.error(error);
       void haptics.trigger("error");
@@ -455,7 +476,7 @@ export function IpadManager() {
       if (error) throw error;
       void haptics.trigger("success");
       toast.success("Đã xóa giao dịch");
-      fetchData();
+      void refreshData();
     } catch (error) {
       console.error(error);
       void haptics.trigger("error");
@@ -477,7 +498,7 @@ export function IpadManager() {
       if (error) throw error;
       void haptics.trigger(nextPaid ? "success" : "selection");
       toast.success(nextPaid ? "Đã đánh dấu trả xong nợ" : "Đã chuyển về còn nợ");
-      fetchData();
+      void refreshData();
     } catch (error) {
       console.error(error);
       void haptics.trigger("error");
@@ -508,7 +529,7 @@ export function IpadManager() {
       if (error) throw error;
       void haptics.trigger("success");
       toast.success(`Đã chuyển sang ${statusLabels[status].toLowerCase()}`);
-      fetchData();
+      void refreshData();
     } catch (error) {
       console.error(error);
       void haptics.trigger("error");
@@ -517,7 +538,7 @@ export function IpadManager() {
   };
 
   const toggleExpanded = (id: string) => {
-    setExpandedIds((current) => {
+    setExpandedIdList((current) => {
       const next = new Set(current);
 
       if (next.has(id)) {
@@ -526,12 +547,16 @@ export function IpadManager() {
         next.add(id);
       }
 
-      return next;
+      return Array.from(next);
     });
   };
 
   return (
-    <div className="page-shell app-container bg-background text-foreground">
+    <PullToRefresh
+      onRefresh={refreshData}
+      refreshing={transactionsQuery.isFetching}
+      className="page-shell app-container bg-background text-foreground"
+    >
       <PageHeader
         title="Mua bán iPad"
         icon={<Tablet className="h-6 w-6 text-white" />}
@@ -1319,6 +1344,6 @@ export function IpadManager() {
           </Form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PullToRefresh>
   );
 }

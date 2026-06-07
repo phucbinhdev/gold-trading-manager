@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,9 @@ import { cn } from "@/lib/utils";
 import { encryptText, decryptText } from "@/lib/crypto/cipher";
 import { format, startOfWeek, endOfWeek, isSameDay, subDays } from "date-fns";
 import { vi } from "date-fns/locale";
+import { PullToRefresh } from "@/components/navigation/PullToRefresh";
+import { useScreenState } from "@/lib/hooks/use-screen-state";
+import { queryKeys } from "@/lib/query-keys";
 
 type DiaryEntry = {
   id: string;
@@ -45,46 +49,54 @@ const MOODS = [
 ];
 
 export function DiaryPage() {
-  const [entries, setEntries] = useState<DiaryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [masterPassword, setMasterPassword] = useState("");
   const [isLocked, setIsLocked] = useState(true);
+  const [isUnlocking, setIsUnlocking] = useState(false);
   
   // Entry Form State
   const [editingEntry, setEditingEntry] = useState<DiaryEntry | null>(null);
-  const [content, setContent] = useState("");
-  const [moodLevel, setMoodLevel] = useState(3);
-  const [entryDate, setEntryDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [content, setContent] = useScreenState("diary:content-draft", "");
+  const [moodLevel, setMoodLevel] = useScreenState("diary:mood-level", 3);
+  const [entryDate, setEntryDate] = useScreenState(
+    "diary:entry-date",
+    format(new Date(), 'yyyy-MM-dd'),
+  );
 
   // AI Feedback State
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
 
-  const fetchEntries = async () => {
-    setLoading(true);
+  const entriesQuery = useQuery({
+    queryKey: queryKeys.diary.entries(),
+    queryFn: async () => {
     const { data, error } = await supabase
       .from("diary")
       .select("*")
       .order("date", { ascending: false });
     
-    if (error) {
-      toast.error("Không thể tải nhật ký");
-    } else {
-      setEntries(data || []);
-    }
-    setLoading(false);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const entries: DiaryEntry[] = entriesQuery.data || [];
+  const refreshEntries = async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.diary.entries() });
   };
 
   useEffect(() => {
-    fetchEntries();
-  }, []);
+    if (entriesQuery.error) {
+      toast.error("Không thể tải nhật ký");
+    }
+  }, [entriesQuery.error]);
 
   const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!masterPassword) return;
     
-    setLoading(true);
+    setIsUnlocking(true);
     try {
       if (entries.length > 0) {
         const testEntry = entries[0];
@@ -95,7 +107,7 @@ export function DiaryPage() {
     } catch (err) {
       toast.error("Mật mã không đúng!");
     } finally {
-      setLoading(false);
+      setIsUnlocking(false);
     }
   };
 
@@ -128,7 +140,7 @@ export function DiaryPage() {
       }
 
       setIsOpen(false);
-      fetchEntries();
+      void refreshEntries();
     } catch (err) {
       toast.error("Lỗi khi lưu dữ liệu");
     }
@@ -138,7 +150,7 @@ export function DiaryPage() {
     if (!confirm("Xóa trang nhật ký này?")) return;
     const { error } = await supabase.from("diary").delete().eq("id", id);
     if (error) toast.error("Xóa thất bại");
-    else fetchEntries();
+    else void refreshEntries();
   };
 
   const getAiInsight = async () => {
@@ -200,7 +212,11 @@ export function DiaryPage() {
 
   if (isLocked) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center animate-in fade-in duration-700">
+      <PullToRefresh
+        onRefresh={refreshEntries}
+        refreshing={entriesQuery.isFetching}
+        className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center animate-in fade-in duration-700"
+      >
         <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mb-6 border-4 border-white shadow-xl">
           <Lock className="h-10 w-10 text-amber-600" />
         </div>
@@ -217,19 +233,23 @@ export function DiaryPage() {
             onChange={(e) => setMasterPassword(e.target.value)}
             className="h-16 text-center text-2xl rounded-2xl border-slate-200 shadow-inner bg-slate-50 focus:bg-white"
           />
-          <Button type="submit" className="w-full h-16 rounded-2xl text-xl font-black bg-[#f59e0b] shadow-xl shadow-amber-100">
-            MỞ KHÓA
+          <Button type="submit" disabled={isUnlocking} className="w-full h-16 rounded-2xl text-xl font-black bg-[#f59e0b] shadow-xl shadow-amber-100">
+            {isUnlocking ? "ĐANG MỞ..." : "MỞ KHÓA"}
           </Button>
           <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
             <ShieldCheck className="h-3 w-3" /> Zero-Knowledge Encryption
           </p>
         </form>
-      </div>
+      </PullToRefresh>
     );
   }
 
   return (
-    <div className="relative pb-24 animate-in fade-in duration-500">
+    <PullToRefresh
+      onRefresh={refreshEntries}
+      refreshing={entriesQuery.isFetching}
+      className="relative pb-24 animate-in fade-in duration-500"
+    >
       <div className="flex items-center justify-between mb-8 px-1">
         <div>
           <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase italic">Tâm Ký</h2>
@@ -406,6 +426,6 @@ export function DiaryPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PullToRefresh>
   );
 }

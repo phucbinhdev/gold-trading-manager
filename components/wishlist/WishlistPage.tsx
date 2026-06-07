@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PullToRefresh } from "@/components/navigation/PullToRefresh";
+import { useScreenState } from "@/lib/hooks/use-screen-state";
+import { queryKeys } from "@/lib/query-keys";
 
 type WishlistItem = Database["public"]["Tables"]["wishlist"]["Row"];
 type WishlistPriority = "Low" | "Medium" | "High";
@@ -47,41 +51,52 @@ const priorityOptions: Array<{
 ];
 
 export function WishlistPage() {
-  const [items, setItems] = useState<WishlistItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<WishlistItem | null>(null);
 
   // Form State
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState<number | undefined>(undefined);
-  const [note, setNote] = useState("");
-  const [priority, setPriority] = useState<WishlistPriority>("Medium");
-  const [url, setUrl] = useState("");
+  const [name, setName] = useScreenState("wishlist:name", "");
+  const [price, setPrice] = useScreenState<number | undefined>(
+    "wishlist:price",
+    undefined,
+  );
+  const [note, setNote] = useScreenState("wishlist:note", "");
+  const [priority, setPriority] = useScreenState<WishlistPriority>(
+    "wishlist:priority",
+    "Medium",
+  );
+  const [url, setUrl] = useScreenState("wishlist:url", "");
 
-  const fetchWishlist = async () => {
-    setLoading(true);
+  const wishlistQuery = useQuery({
+    queryKey: queryKeys.wishlist.items(),
+    queryFn: async () => {
     const { data, error } = await supabase
       .from("wishlist")
       .select("*")
       .order("created_at", { ascending: false });
     
-    if (error) {
-      toast.error("Không thể tải danh sách");
-    } else {
+      if (error) throw error;
       const priorityOrder: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
-      const sorted = (data || []).sort((a, b) => {
+      return (data || []).sort((a, b) => {
         if (a.is_purchased !== b.is_purchased) return a.is_purchased ? 1 : -1;
         return priorityOrder[b.priority] - priorityOrder[a.priority];
       });
-      setItems(sorted);
-    }
-    setLoading(false);
+    },
+  });
+
+  const items = wishlistQuery.data || [];
+  const loading = wishlistQuery.isLoading && items.length === 0;
+
+  const refreshWishlist = async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.wishlist.items() });
   };
 
   useEffect(() => {
-    void Promise.resolve().then(fetchWishlist);
-  }, []);
+    if (wishlistQuery.error) {
+      toast.error("Không thể tải danh sách");
+    }
+  }, [wishlistQuery.error]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +118,7 @@ export function WishlistPage() {
       else {
         toast.success("Đã cập nhật");
         setIsOpen(false);
-        fetchWishlist();
+        void refreshWishlist();
       }
     } else {
       const { error } = await supabase.from("wishlist").insert([payload]);
@@ -111,7 +126,7 @@ export function WishlistPage() {
       else {
         toast.success("Đã thêm vào danh sách");
         setIsOpen(false);
-        fetchWishlist();
+        void refreshWishlist();
       }
     }
   };
@@ -122,7 +137,7 @@ export function WishlistPage() {
     if (error) toast.error("Xóa thất bại");
     else {
       toast.success("Đã xóa");
-      fetchWishlist();
+      void refreshWishlist();
     }
   };
 
@@ -133,7 +148,7 @@ export function WishlistPage() {
       .eq("id", item.id);
     
     if (error) toast.error("Cập nhật thất bại");
-    else fetchWishlist();
+    else void refreshWishlist();
   };
 
   const openEdit = (item: WishlistItem) => {
@@ -157,7 +172,11 @@ export function WishlistPage() {
   };
 
   return (
-    <div className="relative pb-24 animate-in fade-in duration-500">
+    <PullToRefresh
+      onRefresh={refreshWishlist}
+      refreshing={wishlistQuery.isFetching}
+      className="relative pb-24 animate-in fade-in duration-500"
+    >
       <div className="flex flex-col gap-1 mb-6 px-1">
         <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Wishlist</h2>
         <p className="text-xs text-slate-400 font-medium">Danh sách mục tiêu sắm sửa</p>
@@ -359,6 +378,6 @@ export function WishlistPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PullToRefresh>
   );
 }

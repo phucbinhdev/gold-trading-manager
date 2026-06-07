@@ -27,29 +27,33 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
+import { PullToRefresh } from "@/components/navigation/PullToRefresh";
+import { useScreenState } from "@/lib/hooks/use-screen-state";
+import { queryKeys } from "@/lib/query-keys";
+
+const getDefaultMonth = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+};
 
 export default function RoomRentalPage() {
   const router = useRouter();
   const haptics = useWebHaptics();
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<Settings | null>(null);
-  const [customFees, setCustomFees] = useState<CustomFee[]>([]);
 
   // Form state
-  const [month, setMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-  });
-  const [electricOld, setElectricOld] = useState("");
-  const [electricNew, setElectricNew] = useState("");
-  const [waterOld, setWaterOld] = useState("");
-  const [waterNew, setWaterNew] = useState("");
-  const [customFeeQuantities, setCustomFeeQuantities] = useState<
+  const [month, setMonth] = useScreenState("room-rental:month", getDefaultMonth());
+  const [electricOld, setElectricOld] = useScreenState("room-rental:electric-old", "");
+  const [electricNew, setElectricNew] = useScreenState("room-rental:electric-new", "");
+  const [waterOld, setWaterOld] = useScreenState("room-rental:water-old", "");
+  const [waterNew, setWaterNew] = useScreenState("room-rental:water-new", "");
+  const [customFeeQuantities, setCustomFeeQuantities] = useScreenState<
     Record<string, string>
-  >({});
+  >("room-rental:custom-fee-quantities", {});
 
   // Calculation result
   const [calculationResult, setCalculationResult] =
@@ -58,45 +62,62 @@ export default function RoomRentalPage() {
   // Validation warnings
   const [warnings, setWarnings] = useState<string[]>([]);
 
+  const settingsQuery = useQuery({
+    queryKey: queryKeys.roomRental.settings(),
+    queryFn: getSettings,
+  });
+  const activeFeesQuery = useQuery({
+    queryKey: queryKeys.roomRental.activeCustomFees(),
+    queryFn: getActiveCustomFees,
+  });
+  const latestRecordQuery = useQuery({
+    queryKey: queryKeys.roomRental.latestRecord(),
+    queryFn: getLatestRecord,
+  });
+
+  const settings: Settings | null = settingsQuery.data || null;
+  const customFees: CustomFee[] = activeFeesQuery.data || [];
+  const loading =
+    (settingsQuery.isLoading ||
+      activeFeesQuery.isLoading ||
+      latestRecordQuery.isLoading) &&
+    !settingsQuery.data &&
+    !activeFeesQuery.data;
+
+  async function refreshData() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.roomRental.settings() }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.roomRental.activeCustomFees(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.roomRental.latestRecord(),
+      }),
+    ]);
+  }
+
   useEffect(() => {
-    loadData();
-  }, []);
+    const latestData = latestRecordQuery.data;
 
-  async function loadData() {
-    try {
-      const [settingsData, feesData, latestData] = await Promise.all([
-        getSettings(),
-        getActiveCustomFees(),
-        getLatestRecord(),
-      ]);
+    if (!electricOld) {
+      setElectricOld(latestData ? latestData.electric_new.toString() : "0");
+    }
+    if (!waterOld) {
+      setWaterOld(latestData ? latestData.water_new.toString() : "0");
+    }
+  }, [electricOld, latestRecordQuery.data, setElectricOld, setWaterOld, waterOld]);
 
-      setSettings(settingsData);
-      setCustomFees(feesData);
-
-      // Auto-fill old meter readings from latest record
-      if (latestData) {
-        setElectricOld(latestData.electric_new.toString());
-        setWaterOld(latestData.water_new.toString());
-      } else if (settingsData) {
-        // If no previous record, start from 0
-        setElectricOld("0");
-        setWaterOld("0");
-      }
-
-      // Initialize custom fee quantities
-      const quantities: Record<string, string> = {};
-      feesData.forEach((fee) => {
-        if (fee.type === "unit") {
-          quantities[fee.id] = "1";
+  useEffect(() => {
+    setCustomFeeQuantities((current) => {
+      const next = { ...current };
+      customFees.forEach((fee) => {
+        if (fee.type === "unit" && !next[fee.id]) {
+          next[fee.id] = "1";
         }
       });
-      setCustomFeeQuantities(quantities);
-    } catch (error) {
-      console.error("Error loading data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
+      return next;
+    });
+  }, [customFees, setCustomFeeQuantities]);
 
   function calculateTotal() {
     if (!settings) {
@@ -220,6 +241,13 @@ export default function RoomRentalPage() {
 
       void haptics.trigger("success");
       toast.success("Đã lưu hóa đơn");
+      setCalculationResult(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.roomRental.records() }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.roomRental.latestRecord(),
+        }),
+      ]);
       router.push("/history");
     } catch (error) {
       console.error("Error saving record:", error);
@@ -234,9 +262,17 @@ export default function RoomRentalPage() {
     return <Loading />;
   }
 
-if (!settings) {
+  if (!settings) {
     return (
-      <div className="page-shell app-container-narrow space-y-6">
+      <PullToRefresh
+        onRefresh={refreshData}
+        refreshing={
+          settingsQuery.isFetching ||
+          activeFeesQuery.isFetching ||
+          latestRecordQuery.isFetching
+        }
+        className="page-shell app-container-narrow space-y-6"
+      >
         <PageHeader 
           title="Tính tiền trọ" 
           subtitle="Tạo hóa đơn hàng tháng"
@@ -255,12 +291,20 @@ if (!settings) {
             </Button>
           }
         />
-      </div>
+      </PullToRefresh>
     );
   }
 
   return (
-    <div className="page-shell app-container space-y-6">
+    <PullToRefresh
+      onRefresh={refreshData}
+      refreshing={
+        settingsQuery.isFetching ||
+        activeFeesQuery.isFetching ||
+        latestRecordQuery.isFetching
+      }
+      className="page-shell app-container space-y-6"
+    >
         <PageHeader 
           title="Tính tiền trọ" 
           subtitle="Tạo hóa đơn hàng tháng"
@@ -518,6 +562,6 @@ if (!settings) {
         </div>
       </div>
 
-      </div>
+      </PullToRefresh>
   );
 }

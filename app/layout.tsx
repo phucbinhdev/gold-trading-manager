@@ -3,6 +3,7 @@ import "./globals.css";
 import { BottomNav } from "@/components/gold/BottomNav";
 import { HapticFeedback } from "@/components/haptics/HapticFeedback";
 import { Toaster } from "@/components/ui/sonner";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "Quản Lý Vàng",
@@ -34,10 +35,12 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className="min-h-dvh antialiased selection:bg-primary/30">
-        <HapticFeedback />
-        {children}
-        <BottomNav />
-        <Toaster position="top-center" richColors />
+        <Providers>
+          <HapticFeedback />
+          {children}
+          <BottomNav />
+          <Toaster position="top-center" richColors />
+        </Providers>
       </body>
     </html>
   );

@@ -46,15 +46,18 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getBanks, type Bank } from "@/lib/vietqr";
 import { useWebHaptics } from "web-haptics/react";
+import { PullToRefresh } from "@/components/navigation/PullToRefresh";
+import { useScreenState } from "@/lib/hooks/use-screen-state";
+import { queryKeys } from "@/lib/query-keys";
 
 export default function ConfigPage() {
   const haptics = useWebHaptics();
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
-  const [banks, setBanks] = useState<Bank[]>([]);
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useScreenState("config:settings-draft", {
     rent_price: "",
     electric_price: "",
     water_price: "",
@@ -63,8 +66,7 @@ export default function ConfigPage() {
     account_number: "",
     account_name: "",
   });
-  const [customFees, setCustomFees] = useState<CustomFee[]>([]);
-  const [newFee, setNewFee] = useState({
+  const [newFee, setNewFee] = useScreenState("config:new-fee-draft", {
     name: "",
     type: "fixed" as "fixed" | "unit",
     fixed_amount: "",
@@ -81,38 +83,63 @@ export default function ConfigPage() {
     text: string;
   } | null>(null);
 
+  const settingsQuery = useQuery({
+    queryKey: queryKeys.roomRental.settings(),
+    queryFn: getSettings,
+  });
+  const customFeesQuery = useQuery({
+    queryKey: queryKeys.roomRental.customFees(),
+    queryFn: getCustomFees,
+  });
+  const banksQuery = useQuery({
+    queryKey: queryKeys.vietqr.banks(),
+    queryFn: getBanks,
+    staleTime: 1000 * 60 * 60 * 24,
+  });
+
+  const customFees: CustomFee[] = customFeesQuery.data || [];
+  const banks: Bank[] = banksQuery.data || [];
+  const loading =
+    (settingsQuery.isLoading || customFeesQuery.isLoading || banksQuery.isLoading) &&
+    !settingsQuery.data &&
+    !customFeesQuery.data &&
+    !banksQuery.data;
+
+  async function refreshData() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.roomRental.settings() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.roomRental.customFees() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.vietqr.banks() }),
+    ]);
+  }
+
   useEffect(() => {
-    loadData();
-  }, []);
+    const settingsData = settingsQuery.data;
+    if (!settingsData) return;
 
-  async function loadData() {
-    try {
-      const [settingsData, feesData, banksData] = await Promise.all([
-        getSettings(),
-        getCustomFees(),
-        getBanks(),
-      ]);
-
-      if (settingsData) {
-        setSettings({
-          rent_price: settingsData.rent_price.toString(),
-          electric_price: settingsData.electric_price.toString(),
-          water_price: settingsData.water_price.toString(),
-          bank_id: settingsData.bank_id || "",
-          bank_name: settingsData.bank_name || "",
-          account_number: settingsData.account_number || "",
-          account_name: settingsData.account_name || "",
-        });
+    setSettings((current) => {
+      if (
+        current.rent_price ||
+        current.electric_price ||
+        current.water_price ||
+        current.bank_id ||
+        current.account_number ||
+        current.account_name
+      ) {
+        return current;
       }
 
-      setCustomFees(feesData);
-      setBanks(banksData);
-    } catch (error) {
-      console.error("Error loading data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
+      return {
+        rent_price: settingsData.rent_price.toString(),
+        electric_price: settingsData.electric_price.toString(),
+        water_price: settingsData.water_price.toString(),
+        bank_id: settingsData.bank_id || "",
+        bank_name: settingsData.bank_name || "",
+        account_number: settingsData.account_number || "",
+        account_name: settingsData.account_name || "",
+      };
+    });
+  }, [settingsQuery.data, setSettings]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -134,6 +161,9 @@ export default function ConfigPage() {
 
       if (data) {
         void haptics.trigger("success");
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.roomRental.settings(),
+        });
         setMessage({ type: "success", text: "Đã lưu cấu hình thành công!" });
         setTimeout(() => setMessage(null), 3000);
       } else {
@@ -175,7 +205,14 @@ export default function ConfigPage() {
 
       if (created) {
         void haptics.trigger("success");
-        setCustomFees([...customFees, created]);
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.roomRental.customFees(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.roomRental.activeCustomFees(),
+          }),
+        ]);
         setNewFee({
           name: "",
           type: "fixed",
@@ -198,7 +235,14 @@ export default function ConfigPage() {
       const updated = await updateCustomFee(id, { is_active: !isActive });
       if (updated) {
         void haptics.trigger("selection");
-        setCustomFees(customFees.map((fee) => (fee.id === id ? updated : fee)));
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.roomRental.customFees(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.roomRental.activeCustomFees(),
+          }),
+        ]);
       }
     } catch (error) {
       console.error("Error toggling fee:", error);
@@ -218,9 +262,14 @@ export default function ConfigPage() {
       const success = await deleteCustomFee(deleteConfirm.feeId);
       if (success) {
         void haptics.trigger("success");
-        setCustomFees(
-          customFees.filter((fee) => fee.id !== deleteConfirm.feeId),
-        );
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.roomRental.customFees(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.roomRental.activeCustomFees(),
+          }),
+        ]);
         setMessage({ type: "success", text: "Đã xóa chi phí!" });
         setTimeout(() => setMessage(null), 3000);
       }
@@ -238,7 +287,15 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="page-shell app-container space-y-6">
+    <PullToRefresh
+      onRefresh={refreshData}
+      refreshing={
+        settingsQuery.isFetching ||
+        customFeesQuery.isFetching ||
+        banksQuery.isFetching
+      }
+      className="page-shell app-container space-y-6"
+    >
       <PageHeader 
         title="Cấu hình giá" 
         subtitle="Thiết lập giá nhà, điện, nước"
@@ -625,6 +682,6 @@ export default function ConfigPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PullToRefresh>
   );
 }

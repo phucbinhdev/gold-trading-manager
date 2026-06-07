@@ -28,17 +28,22 @@ import {
   Wallet,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useWebHaptics } from "web-haptics/react";
+import { PullToRefresh } from "@/components/navigation/PullToRefresh";
+import { useScreenState } from "@/lib/hooks/use-screen-state";
+import { queryKeys } from "@/lib/query-keys";
 
 export default function HistoryPage() {
   const router = useRouter();
   const haptics = useWebHaptics();
-  const [loading, setLoading] = useState(true);
-  const [records, setRecords] = useState<RecordType[]>([]);
-  const [settings, setSettings] = useState<Settings | null>(null);
-  const [selectedRecord, setSelectedRecord] = useState<RecordType | null>(null);
+  const queryClient = useQueryClient();
+  const [selectedRecordId, setSelectedRecordId] = useScreenState<string | null>(
+    "history:selected-record-id",
+    null,
+  );
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean;
     recordId: string | null;
@@ -49,23 +54,27 @@ export default function HistoryPage() {
     record: RecordType | null;
   }>({ isOpen: false, record: null });
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const recordsQuery = useQuery({
+    queryKey: queryKeys.roomRental.records(),
+    queryFn: getRecords,
+  });
+  const settingsQuery = useQuery({
+    queryKey: queryKeys.roomRental.settings(),
+    queryFn: getSettings,
+  });
 
-  async function loadData() {
-    try {
-      const [recordsData, settingsData] = await Promise.all([
-        getRecords(),
-        getSettings(),
-      ]);
-      setRecords(recordsData);
-      setSettings(settingsData);
-    } catch (error) {
-      console.error("Error loading data:", error);
-    } finally {
-      setLoading(false);
-    }
+  const records: RecordType[] = recordsQuery.data || [];
+  const settings: Settings | null = settingsQuery.data || null;
+  const selectedRecord =
+    records.find((record) => record.id === selectedRecordId) || null;
+  const loading =
+    (recordsQuery.isLoading || settingsQuery.isLoading) && records.length === 0;
+
+  async function refreshData() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.roomRental.records() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.roomRental.settings() }),
+    ]);
   }
 
   async function handleDelete(id: string, month: string) {
@@ -78,8 +87,13 @@ export default function HistoryPage() {
     const success = await deleteRecord(deleteConfirm.recordId);
     if (success) {
       void haptics.trigger("success");
-      setRecords(records.filter((r) => r.id !== deleteConfirm.recordId));
-      setSelectedRecord(null);
+      setSelectedRecordId(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.roomRental.records() }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.roomRental.latestRecord(),
+        }),
+      ]);
     } else {
       void haptics.trigger("error");
       toast.error("Không thể xóa bản ghi");
@@ -108,7 +122,11 @@ export default function HistoryPage() {
 
   if (records.length === 0) {
     return (
-      <div className="page-shell app-container-narrow space-y-6">
+      <PullToRefresh
+        onRefresh={refreshData}
+        refreshing={recordsQuery.isFetching || settingsQuery.isFetching}
+        className="page-shell app-container-narrow space-y-6"
+      >
         <PageHeader 
           title="Lịch sử" 
           subtitle="Danh sách hóa đơn"
@@ -124,12 +142,16 @@ export default function HistoryPage() {
             <Button onClick={() => router.push("/")}>Tạo hóa đơn mới</Button>
           }
         />
-      </div>
+      </PullToRefresh>
     );
   }
 
   return (
-    <div className="page-shell app-container space-y-6">
+    <PullToRefresh
+      onRefresh={refreshData}
+      refreshing={recordsQuery.isFetching || settingsQuery.isFetching}
+      className="page-shell app-container space-y-6"
+    >
       <PageHeader 
         title="Lịch sử" 
         subtitle="Quản lý chi tiêu"
@@ -158,7 +180,7 @@ export default function HistoryPage() {
                   className="flex items-center justify-between gap-4"
                   onClick={() => {
                     void haptics.trigger("selection");
-                    setSelectedRecord(isSelected ? null : record);
+                    setSelectedRecordId(isSelected ? null : record.id);
                   }}
                 >
                   <div className="flex items-center gap-4 min-w-0 space-y-1">
@@ -357,6 +379,6 @@ export default function HistoryPage() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PullToRefresh>
   );
 }

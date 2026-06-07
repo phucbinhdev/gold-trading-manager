@@ -26,6 +26,7 @@ import {
 } from "./_components/SavingsContext";
 import { SavingsForm } from "./_components/SavingsForm";
 import { Loading, TabletSplitLayout } from "@/components/ui/PageLayout";
+import { PullToRefresh } from "@/components/navigation/PullToRefresh";
 
 function formatPaidAt(value?: string) {
   if (!value) return "Chưa lưu thời gian";
@@ -191,6 +192,7 @@ function SavingsHistorySheet() {
 
 function SavingsPageContent() {
   const { rows, loading, error } = useSavingsState();
+  const { refreshRows } = useSavingsActions();
 
   const summary = rows.reduce(
     (acc, row) => {
@@ -211,7 +213,11 @@ function SavingsPageContent() {
   const progress = summary.goal > 0 ? Math.round((summary.paid / summary.goal) * 100) : 0;
 
   return (
-    <div className="min-h-dvh bg-[radial-gradient(circle_at_top,color-mix(in_oklab,var(--primary)_20%,transparent)_0%,color-mix(in_oklab,var(--muted)_88%,transparent)_42%,var(--background)_78%)] text-foreground">
+    <PullToRefresh
+      onRefresh={refreshRows}
+      refreshing={loading}
+      className="min-h-dvh bg-[radial-gradient(circle_at_top,color-mix(in_oklab,var(--primary)_20%,transparent)_0%,color-mix(in_oklab,var(--muted)_88%,transparent)_42%,var(--background)_78%)] text-foreground"
+    >
       <div className="page-shell app-container space-y-4">
         <PageHeader
           title="Tích góp"
@@ -281,7 +287,7 @@ function SavingsPageContent() {
           {loading ? <Loading /> : <SavingsBoard />}
         </TabletSplitLayout>
       </div>
-    </div>
+    </PullToRefresh>
   );
 }
 

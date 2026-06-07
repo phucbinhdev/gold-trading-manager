@@ -11,7 +11,9 @@ import {
   useReducer,
   useRef,
 } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase/client";
+import { queryKeys } from "@/lib/query-keys";
 
 export type SavingsRow = {
   id: string;
@@ -54,6 +56,7 @@ type SavingsAction =
   | { type: "set_error"; error: string | null };
 
 type SavingsActions = {
+  refreshRows: () => Promise<void>;
   addRow: (input: SavingsRowInput) => Promise<void>;
   toggleCell: (row: SavingsRow, cellNumber: number) => Promise<void>;
   toggleClosed: (row: SavingsRow) => Promise<void>;
@@ -215,31 +218,47 @@ function getNextRowState(
 export function SavingsProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(savingsReducer, initialState);
   const lockedRowIdsRef = useRef(new Set<string>());
+  const queryClient = useQueryClient();
 
-  const fetchRows = useCallback(async (showLoading = true) => {
-    if (showLoading) {
-      dispatch({ type: "load_start" });
-    }
-
+  const rowsQuery = useQuery({
+    queryKey: queryKeys.savings.rows(),
+    queryFn: async () => {
     const { data, error } = await supabase
       .from("savings")
       .select("*")
       .order("created_at", { ascending: true });
 
-    if (error) {
-      dispatch({ type: "load_error", error: error.message });
+      if (error) throw error;
+      return normalizeRows(data || []);
+    },
+  });
+
+  const fetchRows = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.savings.rows() });
+  }, [queryClient]);
+
+  useEffect(() => {
+    if (rowsQuery.isLoading) {
+      dispatch({ type: "load_start" });
       return;
     }
 
-    dispatch({ type: "load_success", rows: normalizeRows(data || []) });
-  }, []);
+    if (rowsQuery.error) {
+      dispatch({ type: "load_error", error: rowsQuery.error.message });
+      return;
+    }
 
-  useEffect(() => {
-    fetchRows();
-  }, [fetchRows]);
+    if (rowsQuery.data) {
+      dispatch({ type: "load_success", rows: rowsQuery.data });
+    }
+  }, [rowsQuery.data, rowsQuery.error, rowsQuery.isLoading]);
 
   const actions = useMemo<SavingsActions>(
     () => ({
+      async refreshRows() {
+        await fetchRows();
+      },
+
       async addRow(input) {
         dispatch({ type: "saving_start" });
 
@@ -260,7 +279,7 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
         if (error) {
           dispatch({ type: "set_error", error: error.message });
         } else {
-          await fetchRows(false);
+          await fetchRows();
         }
 
         dispatch({ type: "saving_end" });
@@ -304,7 +323,9 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           dispatch({ type: "set_error", error: error.message });
-          await fetchRows(false);
+          await fetchRows();
+        } else {
+          void fetchRows();
         }
 
         lockedRowIdsRef.current.delete(row.id);
@@ -347,7 +368,9 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           dispatch({ type: "set_error", error: error.message });
-          await fetchRows(false);
+          await fetchRows();
+        } else {
+          void fetchRows();
         }
 
         lockedRowIdsRef.current.delete(row.id);
@@ -385,7 +408,9 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           dispatch({ type: "set_error", error: error.message });
-          await fetchRows(false);
+          await fetchRows();
+        } else {
+          void fetchRows();
         }
 
         lockedRowIdsRef.current.delete(row.id);
@@ -403,6 +428,7 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
           dispatch({ type: "set_error", error: error.message });
         } else {
           dispatch({ type: "remove_row", rowId });
+          void fetchRows();
         }
 
         lockedRowIdsRef.current.delete(rowId);
