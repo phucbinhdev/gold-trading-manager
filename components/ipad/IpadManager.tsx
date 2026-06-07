@@ -142,6 +142,26 @@ const monthLabel = (monthKey: string) => {
   return `Tháng ${Number(month)}/${year}`;
 };
 
+const timestamp = (value: string | null) => {
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const compareIpadTransactions = (
+  left: IpadTransaction,
+  right: IpadTransaction,
+) => {
+  const purchaseDateDiff =
+    timestamp(right.purchase_date) - timestamp(left.purchase_date);
+  if (purchaseDateDiff !== 0) return purchaseDateDiff;
+
+  const createdAtDiff = timestamp(right.created_at) - timestamp(left.created_at);
+  if (createdAtDiff !== 0) return createdAtDiff;
+
+  return left.id.localeCompare(right.id);
+};
+
 function moneyInput(onChange: (value?: number) => void) {
   return {
     customInput: Input,
@@ -205,10 +225,11 @@ export function IpadManager() {
         .from("ipad_transactions")
         .select("*")
         .order("purchase_date", { ascending: false })
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true });
 
       if (error) throw error;
-      setTransactions(data || []);
+      setTransactions([...(data || [])].sort(compareIpadTransactions));
     } catch (error) {
       console.error(error);
       toast.error("Không thể tải danh sách iPad");
@@ -254,9 +275,9 @@ export function IpadManager() {
 
   const monthlyTransactions = useMemo(
     () =>
-      transactions.filter(
-        (item) => monthKeyFromDate(item.purchase_date) === selectedMonth,
-      ),
+      transactions
+        .filter((item) => monthKeyFromDate(item.purchase_date) === selectedMonth)
+        .sort(compareIpadTransactions),
     [selectedMonth, transactions],
   );
 
