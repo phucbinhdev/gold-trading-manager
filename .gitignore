@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Native iOS local configuration and build output
+/ios/GoldManager/Config/Local.xcconfig
+/ios/GoldManager/DerivedData/
