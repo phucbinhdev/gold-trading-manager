@@ -99,4 +99,13 @@ struct SavingsRow: Codable, Identifiable, Hashable, Sendable {
         }
         return cells
     }
+
+    mutating func applyCompletedCells(_ completed: Set<Int>) {
+        let fixedTotalCells = totalCells
+        monthCells = Dictionary(uniqueKeysWithValues: completed.map { (String($0), true) })
+        closedCount = completed.count
+        periodsLeft = max(0, fixedTotalCells - completed.count)
+        remainingAmount = Double(periodsLeft) * periodAmount
+        closed = fixedTotalCells > 0 && completed.count >= fixedTotalCells
+    }
 }

@@ -54,7 +54,11 @@ struct BudgetView: View {
                         .frame(minHeight: 170)
                     } else {
                         ForEach(store.entries) { entry in
-                            BudgetEntryRow(entry: entry, errorMessage: $errorMessage)
+                            BudgetEntryRow(
+                                entry: entry,
+                                errorMessage: $errorMessage,
+                                onEdit: { sheet = .editEntry(entry) }
+                            )
                         }
                     }
                 }
@@ -100,6 +104,8 @@ struct BudgetView: View {
             switch sheet {
             case .addEntry:
                 AddBudgetEntryView()
+            case .editEntry(let entry):
+                EditBudgetEntryView(entry: entry)
             case .addSource:
                 AddBudgetSourceView()
             case .editIncome:
@@ -221,11 +227,20 @@ struct BudgetView: View {
     }
 }
 
-private enum BudgetSheet: String, Identifiable {
+private enum BudgetSheet: Identifiable {
     case addEntry
+    case editEntry(BudgetEntry)
     case addSource
     case editIncome
-    var id: String { rawValue }
+
+    var id: String {
+        switch self {
+        case .addEntry: "add-entry"
+        case .editEntry(let entry): "edit-entry-\(entry.id)"
+        case .addSource: "add-source"
+        case .editIncome: "edit-income"
+        }
+    }
 }
 
 private struct BudgetEntryRow: View {
@@ -233,71 +248,281 @@ private struct BudgetEntryRow: View {
     @Environment(BudgetStore.self) private var store
     let entry: BudgetEntry
     @Binding var errorMessage: String?
+    let onEdit: () -> Void
+    @State private var isExpanded = false
+
+    private var isPending: Bool {
+        store.pendingEntryIds.contains(entry.id)
+    }
+
+    private var hasExpandableNote: Bool {
+        guard let note = entry.note else { return false }
+        return note.count > 100 || note.filter(\.isNewline).count >= 2
+    }
 
     var body: some View {
-        HStack(spacing: 13) {
-            Button {
-                Task {
-                    do {
-                        try await store.togglePaid(entry, configuration: appStore.configuration)
-                    } catch {
-                        errorMessage = error.localizedDescription
-                    }
-                }
-            } label: {
-                Image(systemName: entry.isPaid ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundStyle(entry.isPaid ? .green : .secondary)
-            }
-            .buttonStyle(.plain)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(entry.name)
-                    .font(.subheadline.bold())
-                    .strikethrough(!entry.isSelected && !entry.isPaid)
-                if let note = entry.note, !note.isEmpty {
-                    Text(note)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-            }
-            Spacer()
-            Text("\(entry.recordType == .income ? "+" : "-")\(entry.amount.vnd)")
-                .font(.subheadline.bold())
-                .foregroundStyle(entry.recordType == .income ? .green : .red)
+        VStack(alignment: .leading, spacing: 8) {
+            header
+            noteSection
         }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            guard !entry.isPaid else { return }
-            Task {
-                do {
-                    try await store.toggleSelected(entry, configuration: appStore.configuration)
-                } catch {
-                    errorMessage = error.localizedDescription
-                }
-            }
-        }
-        .padding(15)
+        .padding(16)
         .background(
             entry.isPaid
                 ? Color.green.opacity(0.08)
                 : entry.isSelected ? AppTheme.cardBackground : Color.secondary.opacity(0.07),
-            in: RoundedRectangle(cornerRadius: 18)
+            in: RoundedRectangle(cornerRadius: 16)
         )
-        .opacity(entry.isSelected || entry.isPaid ? 1 : 0.58)
-        .contextMenu {
-            Button(role: .destructive) {
-                Task {
-                    do {
-                        try await store.delete(entry, configuration: appStore.configuration)
-                    } catch {
-                        errorMessage = error.localizedDescription
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(cardBorder, lineWidth: 1)
+        }
+        .shadow(
+            color: entry.isSelected && !entry.isPaid ? .black.opacity(0.08) : .clear,
+            radius: 10,
+            y: 4
+        )
+        .scaleEffect(entry.isSelected || entry.isPaid ? 1 : 0.96)
+        .opacity(entry.isPaid ? 0.82 : entry.isSelected ? 1 : 0.6)
+        .contentShape(RoundedRectangle(cornerRadius: 16))
+        .onTapGesture {
+            guard !entry.isPaid, !isPending else { return }
+            toggleSelected()
+        }
+        .animation(.snappy, value: entry.isSelected)
+        .animation(.snappy, value: entry.isPaid)
+    }
+
+    private var header: some View {
+        HStack(spacing: 10) {
+            paidButton
+            titleBlock
+            Spacer(minLength: 4)
+            paidBadge
+            editButton
+            deleteButton
+        }
+    }
+
+    private var paidButton: some View {
+        Button {
+            togglePaid()
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(entry.isPaid ? Color.green : checkboxBackground)
+                    .frame(width: 26, height: 26)
+
+                Circle()
+                    .stroke(checkboxBorder, lineWidth: 2)
+                    .frame(width: 26, height: 26)
+
+                if isPending {
+                    ProgressView()
+                        .controlSize(.mini)
+                } else if entry.isPaid {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .black))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(width: 44, height: 44)
+        }
+        .buttonStyle(.plain)
+        .disabled(isPending)
+        .accessibilityLabel(entry.isPaid ? "Bỏ đánh dấu hoàn thành" : "Đánh dấu hoàn thành")
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(entry.name)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(entry.isSelected || entry.isPaid ? .primary : .secondary)
+                .strikethrough(!entry.isSelected && !entry.isPaid)
+
+            Text("\(entry.recordType == .income ? "+" : "-")\(entry.amount.vnd)")
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundStyle(entry.recordType == .income ? .green : .red)
+        }
+    }
+
+    @ViewBuilder
+    private var paidBadge: some View {
+        if entry.isPaid {
+            Text(entry.recordType == .income ? "ĐÃ THU" : "ĐÃ CHI")
+                .font(.system(size: 10, weight: .black))
+                .foregroundStyle(.green)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(Color.green.opacity(0.14), in: RoundedRectangle(cornerRadius: 6))
+        }
+    }
+
+    private var editButton: some View {
+        Button(action: onEdit) {
+            Image(systemName: "pencil")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.secondary.opacity(0.7))
+                .frame(width: 44, height: 44)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Sửa khoản thu chi")
+    }
+
+    @ViewBuilder
+    private var deleteButton: some View {
+        if !entry.isPaid {
+            Button {
+                deleteEntry()
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.red.opacity(0.7))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Xóa khoản thu chi")
+        }
+    }
+
+    @ViewBuilder
+    private var noteSection: some View {
+        if let note = entry.note, !note.isEmpty {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(note)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(isExpanded ? nil : 2)
+
+                if hasExpandableNote {
+                    Button {
+                        withAnimation(.snappy) {
+                            isExpanded.toggle()
+                        }
+                    } label: {
+                        Label(
+                            isExpanded ? "Thu gọn" : "Xem thêm",
+                            systemImage: isExpanded ? "chevron.up" : "chevron.down"
+                        )
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.indigo)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.leading, 54)
+            .padding(.trailing, 8)
+        }
+    }
+
+    private var checkboxBackground: Color {
+        entry.isSelected ? Color.indigo.opacity(0.18) : .clear
+    }
+
+    private var checkboxBorder: Color {
+        if entry.isPaid { return .green }
+        return entry.isSelected ? .indigo : Color.secondary.opacity(0.35)
+    }
+
+    private var cardBorder: Color {
+        if entry.isPaid { return Color.green.opacity(0.3) }
+        return entry.isSelected ? Color.indigo.opacity(0.45) : .clear
+    }
+
+    private func toggleSelected() {
+        Task {
+            do {
+                try await store.toggleSelected(entry, configuration: appStore.configuration)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func togglePaid() {
+        Task {
+            do {
+                try await store.togglePaid(entry, configuration: appStore.configuration)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func deleteEntry() {
+        Task {
+            do {
+                try await store.delete(entry, configuration: appStore.configuration)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+private struct EditBudgetEntryView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(PortfolioStore.self) private var appStore
+    @Environment(BudgetStore.self) private var store
+
+    let entry: BudgetEntry
+    @State private var type: BudgetRecordType
+    @State private var name: String
+    @State private var amount: Double
+    @State private var note: String
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    init(entry: BudgetEntry) {
+        self.entry = entry
+        _type = State(initialValue: entry.recordType)
+        _name = State(initialValue: entry.name)
+        _amount = State(initialValue: entry.amount)
+        _note = State(initialValue: entry.note ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 18) {
+                    AppFormHeader(title: "Sửa khoản", subtitle: "Cập nhật thông tin khoản thu hoặc chi.")
+                    budgetEntryFields(type: $type, name: $name, amount: $amount, note: $note)
+                    if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
+                    AppFormSubmitButton(
+                        title: "Lưu thay đổi",
+                        systemImage: "checkmark",
+                        isEnabled: !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && amount > 0,
+                        isLoading: isSaving,
+                        tint: .indigo
+                    ) {
+                        Task { await save() }
                     }
                 }
-            } label: {
-                Label("Xóa", systemImage: "trash")
+                .padding(20)
             }
+            .background(Color(uiColor: .systemGroupedBackground))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Hủy") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func save() async {
+        isSaving = true
+        do {
+            try await store.updateEntry(
+                entry,
+                type: type,
+                name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                amount: amount,
+                note: note,
+                configuration: appStore.configuration
+            )
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+            isSaving = false
         }
     }
 }
@@ -315,30 +540,27 @@ private struct AddBudgetEntryView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Picker("Loại", selection: $type) {
-                    ForEach(BudgetRecordType.allCases) { type in
-                        Text(type.title).tag(type)
+            ScrollView {
+                VStack(spacing: 18) {
+                    AppFormHeader(title: "Thêm khoản", subtitle: "Tạo khoản thu hoặc chi cho nguồn tiền hiện tại.")
+                    budgetEntryFields(type: $type, name: $name, amount: $amount, note: $note)
+                    if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
+                    AppFormSubmitButton(
+                        title: "Thêm khoản",
+                        systemImage: "plus",
+                        isEnabled: !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && amount > 0,
+                        isLoading: isSaving,
+                        tint: .indigo
+                    ) {
+                        Task { await save() }
                     }
                 }
-                .pickerStyle(.segmented)
-                TextField("Tên khoản thu chi", text: $name)
-                TextField("Số tiền", value: $amount, format: .number)
-                    .keyboardType(.numberPad)
-                TextField("Ghi chú", text: $note, axis: .vertical)
-                if let errorMessage {
-                    Text(errorMessage).foregroundStyle(.red)
-                }
+                .padding(20)
             }
-            .navigationTitle("Thêm khoản")
-            .navigationBarTitleDisplayMode(.inline)
+            .background(Color(uiColor: .systemGroupedBackground))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Hủy") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Lưu") { Task { await save() } }
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || amount <= 0 || isSaving)
                 }
             }
         }
@@ -371,33 +593,47 @@ private struct AddBudgetSourceView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                TextField("Tên nguồn tiền", text: $name)
-                if let errorMessage {
-                    Text(errorMessage).foregroundStyle(.red)
+            ScrollView {
+                VStack(spacing: 18) {
+                    AppFormHeader(title: "Nguồn tiền mới", subtitle: "Tạo một ví riêng để quản lý thu chi theo tháng.")
+                    AppFormCard {
+                        AppFormRow(title: "Tên nguồn", systemImage: "wallet.bifold.fill", tint: .indigo) {
+                            TextField("Ví dụ: Lương", text: $name)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+                    if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
+                    AppFormSubmitButton(
+                        title: "Thêm nguồn",
+                        systemImage: "plus",
+                        isEnabled: !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                        isLoading: false,
+                        tint: .indigo
+                    ) {
+                        addSource()
+                    }
                 }
+                .padding(20)
             }
-            .navigationTitle("Nguồn tiền mới")
+            .background(Color(uiColor: .systemGroupedBackground))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Hủy") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Thêm") {
-                        Task {
-                            do {
-                                try await store.addSource(
-                                    name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                                    configuration: appStore.configuration
-                                )
-                                dismiss()
-                            } catch {
-                                errorMessage = error.localizedDescription
-                            }
-                        }
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+            }
+        }
+    }
+
+    private func addSource() {
+        Task {
+            do {
+                try await store.addSource(
+                    name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                    configuration: appStore.configuration
+                )
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
             }
         }
     }
@@ -416,34 +652,83 @@ private struct EditBudgetIncomeView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                TextField("Tiền gốc hiện có", value: $amount, format: .number)
-                    .keyboardType(.numberPad)
-                if let errorMessage {
-                    Text(errorMessage).foregroundStyle(.red)
+            ScrollView {
+                VStack(spacing: 18) {
+                    AppFormHeader(title: "Tiền hiện có", subtitle: "Cập nhật số dư gốc của nguồn tiền này.")
+                    AppFormCard {
+                        AppFormRow(title: "Số tiền", systemImage: "banknote.fill", tint: .indigo) {
+                            TextField("0", value: $amount, format: .vndInput)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                            Text("đ").foregroundStyle(.secondary)
+                        }
+                    }
+                    if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
+                    AppFormSubmitButton(
+                        title: "Cập nhật số dư",
+                        systemImage: "checkmark",
+                        isEnabled: amount >= 0,
+                        isLoading: false,
+                        tint: .indigo
+                    ) {
+                        saveIncome()
+                    }
                 }
+                .padding(20)
             }
-            .navigationTitle("Tiền hiện có")
+            .background(Color(uiColor: .systemGroupedBackground))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Hủy") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Lưu") {
-                        Task {
-                            do {
-                                try await store.setBaseIncome(
-                                    amount,
-                                    configuration: appStore.configuration
-                                )
-                                dismiss()
-                            } catch {
-                                errorMessage = error.localizedDescription
-                            }
-                        }
-                    }
+            }
+        }
+    }
+
+    private func saveIncome() {
+        Task {
+            do {
+                try await store.setBaseIncome(amount, configuration: appStore.configuration)
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+@MainActor
+private func budgetEntryFields(
+    type: Binding<BudgetRecordType>,
+    name: Binding<String>,
+    amount: Binding<Double>,
+    note: Binding<String>
+) -> some View {
+    AppFormCard {
+        AppFormRow(title: "Loại khoản", systemImage: "arrow.left.arrow.right", tint: .indigo) {
+            Picker("", selection: type) {
+                ForEach(BudgetRecordType.allCases) { item in
+                    Text(item.title).tag(item)
                 }
             }
+            .labelsHidden()
+        }
+        AppFormDivider()
+        AppFormRow(title: "Tên khoản", systemImage: "tag.fill", tint: .indigo) {
+            TextField("Nhập tên", text: name)
+                .multilineTextAlignment(.trailing)
+        }
+        AppFormDivider()
+        AppFormRow(title: "Số tiền", systemImage: "banknote.fill", tint: .indigo) {
+            TextField("0", value: amount, format: .vndInput)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+            Text("đ").foregroundStyle(.secondary)
+        }
+        AppFormDivider()
+        AppFormRow(title: "Ghi chú", systemImage: "note.text", tint: .indigo) {
+            TextField("Không bắt buộc", text: note)
+                .multilineTextAlignment(.trailing)
         }
     }
 }

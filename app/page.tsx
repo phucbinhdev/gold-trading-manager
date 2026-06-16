@@ -8,6 +8,7 @@ import { Overview } from "@/components/gold/Overview";
 import { TransactionForm } from "@/components/gold/TransactionForm";
 import { TransactionList } from "@/components/gold/TransactionList";
 import { Plus, Wallet } from "lucide-react";
+import { HomeMenuWidgets } from "@/components/navigation/HomeMenuWidgets";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Loading, TabletSplitLayout } from "@/components/ui/PageLayout";
@@ -92,6 +93,8 @@ export default function Home() {
         iconColor="bg-gradient-to-br from-yellow-400 to-amber-600"
         showSettings
       />
+
+      <HomeMenuWidgets />
 
       {loading && transactions.length === 0 ? (
         <Loading />

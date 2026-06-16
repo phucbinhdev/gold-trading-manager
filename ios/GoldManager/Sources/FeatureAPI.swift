@@ -201,6 +201,37 @@ extension SupabaseClient {
         return entry
     }
 
+    func updateBudgetEntry(
+        id: UUID,
+        type: BudgetRecordType,
+        name: String,
+        amount: Double,
+        note: String?,
+        configuration: SupabaseConfiguration
+    ) async throws -> BudgetEntry {
+        struct Payload: Encodable, Sendable {
+            let recordType: BudgetRecordType
+            let name: String
+            let amount: Double
+            let note: String?
+
+            enum CodingKeys: String, CodingKey {
+                case name, amount, note
+                case recordType = "record_type"
+            }
+        }
+
+        let rows: [BudgetEntry] = try await restPatch(
+            Payload(recordType: type, name: name, amount: amount, note: note),
+            response: [BudgetEntry].self,
+            configuration: configuration,
+            path: "budget_expenses",
+            query: [URLQueryItem(name: "id", value: "eq.\(id.uuidString.lowercased())")]
+        )
+        guard let entry = rows.first else { throw APIError.invalidResponse }
+        return entry
+    }
+
     func deleteBudgetEntry(id: UUID, configuration: SupabaseConfiguration) async throws {
         try await restDelete(
             configuration: configuration,
@@ -326,6 +357,8 @@ extension SupabaseClient {
         purchasePrice: Double,
         extraCost: Double,
         loanAmount: Double,
+        sellingPrice: Double?,
+        saleDate: Date?,
         note: String?,
         configuration: SupabaseConfiguration
     ) async throws {
@@ -339,6 +372,8 @@ extension SupabaseClient {
             let purchasePrice: Double
             let extraCost: Double
             let loanAmount: Double
+            let sellingPrice: Double?
+            let saleDate: String?
             let note: String?
             enum CodingKeys: String, CodingKey {
                 case status, storage, color, note
@@ -348,6 +383,8 @@ extension SupabaseClient {
                 case purchasePrice = "purchase_price"
                 case extraCost = "extra_cost"
                 case loanAmount = "loan_amount"
+                case sellingPrice = "selling_price"
+                case saleDate = "sale_date"
             }
         }
         let _: [IpadTransaction] = try await restPost(
@@ -357,6 +394,8 @@ extension SupabaseClient {
                 purchasePrice: purchasePrice,
                 extraCost: extraCost,
                 loanAmount: loanAmount,
+                sellingPrice: status == .sold ? sellingPrice : nil,
+                saleDate: status == .sold ? saleDate.map(DateFormatters.formatDatabaseDay) : nil,
                 note: note
             ),
             response: [IpadTransaction].self,
@@ -387,6 +426,57 @@ extension SupabaseClient {
                 status: status,
                 sellingPrice: sellingPrice,
                 saleDate: saleDate.map(DateFormatters.formatDatabaseDay)
+            ),
+            response: [IpadTransaction].self,
+            configuration: configuration,
+            path: "ipad_transactions",
+            query: [URLQueryItem(name: "id", value: "eq.\(id.uuidString.lowercased())")]
+        )
+    }
+
+    func updateIpadTransaction(
+        id: UUID,
+        purchaseDate: Date,
+        status: IpadStatus,
+        purchasePrice: Double,
+        extraCost: Double,
+        loanAmount: Double,
+        sellingPrice: Double?,
+        saleDate: Date?,
+        note: String?,
+        configuration: SupabaseConfiguration
+    ) async throws {
+        struct Payload: Encodable, Sendable {
+            let purchaseDate: String
+            let status: IpadStatus
+            let purchasePrice: Double
+            let extraCost: Double
+            let loanAmount: Double
+            let sellingPrice: Double?
+            let saleDate: String?
+            let note: String?
+
+            enum CodingKeys: String, CodingKey {
+                case status, note
+                case purchaseDate = "purchase_date"
+                case purchasePrice = "purchase_price"
+                case extraCost = "extra_cost"
+                case loanAmount = "loan_amount"
+                case sellingPrice = "selling_price"
+                case saleDate = "sale_date"
+            }
+        }
+
+        let _: [IpadTransaction] = try await restPatch(
+            Payload(
+                purchaseDate: DateFormatters.formatDatabaseDay(purchaseDate),
+                status: status,
+                purchasePrice: purchasePrice,
+                extraCost: extraCost,
+                loanAmount: loanAmount,
+                sellingPrice: status == .sold ? sellingPrice : nil,
+                saleDate: status == .sold ? saleDate.map(DateFormatters.formatDatabaseDay) : nil,
+                note: note
             ),
             response: [IpadTransaction].self,
             configuration: configuration,

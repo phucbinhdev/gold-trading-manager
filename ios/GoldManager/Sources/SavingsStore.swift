@@ -19,6 +19,25 @@ final class SavingsStore {
         rows.reduce(0) { $0 + Double($1.completedCells.count) * $1.periodAmount }
     }
 
+    var sortedRows: [SavingsRow] {
+        rows.sorted { left, right in
+            let leftCompleted = isCompleted(left)
+            let rightCompleted = isCompleted(right)
+
+            if leftCompleted != rightCompleted {
+                return leftCompleted
+            }
+
+            let leftTotal = Double(left.totalCells) * left.periodAmount
+            let rightTotal = Double(right.totalCells) * right.periodAmount
+            if leftTotal != rightTotal {
+                return leftTotal < rightTotal
+            }
+
+            return left.createdAt < right.createdAt
+        }
+    }
+
     func load(configuration: SupabaseConfiguration) async {
         guard configuration.isValid else {
             state = .failed(APIError.notConfigured.localizedDescription)
@@ -71,7 +90,7 @@ final class SavingsStore {
             completed.insert(number)
             updated.cellPaidAt[key] = DateFormatters.formatISO8601(Date())
         }
-        apply(completed: completed, to: &updated)
+        updated.applyCompletedCells(completed)
         replace(updated)
 
         do {
@@ -88,12 +107,8 @@ final class SavingsStore {
         rows.removeAll { $0.id == row.id }
     }
 
-    private func apply(completed: Set<Int>, to row: inout SavingsRow) {
-        row.monthCells = Dictionary(uniqueKeysWithValues: completed.map { (String($0), true) })
-        row.closedCount = completed.count
-        row.periodsLeft = max(0, row.totalCells - completed.count)
-        row.remainingAmount = Double(row.periodsLeft) * row.periodAmount
-        row.closed = row.totalCells > 0 && completed.count >= row.totalCells
+    private func isCompleted(_ row: SavingsRow) -> Bool {
+        row.totalCells > 0 && row.completedCells.count >= row.totalCells
     }
 
     private func replace(_ row: SavingsRow) {

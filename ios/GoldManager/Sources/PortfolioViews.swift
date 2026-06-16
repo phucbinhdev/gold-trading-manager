@@ -4,6 +4,13 @@ struct PortfolioView: View {
     @Environment(PortfolioStore.self) private var store
     @State private var presentedSheet: PortfolioSheet?
 
+    init() {
+        let requestedSheet = ProcessInfo.processInfo.environment["GOLD_MANAGER_START_SHEET"]
+        _presentedSheet = State(
+            initialValue: requestedSheet == "add-gold" ? .addTransaction : nil
+        )
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 20) {
@@ -31,7 +38,7 @@ struct PortfolioView: View {
                         action: { Task { await store.load() } }
                     )
                 default:
-                    RecentTransactionsView(transactions: Array(store.transactions.prefix(5)))
+                    RecentTransactionsView(transactions: store.transactions)
                 }
             }
             .padding()
@@ -41,14 +48,6 @@ struct PortfolioView: View {
         .navigationTitle("Quản Lý Vàng")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                NavigationLink {
-                    HistoryView()
-                } label: {
-                    Image(systemName: "clock")
-                }
-                .accessibilityLabel("Lịch sử giao dịch")
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 HStack {
                     NavigationLink {
@@ -214,25 +213,137 @@ struct PortfolioCard: View {
 }
 
 struct RecentTransactionsView: View {
+    @Environment(PortfolioStore.self) private var store
     let transactions: [GoldTransaction]
+    @State private var selectedYear: Int?
+    @State private var pendingDeletion: GoldTransaction?
+    @State private var errorMessage: String?
+
+    private var years: [Int] {
+        Array(
+            Set(
+                transactions.map {
+                    Calendar.current.component(.year, from: $0.transactionDate)
+                }
+            )
+        )
+        .sorted(by: >)
+    }
+
+    private var filteredTransactions: [GoldTransaction] {
+        let filtered: [GoldTransaction]
+        if let selectedYear {
+            filtered = transactions.filter {
+                Calendar.current.component(.year, from: $0.transactionDate) == selectedYear
+            }
+        } else {
+            filtered = transactions
+        }
+
+        return filtered.sorted {
+            if $0.transactionDate != $1.transactionDate {
+                return $0.transactionDate > $1.transactionDate
+            }
+            return $0.createdAt > $1.createdAt
+        }
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Giao dịch gần đây")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Giao dịch gần đây")
+                        .font(.headline)
 
-            if transactions.isEmpty {
+                    Text("\(filteredTransactions.count) giao dịch")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+
+            if !years.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        yearButton(title: "Tất cả", year: nil)
+
+                        ForEach(years.prefix(5), id: \.self) { year in
+                            yearButton(title: String(year), year: year)
+                        }
+                    }
+                }
+            }
+
+            if filteredTransactions.isEmpty {
                 StatusMessageView(
                     symbol: "tray",
                     title: "Chưa có giao dịch",
-                    message: "Nhấn dấu cộng để thêm lần mua vàng đầu tiên."
+                    message: selectedYear == nil
+                        ? "Nhấn dấu cộng để thêm lần mua vàng đầu tiên."
+                        : "Không có giao dịch trong năm đã chọn."
                 )
                 .frame(minHeight: 170)
             } else {
-                ForEach(transactions) { transaction in
-                    TransactionRow(transaction: transaction)
+                ForEach(filteredTransactions) { transaction in
+                    TransactionRow(
+                        transaction: transaction,
+                        deleteAction: { pendingDeletion = transaction }
+                    )
                 }
             }
+        }
+        .confirmationDialog(
+            "Xóa giao dịch này?",
+            isPresented: Binding(
+                get: { pendingDeletion != nil },
+                set: { if !$0 { pendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Xóa", role: .destructive) {
+                deletePendingTransaction()
+            }
+            Button("Hủy", role: .cancel) {}
+        } message: {
+            Text("Hành động này không thể hoàn tác.")
+        }
+        .alert("Không thể xóa giao dịch", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("Đóng", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    private func yearButton(title: String, year: Int?) -> some View {
+        Button {
+            selectedYear = year
+        } label: {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .padding(.horizontal, 15)
+                .frame(height: 38)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(selectedYear == year ? .black : .primary)
+        .background(
+            selectedYear == year ? AppTheme.gold : Color(uiColor: .secondarySystemGroupedBackground),
+            in: Capsule()
+        )
+    }
+
+    private func deletePendingTransaction() {
+        guard let transaction = pendingDeletion else { return }
+        Task {
+            do {
+                try await store.delete(transaction)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            pendingDeletion = nil
         }
     }
 }
@@ -240,6 +351,7 @@ struct RecentTransactionsView: View {
 struct TransactionRow: View {
     @Environment(PortfolioStore.self) private var store
     let transaction: GoldTransaction
+    var deleteAction: (() -> Void)?
 
     private var profit: Double {
         transaction.amountChi * store.marketPrice - transaction.cost
@@ -276,6 +388,17 @@ struct TransactionRow: View {
                 Text("\(profit >= 0 ? "+" : "")\(profit.vnd)")
                     .font(.caption.bold())
                     .foregroundStyle(profit >= 0 ? .green : .red)
+            }
+
+            if let deleteAction {
+                Button(role: .destructive, action: deleteAction) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.red.opacity(0.72))
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Xóa giao dịch")
             }
         }
         .padding(14)

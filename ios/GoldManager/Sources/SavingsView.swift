@@ -38,7 +38,7 @@ struct SavingsView: View {
                             isAdding = true
                         }
                     } else {
-                        ForEach(store.rows) { row in
+                        ForEach(store.sortedRows) { row in
                             SavingsCard(
                                 row: row,
                                 isUpdating: store.pendingIds.contains(row.id),
@@ -550,25 +550,27 @@ private struct AddSavingsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                     VStack(spacing: 0) {
-                        SavingsFormField(
+                        AppFormRow(
                             title: "Tên dây",
-                            systemImage: "tag.fill"
+                            systemImage: "tag.fill",
+                            tint: savingsAccent
                         ) {
                             TextField("Ví dụ: Dây tháng 6", text: $label)
                                 .textInputAutocapitalization(.sentences)
                                 .multilineTextAlignment(.trailing)
                         }
 
-                        Divider().padding(.leading, 52)
+                        AppFormDivider()
 
-                        SavingsFormField(
+                        AppFormRow(
                             title: "Tiền mỗi ô",
-                            systemImage: "banknote.fill"
+                            systemImage: "banknote.fill",
+                            tint: savingsAccent
                         ) {
                             TextField(
                                 "0",
                                 value: $amount,
-                                format: .number.grouping(.automatic)
+                                format: .vndInput
                             )
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
@@ -577,11 +579,12 @@ private struct AddSavingsView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        Divider().padding(.leading, 52)
+                        AppFormDivider()
 
-                        SavingsFormField(
+                        AppFormRow(
                             title: "Số ô",
-                            systemImage: "square.grid.2x2.fill"
+                            systemImage: "square.grid.2x2.fill",
+                            tint: savingsAccent
                         ) {
                             Stepper(value: $totalCells, in: 1...100) {
                                 Text("\(totalCells)")
@@ -613,30 +616,14 @@ private struct AddSavingsView: View {
                     .background(savingsAccent.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 22))
 
-                    Button {
-                        save()
-                    } label: {
-                        HStack(spacing: 10) {
-                            if isSaving {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Image(systemName: "checkmark")
-                            }
-
-                            Text(isSaving ? "Đang lưu..." : "Tạo dây tích góp")
-                        }
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(
-                            canSave ? savingsAccent : Color.secondary.opacity(0.35),
-                            in: RoundedRectangle(cornerRadius: 18)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!canSave)
+                    AppFormSubmitButton(
+                        title: "Tạo dây tích góp",
+                        systemImage: "checkmark",
+                        isEnabled: canSave,
+                        isLoading: isSaving,
+                        tint: savingsAccent,
+                        action: save
+                    )
                 }
                 .padding(20)
             }
@@ -680,33 +667,5 @@ private struct AddSavingsView: View {
                 errorMessage = error.localizedDescription
             }
         }
-    }
-}
-
-private struct SavingsFormField<Content: View>: View {
-    let title: String
-    let systemImage: String
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(savingsAccent)
-                .frame(width: 40, height: 40)
-                .background(savingsAccent.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
-
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-
-            Spacer()
-
-            HStack(spacing: 6) {
-                content
-            }
-            .font(.subheadline.weight(.semibold))
-        }
-        .frame(minHeight: 70)
-        .padding(.horizontal, 14)
     }
 }

@@ -1,22 +1,9 @@
 "use client";
 
-import {
-  Home,
-  FileText,
-  PiggyBank,
-  Tablet,
-} from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { navItems } from "@/components/navigation/nav-items";
 import { cn } from "@/lib/utils";
-
-const navItems = [
-  { href: "/", label: "Vàng", icon: Home },
-  { href: "/ipad", label: "iPad", icon: Tablet },
-  { href: "/budget", label: "Tính nợ", icon: FileText },
-  { href: "/savings", label: "Tích góp", icon: PiggyBank },
-  { href: "/room-rental", label: "Tiền Trọ", icon: Home },
-];
 
 export function BottomNav() {
   const pathname = usePathname();

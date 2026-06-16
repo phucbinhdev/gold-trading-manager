@@ -16,56 +16,62 @@ struct AddTransactionView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    DatePicker("Ngày giao dịch", selection: $date, displayedComponents: .date)
-                    LabeledContent("Số lượng (Chỉ)") {
-                        TextField("0", value: $amount, format: .number)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    LabeledContent("Giá mua (VNĐ/Chỉ)") {
-                        TextField("0", value: $price, format: .number)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                    }
-                } footer: {
-                    Text("Ví dụ: 1,5 chỉ tương đương 1 chỉ 5 phân.")
-                }
+            ScrollView {
+                VStack(spacing: 18) {
+                    AppFormHeader(
+                        title: "Thêm giao dịch",
+                        subtitle: "Nhập số lượng vàng, giá mua và ngày giao dịch."
+                    )
 
-                Section("Ghi chú") {
-                    TextField("Ví dụ: Mua tặng mẹ...", text: $note, axis: .vertical)
-                        .lineLimit(2...4)
-                }
+                    AppFormCard {
+                        AppFormRow(title: "Ngày giao dịch", systemImage: "calendar", tint: AppTheme.deepGold) {
+                            DatePicker("", selection: $date, displayedComponents: .date)
+                                .labelsHidden()
+                        }
+                        AppFormDivider()
+                        AppFormRow(title: "Số lượng", systemImage: "scalemass.fill", tint: AppTheme.deepGold) {
+                            TextField("0", value: $amount, format: .number)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                            Text("chỉ").foregroundStyle(.secondary)
+                        }
+                        AppFormDivider()
+                        AppFormRow(title: "Giá mỗi chỉ", systemImage: "banknote.fill", tint: AppTheme.deepGold) {
+                            TextField("0", value: $price, format: .vndInput)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                            Text("đ").foregroundStyle(.secondary)
+                        }
+                        AppFormDivider()
+                        AppFormRow(title: "Ghi chú", systemImage: "note.text", tint: AppTheme.deepGold) {
+                            TextField("Không bắt buộc", text: $note)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
 
-                if let errorMessage {
-                    Section {
+                    if let errorMessage {
                         Text(errorMessage)
                             .foregroundStyle(.red)
                     }
+
+                    AppFormSubmitButton(
+                        title: "Lưu giao dịch",
+                        systemImage: "checkmark",
+                        isEnabled: isValid,
+                        isLoading: isSaving,
+                        tint: AppTheme.deepGold
+                    ) {
+                        Task { await save() }
+                    }
                 }
+                .padding(20)
             }
-            .navigationTitle("Thêm giao dịch")
-            .navigationBarTitleDisplayMode(.inline)
+            .background(Color(uiColor: .systemGroupedBackground))
             .interactiveDismissDisabled(isSaving)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Hủy") { dismiss() }
                         .disabled(isSaving)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Lưu") {
-                        Task { await save() }
-                    }
-                    .fontWeight(.semibold)
-                    .disabled(!isValid || isSaving)
-                }
-            }
-            .overlay {
-                if isSaving {
-                    ProgressView()
-                        .padding(22)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                 }
             }
         }
@@ -98,31 +104,39 @@ struct MarketPriceView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    TextField("Giá vàng", value: $price, format: .number)
-                        .keyboardType(.numberPad)
-                        .font(.title2.bold())
-                } footer: {
-                    Text("Đơn vị VNĐ cho mỗi chỉ vàng.")
+            ScrollView {
+                VStack(spacing: 18) {
+                    AppFormHeader(
+                        title: "Giá thị trường",
+                        subtitle: "Cập nhật giá VNĐ hiện tại cho mỗi chỉ vàng."
+                    )
+                    AppFormCard {
+                        AppFormRow(title: "Giá mỗi chỉ", systemImage: "chart.line.uptrend.xyaxis", tint: AppTheme.deepGold) {
+                            TextField("0", value: $price, format: .vndInput)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                            Text("đ").foregroundStyle(.secondary)
+                        }
+                    }
+                    if let errorMessage {
+                        Text(errorMessage).foregroundStyle(.red)
+                    }
+                    AppFormSubmitButton(
+                        title: "Cập nhật giá",
+                        systemImage: "checkmark",
+                        isEnabled: price >= 1_000,
+                        isLoading: isSaving,
+                        tint: AppTheme.deepGold
+                    ) {
+                        Task { await save() }
+                    }
                 }
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                }
+                .padding(20)
             }
-            .navigationTitle("Giá thị trường")
-            .navigationBarTitleDisplayMode(.inline)
+            .background(Color(uiColor: .systemGroupedBackground))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Hủy") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Lưu") {
-                        Task { await save() }
-                    }
-                    .disabled(price < 1_000 || isSaving)
                 }
             }
             .onAppear { price = store.marketPrice }
@@ -155,36 +169,45 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
-            Section {
-                TextField("https://your-project.supabase.co", text: $projectURL)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
-                    .autocorrectionDisabled()
-                SecureField("Supabase anon key", text: $anonKey)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-            } header: {
-                Text("Kết nối Supabase")
-            } footer: {
-                Text("Thông tin này được lưu trong Keychain trên thiết bị.")
-            }
-
-            Section {
-                Button {
-                    save()
-                } label: {
-                    Label("Lưu và kiểm tra kết nối", systemImage: "checkmark.shield.fill")
+        ScrollView {
+            VStack(spacing: 18) {
+                AppFormHeader(
+                    title: "Cài đặt",
+                    subtitle: "Cấu hình kết nối dữ liệu Supabase cho ứng dụng."
+                )
+                AppFormCard {
+                    AppFormRow(title: "Project URL", systemImage: "link", tint: AppTheme.deepGold) {
+                        TextField("https://...", text: $projectURL)
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.URL)
+                            .autocorrectionDisabled()
+                            .multilineTextAlignment(.trailing)
+                    }
+                    AppFormDivider()
+                    AppFormRow(title: "Anon key", systemImage: "key.fill", tint: AppTheme.deepGold) {
+                        SecureField("Nhập khóa", text: $anonKey)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
-                .disabled(!draft.isValid)
+                Text("Thông tin kết nối được lưu trong Keychain trên thiết bị.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                AppFormSubmitButton(
+                    title: "Lưu và kiểm tra",
+                    systemImage: "checkmark.shield.fill",
+                    isEnabled: draft.isValid,
+                    isLoading: false,
+                    tint: AppTheme.deepGold,
+                    action: save
+                )
             }
-
-            Section("Ứng dụng") {
-                LabeledContent("Phiên bản", value: "1.0.0")
-                LabeledContent("Nền tảng", value: "Native SwiftUI")
-            }
+            .padding(20)
         }
-        .navigationTitle("Cài đặt")
+        .background(Color(uiColor: .systemGroupedBackground))
+        .navigationTitle("")
         .onAppear {
             projectURL = store.configuration.projectURL
             anonKey = store.configuration.anonKey

@@ -11,6 +11,7 @@ final class BudgetStore {
     var budget: BudgetMonth?
     var entries: [BudgetEntry] = []
     var state: LoadState = .idle
+    var pendingEntryIds = Set<UUID>()
 
     private let client = SupabaseClient()
 
@@ -151,20 +152,71 @@ final class BudgetStore {
     }
 
     func toggleSelected(_ entry: BudgetEntry, configuration: SupabaseConfiguration) async throws {
-        let updated = try await client.updateBudgetEntryFlags(
-            id: entry.id,
-            isPaid: entry.isPaid,
-            isSelected: !entry.isSelected,
-            configuration: configuration
-        )
-        replace(updated)
+        guard !entry.isPaid, !pendingEntryIds.contains(entry.id) else { return }
+        pendingEntryIds.insert(entry.id)
+        defer { pendingEntryIds.remove(entry.id) }
+
+        var optimistic = entry
+        optimistic.isSelected.toggle()
+        replace(optimistic)
+
+        do {
+            let updated = try await client.updateBudgetEntryFlags(
+                id: entry.id,
+                isPaid: entry.isPaid,
+                isSelected: optimistic.isSelected,
+                configuration: configuration
+            )
+            replace(updated)
+            UISelectionFeedbackGenerator().selectionChanged()
+        } catch {
+            replace(entry)
+            throw error
+        }
     }
 
     func togglePaid(_ entry: BudgetEntry, configuration: SupabaseConfiguration) async throws {
-        let updated = try await client.updateBudgetEntryFlags(
+        guard !pendingEntryIds.contains(entry.id) else { return }
+        pendingEntryIds.insert(entry.id)
+        defer { pendingEntryIds.remove(entry.id) }
+
+        var optimistic = entry
+        optimistic.isPaid.toggle()
+        replace(optimistic)
+
+        do {
+            let updated = try await client.updateBudgetEntryFlags(
+                id: entry.id,
+                isPaid: optimistic.isPaid,
+                isSelected: entry.isSelected,
+                configuration: configuration
+            )
+            replace(updated)
+            if updated.isPaid {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            } else {
+                UISelectionFeedbackGenerator().selectionChanged()
+            }
+        } catch {
+            replace(entry)
+            throw error
+        }
+    }
+
+    func updateEntry(
+        _ entry: BudgetEntry,
+        type: BudgetRecordType,
+        name: String,
+        amount: Double,
+        note: String,
+        configuration: SupabaseConfiguration
+    ) async throws {
+        let updated = try await client.updateBudgetEntry(
             id: entry.id,
-            isPaid: !entry.isPaid,
-            isSelected: entry.isSelected,
+            type: type,
+            name: name,
+            amount: amount,
+            note: note.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
             configuration: configuration
         )
         replace(updated)

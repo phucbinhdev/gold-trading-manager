@@ -68,5 +68,12 @@ struct AppView: View {
             }
             .tag(AppTab.ipad)
         }
+        .onOpenURL { url in
+            guard url.scheme == "goldmanager", url.host == "tab" else { return }
+            let tabName = url.pathComponents.dropFirst().first
+            if let tabName, let tab = AppTab(rawValue: tabName) {
+                selection = tab
+            }
+        }
     }
 }
