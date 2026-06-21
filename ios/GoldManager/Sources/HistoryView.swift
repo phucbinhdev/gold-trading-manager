@@ -4,6 +4,7 @@ struct HistoryView: View {
     @Environment(PortfolioStore.self) private var store
     @State private var selectedYear: Int?
     @State private var pendingDeletion: GoldTransaction?
+    @State private var selectedTransaction: GoldTransaction?
     @State private var errorMessage: String?
 
     private var years: [Int] {
@@ -41,7 +42,10 @@ struct HistoryView: View {
 
                     Section("Giao dịch") {
                         ForEach(transactions) { transaction in
-                            TransactionRow(transaction: transaction)
+                            TransactionRow(
+                                transaction: transaction,
+                                editAction: { selectedTransaction = transaction }
+                            )
                                 .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
                                 .listRowBackground(Color.clear)
                                 .swipeActions {
@@ -86,6 +90,9 @@ struct HistoryView: View {
             Button("Hủy", role: .cancel) {}
         } message: {
             Text("Hành động này không thể hoàn tác.")
+        }
+        .sheet(item: $selectedTransaction) { transaction in
+            EditTransactionView(transaction: transaction)
         }
         .alert("Không thể xóa giao dịch", isPresented: Binding(
             get: { errorMessage != nil },

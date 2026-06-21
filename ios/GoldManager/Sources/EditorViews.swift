@@ -30,22 +30,19 @@ struct AddTransactionView: View {
                         }
                         AppFormDivider()
                         AppFormRow(title: "Số lượng", systemImage: "scalemass.fill", tint: AppTheme.deepGold) {
-                            TextField("0", value: $amount, format: .number)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
+                            DeferredNumberField(value: $amount, kind: .decimal)
                             Text("chỉ").foregroundStyle(.secondary)
                         }
                         AppFormDivider()
                         AppFormRow(title: "Giá mỗi chỉ", systemImage: "banknote.fill", tint: AppTheme.deepGold) {
-                            TextField("0", value: $price, format: .vndInput)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
+                            DeferredNumberField(value: $price, kind: .currency)
                             Text("đ").foregroundStyle(.secondary)
                         }
                         AppFormDivider()
                         AppFormRow(title: "Ghi chú", systemImage: "note.text", tint: AppTheme.deepGold) {
                             TextField("Không bắt buộc", text: $note)
                                 .multilineTextAlignment(.trailing)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
                         }
                     }
 
@@ -54,14 +51,109 @@ struct AddTransactionView: View {
                             .foregroundStyle(.red)
                     }
 
-                    AppFormSubmitButton(
-                        title: "Lưu giao dịch",
-                        systemImage: "checkmark",
-                        isEnabled: isValid,
-                        isLoading: isSaving,
-                        tint: AppTheme.deepGold
-                    ) {
+                }
+                .padding(20)
+            }
+            .background(Color(uiColor: .systemGroupedBackground))
+            .interactiveDismissDisabled(isSaving)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Hủy") { dismiss() }
+                        .disabled(isSaving)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
                         Task { await save() }
+                    } label: {
+                        if isSaving {
+                            ProgressView()
+                        } else {
+                            Text("Lưu").fontWeight(.semibold)
+                        }
+                    }
+                    .disabled(!isValid || isSaving)
+                }
+            }
+        }
+    }
+
+    private func save() async {
+        isSaving = true
+        errorMessage = nil
+        do {
+            try await store.add(
+                amountChi: amount,
+                pricePerChi: price,
+                date: date,
+                note: note
+            )
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+            isSaving = false
+        }
+    }
+}
+
+struct EditTransactionView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(PortfolioStore.self) private var store
+
+    let transaction: GoldTransaction
+
+    @State private var date: Date
+    @State private var amount: Double
+    @State private var price: Double
+    @State private var note: String
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    init(transaction: GoldTransaction) {
+        self.transaction = transaction
+        _date = State(initialValue: transaction.transactionDate)
+        _amount = State(initialValue: transaction.amountChi)
+        _price = State(initialValue: transaction.pricePerChi)
+        _note = State(initialValue: transaction.note ?? "")
+    }
+
+    private var isValid: Bool {
+        amount >= 0.01 && price >= 1_000
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 18) {
+                    AppFormHeader(
+                        title: "Chỉnh sửa giao dịch",
+                        subtitle: "Cập nhật số lượng vàng, giá mua, ngày và ghi chú."
+                    )
+
+                    AppFormCard {
+                        AppFormRow(title: "Ngày giao dịch", systemImage: "calendar", tint: AppTheme.deepGold) {
+                            DatePicker("", selection: $date, displayedComponents: .date)
+                                .labelsHidden()
+                        }
+                        AppFormDivider()
+                        AppFormRow(title: "Số lượng", systemImage: "scalemass.fill", tint: AppTheme.deepGold) {
+                            DeferredNumberField(value: $amount, kind: .decimal)
+                            Text("chỉ").foregroundStyle(.secondary)
+                        }
+                        AppFormDivider()
+                        AppFormRow(title: "Giá mỗi chỉ", systemImage: "banknote.fill", tint: AppTheme.deepGold) {
+                            DeferredNumberField(value: $price, kind: .currency)
+                            Text("đ").foregroundStyle(.secondary)
+                        }
+                        AppFormDivider()
+                        AppFormRow(title: "Ghi chú", systemImage: "note.text", tint: AppTheme.deepGold) {
+                            TextField("Không bắt buộc", text: $note)
+                                .multilineTextAlignment(.trailing)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                        }
+                    }
+
+                    if let errorMessage {
+                        Text(errorMessage).foregroundStyle(.red)
                     }
                 }
                 .padding(20)
@@ -73,6 +165,18 @@ struct AddTransactionView: View {
                     Button("Hủy") { dismiss() }
                         .disabled(isSaving)
                 }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        Task { await save() }
+                    } label: {
+                        if isSaving {
+                            ProgressView()
+                        } else {
+                            Text("Lưu").fontWeight(.semibold)
+                        }
+                    }
+                    .disabled(!isValid || isSaving)
+                }
             }
         }
     }
@@ -81,7 +185,8 @@ struct AddTransactionView: View {
         isSaving = true
         errorMessage = nil
         do {
-            try await store.add(
+            try await store.update(
+                transaction,
                 amountChi: amount,
                 pricePerChi: price,
                 date: date,
@@ -112,23 +217,12 @@ struct MarketPriceView: View {
                     )
                     AppFormCard {
                         AppFormRow(title: "Giá mỗi chỉ", systemImage: "chart.line.uptrend.xyaxis", tint: AppTheme.deepGold) {
-                            TextField("0", value: $price, format: .vndInput)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
+                            DeferredNumberField(value: $price, kind: .currency)
                             Text("đ").foregroundStyle(.secondary)
                         }
                     }
                     if let errorMessage {
                         Text(errorMessage).foregroundStyle(.red)
-                    }
-                    AppFormSubmitButton(
-                        title: "Cập nhật giá",
-                        systemImage: "checkmark",
-                        isEnabled: price >= 1_000,
-                        isLoading: isSaving,
-                        tint: AppTheme.deepGold
-                    ) {
-                        Task { await save() }
                     }
                 }
                 .padding(20)
@@ -137,6 +231,12 @@ struct MarketPriceView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Hủy") { dismiss() }
+                }
+                AppFormSaveToolbarItem(
+                    isEnabled: price >= 1_000,
+                    isLoading: isSaving
+                ) {
+                    Task { await save() }
                 }
             }
             .onAppear { price = store.marketPrice }
@@ -153,94 +253,4 @@ struct MarketPriceView: View {
             isSaving = false
         }
     }
-}
-
-struct SettingsView: View {
-    @Environment(PortfolioStore.self) private var store
-    @State private var projectURL = ""
-    @State private var anonKey = ""
-    @State private var message: SettingsMessage?
-
-    private var draft: SupabaseConfiguration {
-        SupabaseConfiguration(
-            projectURL: projectURL.trimmingCharacters(in: .whitespacesAndNewlines),
-            anonKey: anonKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        )
-    }
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 18) {
-                AppFormHeader(
-                    title: "Cài đặt",
-                    subtitle: "Cấu hình kết nối dữ liệu Supabase cho ứng dụng."
-                )
-                AppFormCard {
-                    AppFormRow(title: "Project URL", systemImage: "link", tint: AppTheme.deepGold) {
-                        TextField("https://...", text: $projectURL)
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.URL)
-                            .autocorrectionDisabled()
-                            .multilineTextAlignment(.trailing)
-                    }
-                    AppFormDivider()
-                    AppFormRow(title: "Anon key", systemImage: "key.fill", tint: AppTheme.deepGold) {
-                        SecureField("Nhập khóa", text: $anonKey)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
-                Text("Thông tin kết nối được lưu trong Keychain trên thiết bị.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                AppFormSubmitButton(
-                    title: "Lưu và kiểm tra",
-                    systemImage: "checkmark.shield.fill",
-                    isEnabled: draft.isValid,
-                    isLoading: false,
-                    tint: AppTheme.deepGold,
-                    action: save
-                )
-            }
-            .padding(20)
-        }
-        .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle("")
-        .onAppear {
-            projectURL = store.configuration.projectURL
-            anonKey = store.configuration.anonKey
-        }
-        .alert(item: $message) { message in
-            Alert(
-                title: Text(message.title),
-                message: Text(message.detail),
-                dismissButton: .default(Text("Đóng"))
-            )
-        }
-    }
-
-    private func save() {
-        do {
-            try store.saveConfiguration(draft)
-            Task {
-                await store.load()
-                message = SettingsMessage(
-                    title: "Đã lưu cấu hình",
-                    detail: store.state == .loaded
-                        ? "Kết nối Supabase thành công."
-                        : "Đã lưu. Hãy kiểm tra URL, anon key và quyền truy cập bảng."
-                )
-            }
-        } catch {
-            message = SettingsMessage(title: "Không thể lưu", detail: error.localizedDescription)
-        }
-    }
-}
-
-private struct SettingsMessage: Identifiable {
-    let id = UUID()
-    let title: String
-    let detail: String
 }

@@ -77,19 +77,16 @@ struct SavingsView: View {
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Tích góp")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         isAdding = true
                     } label: {
-                        Label("Thêm dây", systemImage: "plus")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 14)
-                            .frame(height: 44)
-                            .background(savingsAccent, in: Capsule())
+                        Image(systemName: "plus")
+                            .fontWeight(.semibold)
                     }
-                    .buttonStyle(.plain)
+                    .accessibilityLabel("Thêm dây")
                     .accessibilityHint("Tạo một dây tích góp mới")
                 }
             }
@@ -567,13 +564,7 @@ private struct AddSavingsView: View {
                             systemImage: "banknote.fill",
                             tint: savingsAccent
                         ) {
-                            TextField(
-                                "0",
-                                value: $amount,
-                                format: .vndInput
-                            )
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
+                            DeferredNumberField(value: $amount, kind: .currency)
 
                             Text("đ")
                                 .foregroundStyle(.secondary)
@@ -616,14 +607,6 @@ private struct AddSavingsView: View {
                     .background(savingsAccent.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 22))
 
-                    AppFormSubmitButton(
-                        title: "Tạo dây tích góp",
-                        systemImage: "checkmark",
-                        isEnabled: canSave,
-                        isLoading: isSaving,
-                        tint: savingsAccent,
-                        action: save
-                    )
                 }
                 .padding(20)
             }
@@ -636,6 +619,11 @@ private struct AddSavingsView: View {
                     .fontWeight(.semibold)
                     .frame(minWidth: 44, minHeight: 44)
                 }
+                AppFormSaveToolbarItem(
+                    isEnabled: canSave,
+                    isLoading: isSaving,
+                    action: save
+                )
             }
             .alert("Không thể tạo dây", isPresented: Binding(
                 get: { errorMessage != nil },

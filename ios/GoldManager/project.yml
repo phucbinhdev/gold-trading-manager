@@ -3,7 +3,7 @@ options:
   bundleIdPrefix: com.phucbinh
   deploymentTarget:
     iOS: "17.0"
-  xcodeVersion: "16.0"
+  xcodeVersion: "27.0"
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -14,6 +14,10 @@ targets:
   GoldManager:
     type: application
     platform: iOS
+    productName: Gold Manager
+    configFiles:
+      Debug: Config/Base.xcconfig
+      Release: Config/Base.xcconfig
     sources:
       - Sources
       - Resources
@@ -21,12 +25,20 @@ targets:
       path: Resources/Info.plist
       properties:
         CFBundleDisplayName: Quản Lý Vàng
+        EXPO_PUBLIC_SUPABASE_URL: $(EXPO_PUBLIC_SUPABASE_URL)
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: $(EXPO_PUBLIC_SUPABASE_ANON_KEY)
         LSApplicationCategoryType: public.app-category.finance
         LSRequiresIPhoneOS: true
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UILaunchScreen: {}
         UIStatusBarStyle: UIStatusBarStyleDefault
+        UIUserInterfaceStyle: Light
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
         CFBundleURLTypes:
           - CFBundleURLName: com.phucbinh.goldmanager
             CFBundleURLSchemes:
@@ -38,6 +50,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.phucbinh.goldmanager
         PRODUCT_NAME: Gold Manager
+        DEVELOPMENT_TEAM: QGCQL2BU62
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -58,6 +71,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.phucbinh.goldmanager.widgets
         PRODUCT_NAME: GoldManagerWidgets
+        DEVELOPMENT_TEAM: QGCQL2BU62
         SKIP_INSTALL: YES
         APPLICATION_EXTENSION_API_ONLY: YES
         TARGETED_DEVICE_FAMILY: "1,2"

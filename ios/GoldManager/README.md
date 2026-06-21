@@ -17,9 +17,10 @@ xcodegen generate
 open GoldManager.xcodeproj
 ```
 
-The app requires iOS 17 or newer. On first launch, open **Cài đặt** and enter
-the Supabase project URL and anon key used by the web app. Credentials are
-stored in the iOS Keychain and are not committed to the repository.
+The app requires iOS 17 or newer. Copy `Config/Local.xcconfig.example` to
+`Config/Local.xcconfig`, then set `EXPO_PUBLIC_SUPABASE_URL` and
+`EXPO_PUBLIC_SUPABASE_ANON_KEY`. The local config is injected at build time
+and is not committed to the repository.
 
 The Supabase project must allow the anon role to select, insert, and delete
 rows in the same tables used by the web application.

@@ -1,5 +1,4 @@
 import Foundation
-import Security
 
 enum APIError: LocalizedError {
     case notConfigured
@@ -9,7 +8,7 @@ enum APIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notConfigured:
-            "Hãy nhập Supabase URL và anon key trong Cài đặt."
+            "Thiếu EXPO_PUBLIC_SUPABASE_URL hoặc EXPO_PUBLIC_SUPABASE_ANON_KEY trong cấu hình build."
         case .invalidResponse:
             "Máy chủ trả về dữ liệu không hợp lệ."
         case .server(_, let message):
@@ -85,6 +84,22 @@ actor SupabaseClient {
     ) async throws {
         var request = try request(configuration: configuration, path: "transactions")
         request.httpMethod = "POST"
+        request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+        request.httpBody = try encoder.encode(transaction)
+        try await sendWithoutBody(request)
+    }
+
+    func updateTransaction(
+        id: UUID,
+        transaction: NewGoldTransaction,
+        configuration: SupabaseConfiguration
+    ) async throws {
+        var request = try request(
+            configuration: configuration,
+            path: "transactions",
+            query: [URLQueryItem(name: "id", value: "eq.\(id.uuidString.lowercased())")]
+        )
+        request.httpMethod = "PATCH"
         request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
         request.httpBody = try encoder.encode(transaction)
         try await sendWithoutBody(request)
@@ -221,45 +236,6 @@ actor SupabaseClient {
                 .flatMap { $0["message"] as? String }
                 ?? HTTPURLResponse.localizedString(forStatusCode: response.statusCode)
             throw APIError.server(status: response.statusCode, message: message)
-        }
-    }
-}
-
-enum KeychainStore {
-    private static let service = "com.phucbinh.goldmanager"
-
-    static func read(_ key: String) -> String {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var result: AnyObject?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data
-        else {
-            return ""
-        }
-        return String(data: data, encoding: .utf8) ?? ""
-    }
-
-    static func write(_ value: String, key: String) throws {
-        let data = Data(value.utf8)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key
-        ]
-        SecItemDelete(query as CFDictionary)
-        let attributes = query.merging([
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        ]) { _, new in new }
-        let status = SecItemAdd(attributes as CFDictionary, nil)
-        guard status == errSecSuccess else {
-            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status))
         }
     }
 }

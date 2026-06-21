@@ -435,15 +435,6 @@ private struct AddIpadView: View {
                         note: $note
                     )
                     if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
-                    AppFormSubmitButton(
-                        title: "Thêm giao dịch",
-                        systemImage: "plus",
-                        isEnabled: purchasePrice > 0 && (status != .sold || sellingPrice > 0),
-                        isLoading: saving,
-                        tint: .blue
-                    ) {
-                        Task { await save() }
-                    }
                 }
                 .padding(20)
             }
@@ -453,6 +444,12 @@ private struct AddIpadView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Hủy") { dismiss() }
+                }
+                AppFormSaveToolbarItem(
+                    isEnabled: purchasePrice > 0 && (status != .sold || sellingPrice > 0),
+                    isLoading: saving
+                ) {
+                    Task { await save() }
                 }
             }
         }
@@ -509,9 +506,7 @@ private struct CompleteIpadSaleView: View {
                     AppFormHeader(title: "Hoàn tất bán", subtitle: "Nhập giá bán và ngày giao máy.")
                     AppFormCard {
                         AppFormRow(title: "Giá bán", systemImage: "banknote.fill", tint: .blue) {
-                            TextField("0", value: $sellingPrice, format: .vndInput)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
+                            DeferredNumberField(value: $sellingPrice, kind: .currency)
                             Text("đ").foregroundStyle(.secondary)
                         }
                         AppFormDivider()
@@ -530,15 +525,6 @@ private struct CompleteIpadSaleView: View {
                     .padding(20)
                     .background(Color.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 22))
                     if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
-                    AppFormSubmitButton(
-                        title: "Lưu giá bán",
-                        systemImage: "checkmark",
-                        isEnabled: sellingPrice > 0,
-                        isLoading: saving,
-                        tint: .blue
-                    ) {
-                        Task { await save() }
-                    }
                 }
                 .padding(20)
             }
@@ -546,6 +532,12 @@ private struct CompleteIpadSaleView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Hủy") { dismiss() }
+                }
+                AppFormSaveToolbarItem(
+                    isEnabled: sellingPrice > 0,
+                    isLoading: saving
+                ) {
+                    Task { await save() }
                 }
             }
         }
@@ -614,15 +606,6 @@ private struct EditIpadView: View {
                         note: $note
                     )
                     if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
-                    AppFormSubmitButton(
-                        title: "Lưu thay đổi",
-                        systemImage: "checkmark",
-                        isEnabled: purchasePrice > 0 && (status != .sold || sellingPrice > 0),
-                        isLoading: saving,
-                        tint: .blue
-                    ) {
-                        Task { await save() }
-                    }
                 }
                 .padding(20)
             }
@@ -630,6 +613,12 @@ private struct EditIpadView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Hủy") { dismiss() }
+                }
+                AppFormSaveToolbarItem(
+                    isEnabled: purchasePrice > 0 && (status != .sold || sellingPrice > 0),
+                    isLoading: saving
+                ) {
+                    Task { await save() }
                 }
             }
         }
@@ -713,9 +702,7 @@ private func moneyFormRow(
     tint: Color
 ) -> some View {
     AppFormRow(title: title, systemImage: icon, tint: tint) {
-        TextField("0", value: value, format: .vndInput)
-            .keyboardType(.numberPad)
-            .multilineTextAlignment(.trailing)
+        DeferredNumberField(value: value, kind: .currency)
         Text("đ").foregroundStyle(.secondary)
     }
 }

@@ -14,7 +14,6 @@ struct PortfolioView: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 20) {
-                header
                 PortfolioCard(
                     totalChi: store.totalChi,
                     totalInvested: store.totalInvested,
@@ -49,22 +48,13 @@ struct PortfolioView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                HStack {
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
-                    .accessibilityLabel("Cài đặt kết nối")
-
-                    Button {
-                        presentedSheet = .addTransaction
-                    } label: {
-                        Image(systemName: "plus")
-                            .fontWeight(.semibold)
-                    }
-                    .accessibilityLabel("Thêm giao dịch")
+                Button {
+                    presentedSheet = .addTransaction
+                } label: {
+                    Image(systemName: "plus")
+                        .fontWeight(.semibold)
                 }
+                .accessibilityLabel("Thêm giao dịch")
             }
         }
         .refreshable { await store.load() }
@@ -79,24 +69,6 @@ struct PortfolioView: View {
         }
     }
 
-    private var header: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "wallet.bifold.fill")
-                .font(.title3)
-                .foregroundStyle(.black.opacity(0.75))
-                .frame(width: 46, height: 46)
-                .background(AppTheme.gold.gradient, in: RoundedRectangle(cornerRadius: 15))
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Xin chào")
-                    .font(.title2.bold())
-                Text("Theo dõi tài sản vàng của bạn.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-        }
-    }
 }
 
 private enum PortfolioSheet: String, Identifiable {
@@ -217,6 +189,7 @@ struct RecentTransactionsView: View {
     let transactions: [GoldTransaction]
     @State private var selectedYear: Int?
     @State private var pendingDeletion: GoldTransaction?
+    @State private var selectedTransaction: GoldTransaction?
     @State private var errorMessage: String?
 
     private var years: [Int] {
@@ -288,6 +261,7 @@ struct RecentTransactionsView: View {
                 ForEach(filteredTransactions) { transaction in
                     TransactionRow(
                         transaction: transaction,
+                        editAction: { selectedTransaction = transaction },
                         deleteAction: { pendingDeletion = transaction }
                     )
                 }
@@ -307,6 +281,9 @@ struct RecentTransactionsView: View {
             Button("Hủy", role: .cancel) {}
         } message: {
             Text("Hành động này không thể hoàn tác.")
+        }
+        .sheet(item: $selectedTransaction) { transaction in
+            EditTransactionView(transaction: transaction)
         }
         .alert("Không thể xóa giao dịch", isPresented: Binding(
             get: { errorMessage != nil },
@@ -351,13 +328,52 @@ struct RecentTransactionsView: View {
 struct TransactionRow: View {
     @Environment(PortfolioStore.self) private var store
     let transaction: GoldTransaction
+    let editAction: () -> Void
     var deleteAction: (() -> Void)?
+    @State private var horizontalOffset: CGFloat = 0
+
+    private let deleteWidth: CGFloat = 82
 
     private var profit: Double {
         transaction.amountChi * store.marketPrice - transaction.cost
     }
 
     var body: some View {
+        ZStack(alignment: .trailing) {
+            if let deleteAction, horizontalOffset < 0 {
+                Button(role: .destructive, action: deleteAction) {
+                    Label("Xóa", systemImage: "trash.fill")
+                        .labelStyle(.iconOnly)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(width: deleteWidth)
+                        .frame(maxHeight: .infinity)
+                        .background(Color.red)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Xóa giao dịch")
+            }
+
+            rowContent
+                .offset(x: horizontalOffset)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if horizontalOffset == 0 {
+                        editAction()
+                    } else {
+                        closeActions()
+                    }
+                }
+                .simultaneousGesture(swipeGesture, isEnabled: deleteAction != nil)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityHint("Chạm để chỉnh sửa, vuốt sang trái để hiện nút xóa")
+                .accessibilityAction(named: "Chỉnh sửa", editAction)
+                .accessibilityAction(named: "Xóa") { deleteAction?() }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    private var rowContent: some View {
         HStack(spacing: 13) {
             Image(systemName: profit >= 0 ? "arrow.up.right" : "arrow.down.right")
                 .font(.headline)
@@ -390,18 +406,29 @@ struct TransactionRow: View {
                     .foregroundStyle(profit >= 0 ? .green : .red)
             }
 
-            if let deleteAction {
-                Button(role: .destructive, action: deleteAction) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.red.opacity(0.72))
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Xóa giao dịch")
-            }
         }
         .padding(14)
         .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+    }
+
+    private var swipeGesture: some Gesture {
+        DragGesture(minimumDistance: 12)
+            .onChanged { value in
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                horizontalOffset = min(0, max(-deleteWidth, value.translation.width))
+            }
+            .onEnded { value in
+                let shouldReveal = value.translation.width < -deleteWidth * 0.4
+                    || value.predictedEndTranslation.width < -deleteWidth
+                withAnimation(.snappy(duration: 0.22)) {
+                    horizontalOffset = shouldReveal ? -deleteWidth : 0
+                }
+            }
+    }
+
+    private func closeActions() {
+        withAnimation(.snappy(duration: 0.22)) {
+            horizontalOffset = 0
+        }
     }
 }

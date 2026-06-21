@@ -14,16 +14,22 @@ final class PortfolioStore {
 
     init() {
         let environment = ProcessInfo.processInfo.environment
-        let keychainURL = KeychainStore.read("supabase-url")
-        let keychainKey = KeychainStore.read("supabase-anon-key")
         configuration = SupabaseConfiguration(
-            projectURL: keychainURL.isEmpty
-                ? environment["NEXT_PUBLIC_SUPABASE_URL"] ?? ""
-                : keychainURL,
-            anonKey: keychainKey.isEmpty
-                ? environment["NEXT_PUBLIC_SUPABASE_ANON_KEY"] ?? ""
-                : keychainKey
+            projectURL: Self.buildSetting("EXPO_PUBLIC_SUPABASE_URL")
+                ?? environment["EXPO_PUBLIC_SUPABASE_URL"]
+                ?? "",
+            anonKey: Self.buildSetting("EXPO_PUBLIC_SUPABASE_ANON_KEY")
+                ?? environment["EXPO_PUBLIC_SUPABASE_ANON_KEY"]
+                ?? ""
         )
+    }
+
+    private static func buildSetting(_ key: String) -> String? {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: key) as? String else {
+            return nil
+        }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty || trimmed.hasPrefix("$(") ? nil : trimmed
     }
 
     var totalChi: Double {
@@ -83,18 +89,34 @@ final class PortfolioStore {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
+    func update(
+        _ transaction: GoldTransaction,
+        amountChi: Double,
+        pricePerChi: Double,
+        date: Date,
+        note: String
+    ) async throws {
+        let payload = NewGoldTransaction(
+            transactionDate: DateFormatters.formatDatabaseDay(date),
+            amountChi: amountChi,
+            pricePerChi: pricePerChi,
+            note: note.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        )
+        try await client.updateTransaction(
+            id: transaction.id,
+            transaction: payload,
+            configuration: configuration
+        )
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        await load()
+    }
+
     func saveMarketPrice(_ price: Double) async throws {
         try await client.updateMarketPrice(price, configuration: configuration)
         marketPrice = price
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
-    func saveConfiguration(_ configuration: SupabaseConfiguration) throws {
-        try KeychainStore.write(configuration.projectURL, key: "supabase-url")
-        try KeychainStore.write(configuration.anonKey, key: "supabase-anon-key")
-        self.configuration = configuration
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-    }
 }
 
 private extension String {

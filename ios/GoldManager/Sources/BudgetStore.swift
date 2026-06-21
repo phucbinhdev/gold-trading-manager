@@ -238,16 +238,41 @@ final class BudgetStore {
         await selectSource(source.id, configuration: configuration)
     }
 
-    func deactivateSelectedSource(configuration: SupabaseConfiguration) async throws {
-        guard sources.count > 1, let selectedSourceId else { return }
+    func renameSource(
+        _ source: BudgetSource,
+        name: String,
+        configuration: SupabaseConfiguration
+    ) async throws {
+        let updated = try await client.updateBudgetSource(
+            id: source.id,
+            name: name,
+            configuration: configuration
+        )
+        if let index = sources.firstIndex(where: { $0.id == source.id }) {
+            sources[index] = updated
+        }
+    }
+
+    func deactivateSource(
+        _ source: BudgetSource,
+        configuration: SupabaseConfiguration
+    ) async throws {
+        guard sources.count > 1 else { return }
         _ = try await client.updateBudgetSource(
-            id: selectedSourceId,
+            id: source.id,
             isActive: false,
             configuration: configuration
         )
-        sources.removeAll { $0.id == selectedSourceId }
-        self.selectedSourceId = sources.first?.id
-        try await loadSelectedMonth(configuration: configuration)
+        sources.removeAll { $0.id == source.id }
+        if selectedSourceId == source.id {
+            selectedSourceId = sources.first?.id
+            try await loadSelectedMonth(configuration: configuration)
+        }
+    }
+
+    func deactivateSelectedSource(configuration: SupabaseConfiguration) async throws {
+        guard let selectedSource else { return }
+        try await deactivateSource(selectedSource, configuration: configuration)
     }
 
     private func replace(_ entry: BudgetEntry) {

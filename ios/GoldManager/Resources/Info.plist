@@ -31,6 +31,10 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>EXPO_PUBLIC_SUPABASE_ANON_KEY</key>
+	<string>$(EXPO_PUBLIC_SUPABASE_ANON_KEY)</string>
+	<key>EXPO_PUBLIC_SUPABASE_URL</key>
+	<string>$(EXPO_PUBLIC_SUPABASE_URL)</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.finance</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -43,7 +47,9 @@
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIStatusBarStyle</key>
-	<string></string>
+	<string>UIStatusBarStyleDefault</string>
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationLandscapeLeft</string>

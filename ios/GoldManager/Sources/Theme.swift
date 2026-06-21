@@ -29,6 +29,89 @@ extension FormatStyle where Self == FloatingPointFormatStyle<Double> {
     }
 }
 
+enum DeferredNumberKind {
+    case decimal
+    case currency
+}
+
+struct DeferredNumberField: View {
+    @Binding var value: Double
+    let kind: DeferredNumberKind
+    var alignment: TextAlignment = .trailing
+
+    @State private var text = ""
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        TextField("0", text: $text)
+            .keyboardType(kind == .currency ? .numberPad : .decimalPad)
+            .multilineTextAlignment(alignment)
+            .focused($isFocused)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .onAppear { text = displayText }
+            .onChange(of: isFocused) { _, focused in
+                if focused {
+                    text = editingText
+                } else {
+                    commit()
+                    text = displayText
+                }
+            }
+            .onChange(of: text) { _, newValue in
+                guard isFocused, let parsed = parse(newValue) else { return }
+                value = parsed
+            }
+            .onChange(of: value) { _, _ in
+                if !isFocused { text = displayText }
+            }
+    }
+
+    private var displayText: String {
+        switch kind {
+        case .currency:
+            value.formatted(.vndInput)
+        case .decimal:
+            value.formatted(
+                .number.locale(Locale(identifier: "vi_VN"))
+                    .grouping(.automatic)
+                    .precision(.fractionLength(0...4))
+            )
+        }
+    }
+
+    private var editingText: String {
+        switch kind {
+        case .currency:
+            String(Int(value.rounded()))
+        case .decimal:
+            value.formatted(
+                .number.locale(Locale(identifier: "vi_VN"))
+                    .grouping(.never)
+                    .precision(.fractionLength(0...4))
+            )
+        }
+    }
+
+    private func parse(_ input: String) -> Double? {
+        switch kind {
+        case .currency:
+            let digits = input.filter(\.isNumber)
+            return digits.isEmpty ? 0 : Double(digits)
+        case .decimal:
+            let normalized = input
+                .replacingOccurrences(of: ",", with: ".")
+                .filter { $0.isNumber || $0 == "." }
+            return normalized.isEmpty ? 0 : Double(normalized)
+        }
+    }
+
+    private func commit() {
+        if let parsed = parse(text) {
+            value = parsed
+        }
+    }
+}
+
 struct StatusMessageView: View {
     let symbol: String
     let title: String
@@ -142,5 +225,24 @@ struct AppFormSubmitButton: View {
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled || isLoading)
+    }
+}
+
+struct AppFormSaveToolbarItem: ToolbarContent {
+    let isEnabled: Bool
+    let isLoading: Bool
+    let action: () -> Void
+
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .confirmationAction) {
+            Button(action: action) {
+                if isLoading {
+                    ProgressView()
+                } else {
+                    Text("Lưu").fontWeight(.semibold)
+                }
+            }
+            .disabled(!isEnabled || isLoading)
+        }
     }
 }
