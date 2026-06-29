@@ -25,7 +25,7 @@ final class SavingsStore {
             let rightCompleted = isCompleted(right)
 
             if leftCompleted != rightCompleted {
-                return leftCompleted
+                return !leftCompleted
             }
 
             let leftTotal = Double(left.totalCells) * left.periodAmount

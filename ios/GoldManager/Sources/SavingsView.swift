@@ -10,84 +10,21 @@ struct SavingsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: 18) {
-                    SavingsSummaryCard(
-                        paid: store.totalPaid,
-                        goal: store.totalGoal
-                    )
-
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("Các dây tích góp")
-                            .font(.title3.weight(.bold))
-
-                        Spacer()
-
-                        Text("\(store.rows.count) dây")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.top, 4)
-
-                    if store.state == .loading && store.rows.isEmpty {
-                        ProgressView("Đang tải dữ liệu...")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 56)
-                    } else if store.rows.isEmpty {
-                        SavingsEmptyState {
-                            isAdding = true
-                        }
-                    } else {
-                        ForEach(store.sortedRows) { row in
-                            SavingsCard(
-                                row: row,
-                                isUpdating: store.pendingIds.contains(row.id),
-                                onToggle: { index in
-                                    Task {
-                                        do {
-                                            try await store.toggleCell(
-                                                row: row,
-                                                number: index + 1,
-                                                configuration: appStore.configuration
-                                            )
-                                        } catch {
-                                            errorMessage = error.localizedDescription
-                                        }
-                                    }
-                                },
-                                onDelete: {
-                                    Task {
-                                        do {
-                                            try await store.delete(
-                                                row,
-                                                configuration: appStore.configuration
-                                            )
-                                        } catch {
-                                            errorMessage = error.localizedDescription
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 12)
-                .padding(.bottom, 28)
+            AdaptiveCardList(cardInsets: EdgeInsets(top: 12, leading: 18, bottom: 9, trailing: 18)) {
+                SavingsSummaryCard(
+                    paid: store.totalPaid,
+                    goal: store.totalGoal
+                )
+            } list: {
+                savingsListContent
             }
-            .background(Color(uiColor: .systemGroupedBackground))
+            .animation(.smooth(duration: 0.4), value: store.state)
+            .animation(.smooth(duration: 0.4), value: store.sortedRows)
             .navigationTitle("Tích góp")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isAdding = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .fontWeight(.semibold)
-                    }
-                    .accessibilityLabel("Thêm dây")
-                    .accessibilityHint("Tạo một dây tích góp mới")
+            .overlay(alignment: .bottomTrailing) {
+                FloatingActionButton(tint: savingsAccent, accessibilityLabel: "Thêm dây") {
+                    isAdding = true
                 }
             }
             .refreshable {
@@ -108,6 +45,75 @@ struct SavingsView: View {
                 Button("Đóng", role: .cancel) {}
             } message: {
                 Text(errorMessage ?? "Đã xảy ra lỗi.")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var savingsListContent: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("Các dây tích góp")
+                .font(.title3.weight(.bold))
+
+            Spacer()
+
+            Text("\(store.rows.count) dây")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.top, 4)
+        .listRowInsets(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+
+        if store.state == .loading && store.rows.isEmpty {
+            ProgressView("Đang tải dữ liệu...")
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 56)
+                .listRowInsets(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+        } else if store.rows.isEmpty {
+            SavingsEmptyState {
+                isAdding = true
+            }
+            .listRowInsets(EdgeInsets(top: 0, leading: 18, bottom: 0, trailing: 18))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+        } else {
+            ForEach(store.sortedRows) { row in
+                SavingsCard(
+                    row: row,
+                    isUpdating: store.pendingIds.contains(row.id),
+                    onToggle: { index in
+                        Task {
+                            do {
+                                try await store.toggleCell(
+                                    row: row,
+                                    number: index + 1,
+                                    configuration: appStore.configuration
+                                )
+                            } catch {
+                                errorMessage = error.localizedDescription
+                            }
+                        }
+                    },
+                    onDelete: {
+                        Task {
+                            do {
+                                try await store.delete(
+                                    row,
+                                    configuration: appStore.configuration
+                                )
+                            } catch {
+                                errorMessage = error.localizedDescription
+                            }
+                        }
+                    }
+                )
+                .listRowInsets(EdgeInsets(top: 9, leading: 18, bottom: 9, trailing: 18))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             }
         }
     }
@@ -151,6 +157,7 @@ private struct SavingsSummaryCard: View {
                         .foregroundStyle(.white)
                         .minimumScaleFactor(0.72)
                         .lineLimit(1)
+                        .contentTransition(.numericText())
                 }
 
                 Spacer(minLength: 8)
@@ -182,6 +189,7 @@ private struct SavingsSummaryCard: View {
                 }
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.86))
+                .contentTransition(.numericText())
             }
 
             HStack(spacing: 10) {
@@ -206,6 +214,8 @@ private struct SavingsSummaryCard: View {
             in: RoundedRectangle(cornerRadius: 28, style: .continuous)
         )
         .shadow(color: savingsAccent.opacity(0.18), radius: 20, y: 10)
+        .animation(.smooth(duration: 0.45), value: paid)
+        .animation(.smooth(duration: 0.45), value: goal)
     }
 }
 
@@ -224,6 +234,7 @@ private struct SavingsMetric: View {
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
+                .contentTransition(.numericText())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 13)
@@ -271,6 +282,15 @@ private struct SavingsCard: View {
                 .stroke(row.closed ? savingsAccent.opacity(0.2) : Color.primary.opacity(0.06))
         }
         .shadow(color: .black.opacity(0.045), radius: 12, y: 5)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive, action: onDelete) {
+                Image(systemName: "trash")
+            }
+            .tint(.red)
+            .accessibilityLabel("Xóa dây")
+        }
+        .animation(.snappy, value: row.completedCells)
+        .animation(.snappy, value: row.closed)
     }
 
     private var header: some View {
@@ -305,20 +325,6 @@ private struct SavingsCard: View {
             }
 
             Spacer(minLength: 4)
-
-            Menu {
-                Button(role: .destructive, action: onDelete) {
-                    Label("Xóa dây", systemImage: "trash")
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 48, height: 48)
-                    .background(Color(uiColor: .tertiarySystemFill), in: Circle())
-                    .contentShape(Circle())
-            }
-            .accessibilityLabel("Tùy chọn cho \(row.label)")
         }
         .padding(18)
     }

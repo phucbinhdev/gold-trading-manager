@@ -12,49 +12,30 @@ struct PortfolioView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 20) {
-                PortfolioCard(
-                    totalChi: store.totalChi,
-                    totalInvested: store.totalInvested,
-                    marketPrice: store.marketPrice,
-                    currentValue: store.currentValue,
-                    profit: store.profit,
-                    profitPercent: store.profitPercent,
-                    editPrice: { presentedSheet = .marketPrice }
-                )
-
-                switch store.state {
-                case .idle where store.transactions.isEmpty,
-                     .loading where store.transactions.isEmpty:
-                    ProgressView("Đang tải danh mục...")
-                        .frame(maxWidth: .infinity, minHeight: 180)
-                case .failed(let message) where store.transactions.isEmpty:
-                    StatusMessageView(
-                        symbol: "wifi.exclamationmark",
-                        title: "Không thể tải dữ liệu",
-                        message: message,
-                        action: { Task { await store.load() } }
-                    )
-                default:
-                    RecentTransactionsView(transactions: store.transactions)
-                }
-            }
-            .padding()
-            .padding(.bottom, 72)
+        AdaptiveCardList {
+            PortfolioCard(
+                totalChi: store.totalChi,
+                totalInvested: store.totalInvested,
+                marketPrice: store.marketPrice,
+                currentValue: store.currentValue,
+                profit: store.profit,
+                profitPercent: store.profitPercent,
+                realizedProfit: store.realizedProfit,
+                hasSold: store.hasSold,
+                scopeLabel: store.selectedOwner?.title ?? "Tất cả",
+                editPrice: { presentedSheet = .marketPrice }
+            )
+        } list: {
+            portfolioListContent
         }
-        .background(Color(uiColor: .systemGroupedBackground))
+        .animation(.smooth(duration: 0.35), value: store.state)
+        .animation(.smooth(duration: 0.35), value: store.transactions)
+        .animation(.smooth(duration: 0.35), value: store.selectedOwner)
         .navigationTitle("Quản Lý Vàng")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    presentedSheet = .addTransaction
-                } label: {
-                    Image(systemName: "plus")
-                        .fontWeight(.semibold)
-                }
-                .accessibilityLabel("Thêm giao dịch")
+        .overlay(alignment: .bottomTrailing) {
+            FloatingActionButton(accessibilityLabel: "Thêm giao dịch") {
+                presentedSheet = .addTransaction
             }
         }
         .refreshable { await store.load() }
@@ -66,6 +47,31 @@ struct PortfolioView: View {
             case .marketPrice:
                 MarketPriceView()
             }
+        }
+    }
+
+    @ViewBuilder
+    private var portfolioListContent: some View {
+        switch store.state {
+        case .idle where store.transactions.isEmpty,
+             .loading where store.transactions.isEmpty:
+            ProgressView("Đang tải danh mục...")
+                .frame(maxWidth: .infinity, minHeight: 180)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+        case .failed(let message) where store.transactions.isEmpty:
+            StatusMessageView(
+                symbol: "wifi.exclamationmark",
+                title: "Không thể tải dữ liệu",
+                message: message,
+                action: { Task { await store.load() } }
+            )
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+        default:
+            RecentTransactionsView(transactions: store.scopedTransactions)
         }
     }
 
@@ -84,16 +90,27 @@ struct PortfolioCard: View {
     let currentValue: Double
     let profit: Double
     let profitPercent: Double
+    let realizedProfit: Double
+    let hasSold: Bool
+    let scopeLabel: String
     let editPrice: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("TỔNG TÀI SẢN")
-                        .font(.caption.bold())
-                        .tracking(1.2)
-                        .foregroundStyle(.black.opacity(0.58))
+                    HStack(spacing: 6) {
+                        Text("TỔNG TÀI SẢN")
+                            .font(.caption.bold())
+                            .tracking(1.2)
+                            .foregroundStyle(.black.opacity(0.58))
+                        Text(scopeLabel)
+                            .font(.caption2.bold())
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(.white.opacity(0.4), in: Capsule())
+                            .foregroundStyle(.black.opacity(0.6))
+                    }
                     Text(currentValue.vnd)
                         .font(.system(.largeTitle, design: .rounded, weight: .bold))
                         .contentTransition(.numericText())
@@ -105,20 +122,38 @@ struct PortfolioCard: View {
                     .background(.white.opacity(0.3), in: RoundedRectangle(cornerRadius: 16))
             }
 
-            HStack(spacing: 7) {
-                Text("LỢI NHUẬN")
-                    .font(.caption2.bold())
-                    .foregroundStyle(.black.opacity(0.55))
-                Text("\(profit >= 0 ? "+" : "")\(profit.vnd)")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(profit >= 0 ? .green : .red)
-                Image(systemName: profit >= 0 ? "arrow.up.right" : "arrow.down.right")
-                    .font(.caption.bold())
-                    .foregroundStyle(profit >= 0 ? .green : .red)
+            HStack(spacing: 8) {
+                HStack(spacing: 7) {
+                    Text("LỢI NHUẬN")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.black.opacity(0.55))
+                    Text("\(profit >= 0 ? "+" : "")\(profit.vnd)")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(profit >= 0 ? .green : .red)
+                        .contentTransition(.numericText())
+                    Image(systemName: profit >= 0 ? "arrow.up.right" : "arrow.down.right")
+                        .font(.caption.bold())
+                        .foregroundStyle(profit >= 0 ? .green : .red)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.white.opacity(0.3), in: Capsule())
+
+                if hasSold {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.black.opacity(0.5))
+                        Text("Đã chốt \(realizedProfit >= 0 ? "+" : "")\(realizedProfit.vnd)")
+                            .font(.caption.bold())
+                            .foregroundStyle(realizedProfit >= 0 ? .green : .red)
+                            .contentTransition(.numericText())
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.white.opacity(0.3), in: Capsule())
+                }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.white.opacity(0.3), in: Capsule())
 
             Divider().overlay(.black.opacity(0.08))
 
@@ -147,6 +182,8 @@ struct PortfolioCard: View {
             in: RoundedRectangle(cornerRadius: 28, style: .continuous)
         )
         .shadow(color: AppTheme.deepGold.opacity(0.2), radius: 24, y: 14)
+        .animation(.smooth(duration: 0.4), value: marketPrice)
+        .animation(.smooth(duration: 0.4), value: currentValue)
     }
 
     private func metric(
@@ -164,6 +201,7 @@ struct PortfolioCard: View {
                     .font(.subheadline.bold())
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
+                    .contentTransition(.numericText())
                 if let action {
                     Button(action: action) {
                         Image(systemName: "pencil")
@@ -190,7 +228,15 @@ struct RecentTransactionsView: View {
     @State private var selectedYear: Int?
     @State private var pendingDeletion: GoldTransaction?
     @State private var selectedTransaction: GoldTransaction?
+    @State private var sellingTransaction: GoldTransaction?
     @State private var errorMessage: String?
+
+    private var ownerBinding: Binding<GoldOwner?> {
+        Binding(
+            get: { store.selectedOwner },
+            set: { newValue in withAnimation(.snappy) { store.selectedOwner = newValue } }
+        )
+    }
 
     private var years: [Int] {
         Array(
@@ -214,6 +260,10 @@ struct RecentTransactionsView: View {
         }
 
         return filtered.sorted {
+            // Vàng đang giữ hiển thị trước, đã bán dồn xuống dưới.
+            if $0.isSold != $1.isSold {
+                return !$0.isSold
+            }
             if $0.transactionDate != $1.transactionDate {
                 return $0.transactionDate > $1.transactionDate
             }
@@ -221,19 +271,68 @@ struct RecentTransactionsView: View {
         }
     }
 
+    private var subtitleText: String {
+        let total = filteredTransactions.count
+        let sold = filteredTransactions.filter(\.isSold).count
+        return sold > 0 ? "\(total) giao dịch · \(sold) đã bán" : "\(total) giao dịch"
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        Group {
+            Picker("Người sở hữu", selection: ownerBinding) {
+                Text("Tất cả").tag(Optional<GoldOwner>.none)
+                ForEach(GoldOwner.allCases) { owner in
+                    Text(owner.title).tag(Optional(owner))
+                }
+            }
+            .pickerStyle(.segmented)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Giao dịch gần đây")
                         .font(.headline)
 
-                    Text("\(filteredTransactions.count) giao dịch")
+                    Text(subtitleText)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 Spacer()
+            }
+            .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 6, trailing: 16))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .confirmationDialog(
+                "Xóa giao dịch này?",
+                isPresented: Binding(
+                    get: { pendingDeletion != nil },
+                    set: { if !$0 { pendingDeletion = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Xóa", role: .destructive) {
+                    deletePendingTransaction()
+                }
+                Button("Hủy", role: .cancel) {}
+            } message: {
+                Text("Hành động này không thể hoàn tác.")
+            }
+            .sheet(item: $selectedTransaction) { transaction in
+                EditTransactionView(transaction: transaction)
+            }
+            .sheet(item: $sellingTransaction) { transaction in
+                MarkSoldView(transaction: transaction, marketPrice: store.marketPrice)
+            }
+            .alert("Không thể xóa giao dịch", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("Đóng", role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "")
             }
 
             if !years.isEmpty {
@@ -246,6 +345,9 @@ struct RecentTransactionsView: View {
                         }
                     }
                 }
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             }
 
             if filteredTransactions.isEmpty {
@@ -257,47 +359,29 @@ struct RecentTransactionsView: View {
                         : "Không có giao dịch trong năm đã chọn."
                 )
                 .frame(minHeight: 170)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             } else {
                 ForEach(filteredTransactions) { transaction in
                     TransactionRow(
                         transaction: transaction,
                         editAction: { selectedTransaction = transaction },
-                        deleteAction: { pendingDeletion = transaction }
+                        deleteAction: { pendingDeletion = transaction },
+                        sellAction: { sellingTransaction = transaction },
+                        unsellAction: { unsell(transaction) }
                     )
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
                 }
             }
-        }
-        .confirmationDialog(
-            "Xóa giao dịch này?",
-            isPresented: Binding(
-                get: { pendingDeletion != nil },
-                set: { if !$0 { pendingDeletion = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Xóa", role: .destructive) {
-                deletePendingTransaction()
-            }
-            Button("Hủy", role: .cancel) {}
-        } message: {
-            Text("Hành động này không thể hoàn tác.")
-        }
-        .sheet(item: $selectedTransaction) { transaction in
-            EditTransactionView(transaction: transaction)
-        }
-        .alert("Không thể xóa giao dịch", isPresented: Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
-        )) {
-            Button("Đóng", role: .cancel) {}
-        } message: {
-            Text(errorMessage ?? "")
         }
     }
 
     private func yearButton(title: String, year: Int?) -> some View {
         Button {
-            selectedYear = year
+            withAnimation(.snappy) { selectedYear = year }
         } label: {
             Text(title)
                 .font(.caption.weight(.bold))
@@ -305,9 +389,9 @@ struct RecentTransactionsView: View {
                 .frame(height: 38)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(selectedYear == year ? .black : .primary)
+        .foregroundStyle(selectedYear == year ? .white : .primary)
         .background(
-            selectedYear == year ? AppTheme.gold : Color(uiColor: .secondarySystemGroupedBackground),
+            selectedYear == year ? AppTheme.accent : Color(uiColor: .secondarySystemGroupedBackground),
             in: Capsule()
         )
     }
@@ -323,6 +407,33 @@ struct RecentTransactionsView: View {
             pendingDeletion = nil
         }
     }
+
+    private func unsell(_ transaction: GoldTransaction) {
+        Task {
+            do {
+                try await store.clearSold(transaction)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+struct OwnerBadge: View {
+    let owner: GoldOwner
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: owner.symbol)
+                .font(.system(size: 9, weight: .bold))
+            Text(owner.title)
+                .font(.caption2.bold())
+        }
+        .foregroundStyle(owner.tint)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 2)
+        .background(owner.tint.opacity(0.15), in: Capsule())
+    }
 }
 
 struct TransactionRow: View {
@@ -330,66 +441,96 @@ struct TransactionRow: View {
     let transaction: GoldTransaction
     let editAction: () -> Void
     var deleteAction: (() -> Void)?
-    @State private var horizontalOffset: CGFloat = 0
+    var sellAction: (() -> Void)?
+    var unsellAction: (() -> Void)?
 
-    private let deleteWidth: CGFloat = 82
+    private var isSold: Bool { transaction.isSold }
 
-    private var profit: Double {
-        transaction.amountChi * store.marketPrice - transaction.cost
+    /// Lợi nhuận hiển thị: đã chốt nếu đã bán, ngược lại là lãi/lỗ theo giá thị trường.
+    private var displayProfit: Double {
+        transaction.realizedProfit ?? (transaction.amountChi * store.marketPrice - transaction.cost)
+    }
+
+    private var accentColor: Color {
+        isSold ? .secondary : (displayProfit >= 0 ? .green : .red)
     }
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            if let deleteAction, horizontalOffset < 0 {
-                Button(role: .destructive, action: deleteAction) {
-                    Label("Xóa", systemImage: "trash.fill")
-                        .labelStyle(.iconOnly)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(width: deleteWidth)
-                        .frame(maxHeight: .infinity)
-                        .background(Color.red)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Xóa giao dịch")
-            }
-
-            rowContent
-                .offset(x: horizontalOffset)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if horizontalOffset == 0 {
-                        editAction()
-                    } else {
-                        closeActions()
+        rowContent
+            .contentShape(Rectangle())
+            .onTapGesture(perform: editAction)
+            .swipeActions(edge: .leading, allowsFullSwipe: !isSold) {
+                if isSold {
+                    if let unsellAction {
+                        Button(action: unsellAction) {
+                            Image(systemName: "arrow.uturn.backward")
+                        }
+                        .tint(.gray)
+                        .accessibilityLabel("Bỏ đánh dấu đã bán")
                     }
+                    if let sellAction {
+                        Button(action: sellAction) {
+                            Image(systemName: "pencil")
+                        }
+                        .tint(.green)
+                        .accessibilityLabel("Sửa giá bán")
+                    }
+                } else if let sellAction {
+                    Button(action: sellAction) {
+                        Label("Đã bán", systemImage: "checkmark.seal.fill")
+                    }
+                    .tint(.green)
+                    .accessibilityLabel("Đánh dấu đã bán")
                 }
-                .simultaneousGesture(swipeGesture, isEnabled: deleteAction != nil)
-                .accessibilityAddTraits(.isButton)
-                .accessibilityHint("Chạm để chỉnh sửa, vuốt sang trái để hiện nút xóa")
-                .accessibilityAction(named: "Chỉnh sửa", editAction)
-                .accessibilityAction(named: "Xóa") { deleteAction?() }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                if let deleteAction {
+                    Button(role: .destructive, action: deleteAction) {
+                        Image(systemName: "trash")
+                    }
+                    .tint(.red)
+                    .accessibilityLabel("Xóa")
+                }
+            }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint("Chạm để chỉnh sửa, vuốt để đánh dấu đã bán hoặc xóa")
+            .accessibilityAction(named: "Chỉnh sửa", editAction)
+            .accessibilityAction(named: isSold ? "Bỏ đánh dấu đã bán" : "Đánh dấu đã bán") {
+                isSold ? unsellAction?() : sellAction?()
+            }
+            .accessibilityAction(named: "Xóa") { deleteAction?() }
     }
 
     private var rowContent: some View {
         HStack(spacing: 13) {
-            Image(systemName: profit >= 0 ? "arrow.up.right" : "arrow.down.right")
+            Image(systemName: isSold ? "checkmark.seal.fill" : (displayProfit >= 0 ? "arrow.up.right" : "arrow.down.right"))
                 .font(.headline)
-                .foregroundStyle(profit >= 0 ? .green : .red)
+                .foregroundStyle(accentColor)
                 .frame(width: 42, height: 42)
-                .background(
-                    (profit >= 0 ? Color.green : Color.red).opacity(0.1),
-                    in: Circle()
-                )
+                .background(accentColor.opacity(0.12), in: Circle())
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("\(transaction.amountChi.goldWeight) Chỉ")
-                    .font(.subheadline.bold())
-                Text(transaction.transactionDate.formatted(date: .numeric, time: .omitted))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Text("\(transaction.amountChi.goldWeight) Chỉ")
+                        .font(.subheadline.bold())
+                    OwnerBadge(owner: transaction.owner)
+                    if isSold {
+                        Text("Đã bán")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.12), in: Capsule())
+                    }
+                }
+                HStack(spacing: 4) {
+                    Text(transaction.transactionDate.formatted(date: .numeric, time: .omitted))
+                    if isSold, let soldDate = transaction.soldDate {
+                        Text("→ bán \(soldDate.formatted(date: .numeric, time: .omitted))")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 if let note = transaction.note, !note.isEmpty {
                     Text(note)
                         .font(.caption)
@@ -401,34 +542,19 @@ struct TransactionRow: View {
             VStack(alignment: .trailing, spacing: 3) {
                 Text(transaction.cost.vnd)
                     .font(.subheadline.bold())
-                Text("\(profit >= 0 ? "+" : "")\(profit.vnd)")
+                Text("\(displayProfit >= 0 ? "+" : "")\(displayProfit.vnd)")
                     .font(.caption.bold())
-                    .foregroundStyle(profit >= 0 ? .green : .red)
+                    .foregroundStyle(displayProfit >= 0 ? .green : .red)
+                if isSold {
+                    Text("đã chốt lời")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
-
         }
         .padding(14)
         .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
+        .opacity(isSold ? 0.9 : 1)
     }
 
-    private var swipeGesture: some Gesture {
-        DragGesture(minimumDistance: 12)
-            .onChanged { value in
-                guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                horizontalOffset = min(0, max(-deleteWidth, value.translation.width))
-            }
-            .onEnded { value in
-                let shouldReveal = value.translation.width < -deleteWidth * 0.4
-                    || value.predictedEndTranslation.width < -deleteWidth
-                withAnimation(.snappy(duration: 0.22)) {
-                    horizontalOffset = shouldReveal ? -deleteWidth : 0
-                }
-            }
-    }
-
-    private func closeActions() {
-        withAnimation(.snappy(duration: 0.22)) {
-            horizontalOffset = 0
-        }
-    }
 }

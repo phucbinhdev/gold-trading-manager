@@ -27,6 +27,13 @@ targets:
         CFBundleDisplayName: Quản Lý Vàng
         EXPO_PUBLIC_SUPABASE_URL: $(EXPO_PUBLIC_SUPABASE_URL)
         EXPO_PUBLIC_SUPABASE_ANON_KEY: $(EXPO_PUBLIC_SUPABASE_ANON_KEY)
+        NSAppTransportSecurity:
+          NSExceptionDomains:
+            btmc.vn:
+              NSIncludesSubdomains: true
+              NSExceptionAllowsInsecureHTTPLoads: true
+              NSExceptionMinimumTLSVersion: TLSv1.2
+              NSExceptionRequiresForwardSecrecy: false
         LSApplicationCategoryType: public.app-category.finance
         LSRequiresIPhoneOS: true
         UIApplicationSceneManifest:
@@ -46,6 +53,10 @@ targets:
     dependencies:
       - target: GoldManagerWidgets
         embed: true
+    preBuildScripts:
+      - name: Sync Parent Env
+        script: Scripts/sync-env-xcconfig.sh
+        basedOnDependencyAnalysis: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.phucbinh.goldmanager
@@ -59,12 +70,24 @@ targets:
   GoldManagerWidgets:
     type: app-extension
     platform: iOS
+    configFiles:
+      Debug: Config/Base.xcconfig
+      Release: Config/Base.xcconfig
     sources:
       - Widgets
+      - path: Sources/Services.swift
+      - path: Sources/FeatureAPI.swift
+      - path: Sources/Models.swift
+      - path: Sources/BudgetModels.swift
+      - path: Sources/IpadModels.swift
+      - path: Sources/RoomModels.swift
+      - path: Sources/PersonalModels.swift
     info:
       path: Widgets/Info.plist
       properties:
         CFBundleDisplayName: Gold Manager Widgets
+        EXPO_PUBLIC_SUPABASE_URL: $(EXPO_PUBLIC_SUPABASE_URL)
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: $(EXPO_PUBLIC_SUPABASE_ANON_KEY)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:

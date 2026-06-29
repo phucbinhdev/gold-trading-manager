@@ -1,9 +1,22 @@
 import SwiftUI
+import UIKit
 
 enum AppTheme {
     static let gold = Color(red: 0.96, green: 0.79, blue: 0.10)
     static let deepGold = Color(red: 0.75, green: 0.45, blue: 0.02)
+    /// Màu chủ đạo (accent/tint) toàn app — xanh dương mặc định của hệ thống.
+    static let accent = Color.blue
     static let cardBackground = Color(uiColor: .secondarySystemGroupedBackground)
+}
+
+extension GoldOwner {
+    /// Màu nhận diện cho từng người sở hữu (dùng cho badge, bộ lọc).
+    var tint: Color {
+        switch self {
+        case .binh: Color(red: 0.20, green: 0.52, blue: 0.96)
+        case .tu: Color(red: 0.55, green: 0.36, blue: 0.96)
+        }
+    }
 }
 
 extension Double {
@@ -52,6 +65,7 @@ struct DeferredNumberField: View {
             .onChange(of: isFocused) { _, focused in
                 if focused {
                     text = editingText
+                    selectAllText()
                 } else {
                     commit()
                     text = displayText
@@ -67,7 +81,8 @@ struct DeferredNumberField: View {
     }
 
     private var displayText: String {
-        switch kind {
+        guard value != 0 else { return "" }
+        return switch kind {
         case .currency:
             value.formatted(.vndInput)
         case .decimal:
@@ -80,7 +95,8 @@ struct DeferredNumberField: View {
     }
 
     private var editingText: String {
-        switch kind {
+        guard value != 0 else { return "" }
+        return switch kind {
         case .currency:
             String(Int(value.rounded()))
         case .decimal:
@@ -108,6 +124,18 @@ struct DeferredNumberField: View {
     private func commit() {
         if let parsed = parse(text) {
             value = parsed
+        }
+    }
+
+    private func selectAllText() {
+        guard !text.isEmpty else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.selectAll(_:)),
+                to: nil,
+                from: nil,
+                for: nil
+            )
         }
     }
 }
@@ -245,4 +273,107 @@ struct AppFormSaveToolbarItem: ToolbarContent {
             .disabled(!isEnabled || isLoading)
         }
     }
+}
+
+/// Nút hành động nổi (FAB) cố định ở góc dưới bên phải màn hình.
+/// Dùng chung cho các màn hình chính thay cho nút "+" trên thanh tiêu đề.
+struct FloatingActionButton: View {
+    var systemImage: String = "plus"
+    var tint: Color = AppTheme.accent
+    var isEnabled: Bool = true
+    let accessibilityLabel: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 58, height: 58)
+                .background(isEnabled ? tint : Color.secondary, in: Circle())
+                .shadow(color: tint.opacity(isEnabled ? 0.35 : 0), radius: 12, y: 6)
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .padding(.trailing, 20)
+        .padding(.bottom, 20)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+// MARK: - Bố cục thích ứng iPad
+
+/// Bố cục dùng chung cho các màn hình dạng "thẻ tổng quan + danh sách".
+///
+/// - iPhone / chiều ngang hẹp (`.compact`): thẻ nằm trên cùng, danh sách cuộn ngay
+///   bên dưới trong cùng một `List` — giữ nguyên trải nghiệm cũ.
+/// - iPad / chiều ngang rộng (`.regular`): thẻ cố định (sticky) ở cột trái, danh sách
+///   cuộn độc lập ở cột phải.
+struct AdaptiveCardList<Card: View, ListContent: View>: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    var sidebarWidth: CGFloat = 360
+    var cardInsets = EdgeInsets(top: 8, leading: 16, bottom: 10, trailing: 16)
+    @ViewBuilder var card: Card
+    @ViewBuilder var list: ListContent
+
+    private var isRegular: Bool { horizontalSizeClass == .regular }
+
+    var body: some View {
+        if isRegular {
+            HStack(alignment: .top, spacing: 0) {
+                ScrollView(.vertical, showsIndicators: false) {
+                    card
+                        .frame(maxWidth: .infinity)
+                        .padding(20)
+                }
+                .frame(width: sidebarWidth)
+
+                Divider()
+
+                List {
+                    list
+                    bottomSpacer(height: 24)
+                }
+                .cardListStyle()
+            }
+            .background(Color(uiColor: .systemGroupedBackground))
+        } else {
+            List {
+                card
+                    .listRowInsets(cardInsets)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+
+                list
+
+                bottomSpacer(height: 56)
+            }
+            .cardListStyle()
+        }
+    }
+
+    private func bottomSpacer(height: CGFloat) -> some View {
+        Color.clear
+            .frame(height: height)
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+    }
+}
+
+private struct CardListStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .listStyle(.plain)
+            .environment(\.defaultMinListRowHeight, 0)
+            .scrollContentBackground(.hidden)
+            .background(Color(uiColor: .systemGroupedBackground))
+    }
+}
+
+extension View {
+    /// Style dùng chung cho các `List` dạng thẻ: nền nhóm, ẩn nền mặc định, không giới hạn
+    /// chiều cao dòng tối thiểu.
+    func cardListStyle() -> some View { modifier(CardListStyle()) }
 }

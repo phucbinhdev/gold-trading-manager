@@ -11,15 +11,21 @@
 		07A8CE57CE2D5FC2A8B28E4A /* EditorViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 945F5926F2AC71EB1E2C0C2B /* EditorViews.swift */; };
 		089084D03EDB88AEF6CEAB19 /* RoomModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0345BBE5FA9F448FBDC9AA /* RoomModels.swift */; };
 		08A29C333337698B06626FE2 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 194C3CA6FF20BD1E63D6179F /* HistoryView.swift */; };
+		08C36C4389EF5BAE97146F26 /* IpadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5760F7EF9898D4C490120E3B /* IpadModels.swift */; };
 		14B0EC4F574BD6669035DF37 /* SavingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA8E47C9B55857499D8B0DF1 /* SavingsView.swift */; };
 		180668C65B454F4C6ABF5AAA /* FeatureAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9618D36818581AAEE8AD0639 /* FeatureAPI.swift */; };
 		224BB94A5CAE3B329C4A7B55 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 91F0A4A7C73348E2E89E213A /* Assets.xcassets */; };
+		27F8B2244BD5009F1707C574 /* WidgetDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EA537C84D7339301FD08A44 /* WidgetDataLoader.swift */; };
 		288C9DB64E5936E78AAC4074 /* IpadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C963CDC407C723ACA60438 /* IpadView.swift */; };
 		310347AB973AC8EE5C044E36 /* PortfolioViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E044A9580A782CE259FF2638 /* PortfolioViews.swift */; };
 		5B22B1CEECC7D5E474B594A6 /* BudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56BE5DD0B6E3B5F9667EFD3B /* BudgetView.swift */; };
 		6F97030E33C10E4BC1BFC54F /* GoldManagerWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F5B7BC6676E5D5C356811496 /* GoldManagerWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7AC7D21D44CFF76E6866FFE5 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125C74ECAFA4F573B2403EA9 /* Models.swift */; };
+		7BB7D09E4823B996D250EC8E /* FeatureAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9618D36818581AAEE8AD0639 /* FeatureAPI.swift */; };
 		7D4C78755422C1C1666381BF /* BudgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8370C4B6250EA0B84BE0341D /* BudgetModels.swift */; };
 		8264E7B5A45E12BF5FBDAE62 /* SavingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C396B450EC3F0210794616E6 /* SavingsStore.swift */; };
+		881054648ACF12CFE9318878 /* PersonalModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D852042492B0805800C1913 /* PersonalModels.swift */; };
+		95487A7C4957767571F0D022 /* RoomModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C0345BBE5FA9F448FBDC9AA /* RoomModels.swift */; };
 		B9876D4E528DD051AD9936DA /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 361856F5EDC6B1501215C62D /* Theme.swift */; };
 		BA0E3C8A1435E0F719761C7A /* IpadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5760F7EF9898D4C490120E3B /* IpadModels.swift */; };
 		BB39DAB0218FDA0CAC1652D2 /* GoldManagerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDA1A5CCD750FD5BC6975733 /* GoldManagerApp.swift */; };
@@ -28,7 +34,9 @@
 		C3DA7A706593703E21ED260E /* BudgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FFE4183A4CC9309C28BE3EC /* BudgetStore.swift */; };
 		C84A1AB9990A3B0D2B801B6B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125C74ECAFA4F573B2403EA9 /* Models.swift */; };
 		D32A6AD8F9C6EA6DE356D01F /* PortfolioStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F1E81D54FAF32D62609699E /* PortfolioStore.swift */; };
+		E96B180DD3D2D69E53B843E3 /* BudgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8370C4B6250EA0B84BE0341D /* BudgetModels.swift */; };
 		F229ABEDEB46A99FBB7079F1 /* GoldManagerWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0100B07FEB93C73A2A75A27A /* GoldManagerWidgets.swift */; };
+		F85F0E39FBF84138D0508294 /* Services.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6EC0FE90E3B28F5BF1E3116 /* Services.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +82,7 @@
 		91F0A4A7C73348E2E89E213A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		945F5926F2AC71EB1E2C0C2B /* EditorViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorViews.swift; sourceTree = "<group>"; };
 		9618D36818581AAEE8AD0639 /* FeatureAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureAPI.swift; sourceTree = "<group>"; };
+		9EA537C84D7339301FD08A44 /* WidgetDataLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetDataLoader.swift; sourceTree = "<group>"; };
 		B6EC0FE90E3B28F5BF1E3116 /* Services.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services.swift; sourceTree = "<group>"; };
 		C396B450EC3F0210794616E6 /* SavingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavingsStore.swift; sourceTree = "<group>"; };
 		CDA1A5CCD750FD5BC6975733 /* GoldManagerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldManagerApp.swift; sourceTree = "<group>"; };
@@ -153,6 +162,7 @@
 			children = (
 				0100B07FEB93C73A2A75A27A /* GoldManagerWidgets.swift */,
 				0CEF05A8E065C77A541C8FAD /* Info.plist */,
+				9EA537C84D7339301FD08A44 /* WidgetDataLoader.swift */,
 			);
 			path = Widgets;
 			sourceTree = "<group>";
@@ -181,6 +191,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A8300EBFA7822894ECC316A5 /* Build configuration list for PBXNativeTarget "GoldManager" */;
 			buildPhases = (
+				8B6021ABD52130899486DF0F /* Sync Parent Env */,
 				F3F52AEA2EB5A6E95ABEE812 /* Sources */,
 				8414651D92F497258B1FEC66 /* Resources */,
 				160D8C5112E9394EF56B8E10 /* Embed Foundation Extensions */,
@@ -245,12 +256,42 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		8B6021ABD52130899486DF0F /* Sync Parent Env */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Sync Parent Env";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "Scripts/sync-env-xcconfig.sh";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		9C8625336275F42F1E1C7434 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E96B180DD3D2D69E53B843E3 /* BudgetModels.swift in Sources */,
+				7BB7D09E4823B996D250EC8E /* FeatureAPI.swift in Sources */,
 				F229ABEDEB46A99FBB7079F1 /* GoldManagerWidgets.swift in Sources */,
+				08C36C4389EF5BAE97146F26 /* IpadModels.swift in Sources */,
+				7AC7D21D44CFF76E6866FFE5 /* Models.swift in Sources */,
+				881054648ACF12CFE9318878 /* PersonalModels.swift in Sources */,
+				95487A7C4957767571F0D022 /* RoomModels.swift in Sources */,
+				F85F0E39FBF84138D0508294 /* Services.swift in Sources */,
+				27F8B2244BD5009F1707C574 /* WidgetDataLoader.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -293,6 +334,7 @@
 /* Begin XCBuildConfiguration section */
 		9C0635F2BA31AE0F6AB07EF8 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 44EF85261B6CC64D2B19615A /* Base.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				DEVELOPMENT_TEAM = QGCQL2BU62;
@@ -418,6 +460,7 @@
 		};
 		F263A240D6121121C617B68A /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 44EF85261B6CC64D2B19615A /* Base.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				DEVELOPMENT_TEAM = QGCQL2BU62;

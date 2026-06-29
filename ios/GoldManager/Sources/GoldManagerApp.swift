@@ -14,7 +14,7 @@ struct GoldManagerApp: App {
                 .environment(budgetStore)
                 .environment(savingsStore)
                 .environment(ipadStore)
-                .tint(AppTheme.gold)
+                .tint(AppTheme.accent)
         }
     }
 }

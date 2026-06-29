@@ -7,65 +7,15 @@ struct IpadView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                monthFilter
-                summary
-                listFilters
-
-                HStack {
-                    Text("Danh sách máy")
-                        .font(.headline)
-                    Spacer()
-                    Text("\(store.visibleTransactions.count) máy")
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
-                }
-
-                switch store.state {
-                case .idle where store.transactions.isEmpty,
-                     .loading where store.transactions.isEmpty:
-                    ProgressView("Đang tải kho iPad...")
-                        .frame(maxWidth: .infinity, minHeight: 180)
-                case .failed(let message) where store.transactions.isEmpty:
-                    StatusMessageView(
-                        symbol: "exclamationmark.triangle",
-                        title: "Không thể tải kho",
-                        message: message,
-                        action: { Task { await store.load(configuration: appStore.configuration) } }
-                    )
-                default:
-                    if store.visibleTransactions.isEmpty {
-                        StatusMessageView(
-                            symbol: "ipad",
-                            title: "Chưa có máy",
-                            message: "Thêm giao dịch nhập iPad đầu tiên."
-                        )
-                        .frame(minHeight: 180)
-                    } else {
-                        ForEach(store.visibleTransactions) { transaction in
-                            IpadRow(
-                                transaction: transaction,
-                                saleAction: { sheet = .sale(transaction) },
-                                editAction: { sheet = .edit(transaction) },
-                                errorMessage: $errorMessage
-                            )
-                        }
-                    }
-                }
-            }
-            .padding()
-            .padding(.bottom, 70)
+        AdaptiveCardList(cardInsets: EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)) {
+            ipadControlCard
+        } list: {
+            ipadListContent
         }
-        .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("Mua bán iPad")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    sheet = .add
-                } label: {
-                    Image(systemName: "plus")
-                }
+        .overlay(alignment: .bottomTrailing) {
+            FloatingActionButton(accessibilityLabel: "Thêm iPad") {
+                sheet = .add
             }
         }
         .task { await store.load(configuration: appStore.configuration) }
@@ -87,6 +37,74 @@ struct IpadView: View {
             Button("Đóng", role: .cancel) {}
         } message: {
             Text(errorMessage ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private var ipadControlCard: some View {
+        VStack(spacing: 14) {
+            monthFilter
+            summary
+            listFilters
+        }
+    }
+
+    @ViewBuilder
+    private var ipadListContent: some View {
+        HStack {
+            Text("Danh sách máy")
+                .font(.headline)
+            Spacer()
+            Text("\(store.visibleTransactions.count) máy")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+        }
+        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+
+        switch store.state {
+        case .idle where store.transactions.isEmpty,
+             .loading where store.transactions.isEmpty:
+            ProgressView("Đang tải kho iPad...")
+                .frame(maxWidth: .infinity, minHeight: 180)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+        case .failed(let message) where store.transactions.isEmpty:
+            StatusMessageView(
+                symbol: "exclamationmark.triangle",
+                title: "Không thể tải kho",
+                message: message,
+                action: { Task { await store.load(configuration: appStore.configuration) } }
+            )
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+        default:
+            if store.visibleTransactions.isEmpty {
+                StatusMessageView(
+                    symbol: "ipad",
+                    title: "Chưa có máy",
+                    message: "Thêm giao dịch nhập iPad đầu tiên."
+                )
+                .frame(minHeight: 180)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(store.visibleTransactions) { transaction in
+                    IpadRow(
+                        transaction: transaction,
+                        saleAction: { sheet = .sale(transaction) },
+                        editAction: { sheet = .edit(transaction) },
+                        errorMessage: $errorMessage
+                    )
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                }
+            }
         }
     }
 

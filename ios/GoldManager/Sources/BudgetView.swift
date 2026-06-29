@@ -9,71 +9,22 @@ struct BudgetView: View {
     @State private var pendingDeletion: BudgetEntry?
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                monthSelector
-                sourceSelector
-                summaryCard
-
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(store.selectedSource?.name ?? "Nguồn tiền")
-                            .font(.headline)
-                        Text("\(store.entries.count) khoản thu chi")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                }
-
-                switch store.state {
-                case .idle where store.entries.isEmpty,
-                     .loading where store.entries.isEmpty:
-                    ProgressView("Đang tải ngân sách...")
-                        .frame(maxWidth: .infinity, minHeight: 160)
-                case .failed(let message) where store.entries.isEmpty:
-                    StatusMessageView(
-                        symbol: "exclamationmark.triangle",
-                        title: "Không thể tải ngân sách",
-                        message: message,
-                        action: { Task { await store.load(configuration: appStore.configuration) } }
-                    )
-                default:
-                    if store.entries.isEmpty {
-                        StatusMessageView(
-                            symbol: "list.bullet.clipboard",
-                            title: "Chưa có khoản thu chi",
-                            message: "Thêm khoản đầu tiên để tính số tiền còn lại."
-                        )
-                        .frame(minHeight: 170)
-                    } else {
-                        ForEach(store.entries) { entry in
-                            BudgetEntryRow(
-                                entry: entry,
-                                errorMessage: $errorMessage,
-                                onEdit: { sheet = .editEntry(entry) },
-                                onDelete: { pendingDeletion = entry }
-                            )
-                        }
-                    }
-                }
-            }
-            .padding()
-            .padding(.bottom, 70)
+        AdaptiveCardList(cardInsets: EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)) {
+            budgetControlCard
+        } list: {
+            budgetListContent
         }
-        .background(Color(uiColor: .systemGroupedBackground))
+        .animation(.smooth(duration: 0.35), value: store.state)
+        .animation(.smooth(duration: 0.35), value: store.entries)
+        .animation(.snappy, value: store.selectedSourceId)
         .navigationTitle("Tính nợ")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    sheet = .addEntry
-                } label: {
-                    Image(systemName: "plus")
-                        .fontWeight(.semibold)
-                }
-                .disabled(store.budget == nil)
-                .accessibilityLabel("Thêm khoản thu chi")
+        .overlay(alignment: .bottomTrailing) {
+            FloatingActionButton(
+                isEnabled: store.budget != nil,
+                accessibilityLabel: "Thêm khoản thu chi"
+            ) {
+                sheet = .addEntry
             }
         }
         .refreshable { await store.load(configuration: appStore.configuration) }
@@ -120,6 +71,76 @@ struct BudgetView: View {
         }
     }
 
+    @ViewBuilder
+    private var budgetControlCard: some View {
+        VStack(spacing: 12) {
+            monthSelector
+            sourceSelector
+            summaryCard
+        }
+    }
+
+    @ViewBuilder
+    private var budgetListContent: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(store.selectedSource?.name ?? "Nguồn tiền")
+                    .font(.headline)
+                Text("\(store.entries.count) khoản thu chi")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+
+        switch store.state {
+        case .idle where store.entries.isEmpty,
+             .loading where store.entries.isEmpty:
+            ProgressView("Đang tải ngân sách...")
+                .frame(maxWidth: .infinity, minHeight: 160)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+        case .failed(let message) where store.entries.isEmpty:
+            StatusMessageView(
+                symbol: "exclamationmark.triangle",
+                title: "Không thể tải ngân sách",
+                message: message,
+                action: { Task { await store.load(configuration: appStore.configuration) } }
+            )
+            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+        default:
+            if store.entries.isEmpty {
+                StatusMessageView(
+                    symbol: "list.bullet.clipboard",
+                    title: "Chưa có khoản thu chi",
+                    message: "Thêm khoản đầu tiên để tính số tiền còn lại."
+                )
+                .frame(minHeight: 170)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(store.entries) { entry in
+                    BudgetEntryRow(
+                        entry: entry,
+                        errorMessage: $errorMessage,
+                        onEdit: { sheet = .editEntry(entry) },
+                        onDelete: { pendingDeletion = entry }
+                    )
+                    .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                }
+            }
+        }
+    }
+
     private var monthSelector: some View {
         HStack {
             Button {
@@ -127,6 +148,8 @@ struct BudgetView: View {
             } label: {
                 Image(systemName: "chevron.left")
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Tháng trước")
             Spacer()
             VStack(spacing: 2) {
                 Text("THÁNG")
@@ -134,6 +157,8 @@ struct BudgetView: View {
                     .foregroundStyle(.secondary)
                 Text(store.month.formatted(.dateTime.month(.twoDigits).year()))
                     .font(.headline)
+                    .contentTransition(.numericText())
+                    .animation(.snappy, value: store.month)
             }
             Spacer()
             Button {
@@ -141,6 +166,8 @@ struct BudgetView: View {
             } label: {
                 Image(systemName: "chevron.right")
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Tháng sau")
         }
         .padding()
         .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 18))
@@ -208,6 +235,7 @@ struct BudgetView: View {
                         .font(.system(size: 34, weight: .bold, design: .rounded))
                         .minimumScaleFactor(0.72)
                         .lineLimit(1)
+                        .contentTransition(.numericText())
                 }
                 Spacer()
                 Button {
@@ -237,6 +265,10 @@ struct BudgetView: View {
             in: RoundedRectangle(cornerRadius: 26)
         )
         .shadow(color: .indigo.opacity(0.2), radius: 20, y: 10)
+        .animation(.smooth(duration: 0.4), value: store.availableIncome)
+        .animation(.smooth(duration: 0.4), value: store.totalExpenses)
+        .animation(.smooth(duration: 0.4), value: store.remaining)
+        .animation(.smooth(duration: 0.4), value: store.recordIncome)
     }
 
     private func summaryMetric(_ title: String, value: String) -> some View {
@@ -248,6 +280,7 @@ struct BudgetView: View {
                 .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
                 .lineLimit(1)
                 .minimumScaleFactor(0.65)
+                .contentTransition(.numericText())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -291,9 +324,6 @@ private struct BudgetEntryRow: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
     @State private var isExpanded = false
-    @State private var horizontalOffset: CGFloat = 0
-
-    private let deleteWidth: CGFloat = 82
 
     private var isPending: Bool {
         store.pendingEntryIds.contains(entry.id)
@@ -305,39 +335,31 @@ private struct BudgetEntryRow: View {
     }
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            if canDelete, horizontalOffset < 0 {
-                Button(role: .destructive, action: onDelete) {
-                    Image(systemName: "trash.fill")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(width: deleteWidth)
-                        .frame(maxHeight: .infinity)
-                        .background(Color.red)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Xóa khoản thu chi")
-            }
-
-            rowContent
-                .offset(x: horizontalOffset)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if horizontalOffset == 0 {
-                        onEdit()
-                    } else {
-                        closeActions()
+        rowContent
+            .contentShape(Rectangle())
+            .onTapGesture(perform: toggleSelected)
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                if canDelete {
+                    Button(role: .destructive, action: onDelete) {
+                        Image(systemName: "trash")
                     }
+                    .tint(.red)
+                    .accessibilityLabel("Xóa")
                 }
-                .simultaneousGesture(swipeGesture, isEnabled: canDelete)
-                .accessibilityAddTraits(.isButton)
-                .accessibilityHint("Chạm để chỉnh sửa, vuốt sang trái để hiện nút xóa")
-                .accessibilityAction(named: "Chỉnh sửa", onEdit)
-                .accessibilityAction(named: "Xóa", onDelete)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .animation(.snappy, value: entry.isSelected)
-        .animation(.snappy, value: entry.isPaid)
+
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                }
+                .tint(.indigo)
+                .accessibilityLabel("Chỉnh sửa")
+            }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint("Chạm để bật/tắt khoản này, vuốt sang trái để sửa hoặc xóa")
+            .accessibilityAction(.default, toggleSelected)
+            .accessibilityAction(named: "Chỉnh sửa", onEdit)
+            .accessibilityAction(named: "Xóa", onDelete)
+            .animation(.snappy, value: entry.isSelected)
+            .animation(.snappy, value: entry.isPaid)
     }
 
     private var rowContent: some View {
@@ -476,26 +498,6 @@ private struct BudgetEntryRow: View {
         !isPending
     }
 
-    private var swipeGesture: some Gesture {
-        DragGesture(minimumDistance: 12)
-            .onChanged { value in
-                guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                horizontalOffset = min(0, max(-deleteWidth, value.translation.width))
-            }
-            .onEnded { value in
-                let shouldReveal = value.translation.width < -deleteWidth * 0.4
-                    || value.predictedEndTranslation.width < -deleteWidth
-                withAnimation(.snappy(duration: 0.22)) {
-                    horizontalOffset = shouldReveal ? -deleteWidth : 0
-                }
-            }
-    }
-
-    private func closeActions() {
-        withAnimation(.snappy(duration: 0.22)) {
-            horizontalOffset = 0
-        }
-    }
 
     private func toggleSelected() {
         Task {
