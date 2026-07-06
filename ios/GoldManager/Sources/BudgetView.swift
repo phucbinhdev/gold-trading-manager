@@ -17,7 +17,7 @@ struct BudgetView: View {
         .animation(.smooth(duration: 0.35), value: store.state)
         .animation(.smooth(duration: 0.35), value: store.entries)
         .animation(.snappy, value: store.selectedSourceId)
-        .navigationTitle("Tính nợ")
+        .navigationTitle("Quản lý thu chi")
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(

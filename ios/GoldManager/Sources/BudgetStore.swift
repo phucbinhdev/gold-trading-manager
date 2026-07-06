@@ -15,6 +15,40 @@ final class BudgetStore {
 
     private let client = SupabaseClient()
 
+    private static let cacheKey = "budget"
+
+    private struct BudgetCache: Codable {
+        var sources: [BudgetSource]
+        var selectedSourceId: UUID?
+        var monthKey: String
+        var budget: BudgetMonth?
+        var entries: [BudgetEntry]
+    }
+
+    init() {
+        guard let cache = LocalCache.load(BudgetCache.self, key: Self.cacheKey) else { return }
+        sources = cache.sources
+        selectedSourceId = cache.selectedSourceId
+        // Chỉ áp khoản thu/chi nếu cache đúng tháng đang xem.
+        if cache.monthKey == monthKey {
+            budget = cache.budget
+            entries = cache.entries
+        }
+    }
+
+    private func saveCache() {
+        LocalCache.save(
+            BudgetCache(
+                sources: sources,
+                selectedSourceId: selectedSourceId,
+                monthKey: monthKey,
+                budget: budget,
+                entries: entries
+            ),
+            key: Self.cacheKey
+        )
+    }
+
     var selectedSource: BudgetSource? {
         sources.first { $0.id == selectedSourceId }
     }
@@ -67,10 +101,11 @@ final class BudgetStore {
             }
             try await loadSelectedMonth(configuration: configuration)
             state = .loaded
+            saveCache()
         } catch is CancellationError {
             return
         } catch {
-            state = .failed(error.localizedDescription)
+            state = sources.isEmpty ? .failed(error.localizedDescription) : .loaded
         }
     }
 

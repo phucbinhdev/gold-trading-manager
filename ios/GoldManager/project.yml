@@ -25,6 +25,7 @@ targets:
       path: Resources/Info.plist
       properties:
         CFBundleDisplayName: Quản Lý Vàng
+        NSFaceIDUsageDescription: Dùng Face ID để mở khóa và bảo vệ dữ liệu tài chính của bạn.
         EXPO_PUBLIC_SUPABASE_URL: $(EXPO_PUBLIC_SUPABASE_URL)
         EXPO_PUBLIC_SUPABASE_ANON_KEY: $(EXPO_PUBLIC_SUPABASE_ANON_KEY)
         NSAppTransportSecurity:

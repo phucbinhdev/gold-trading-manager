@@ -33,6 +33,16 @@ struct PortfolioView: View {
         .animation(.smooth(duration: 0.35), value: store.selectedOwner)
         .navigationTitle("Quản Lý Vàng")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    presentedSheet = .priceHistory
+                } label: {
+                    Image(systemName: "chart.xyaxis.line")
+                }
+                .accessibilityLabel("Lịch sử giá vàng")
+            }
+        }
         .overlay(alignment: .bottomTrailing) {
             FloatingActionButton(accessibilityLabel: "Thêm giao dịch") {
                 presentedSheet = .addTransaction
@@ -46,6 +56,8 @@ struct PortfolioView: View {
                 AddTransactionView()
             case .marketPrice:
                 MarketPriceView()
+            case .priceHistory:
+                PriceHistoryView()
             }
         }
     }
@@ -80,6 +92,7 @@ struct PortfolioView: View {
 private enum PortfolioSheet: String, Identifiable {
     case addTransaction
     case marketPrice
+    case priceHistory
     var id: String { rawValue }
 }
 

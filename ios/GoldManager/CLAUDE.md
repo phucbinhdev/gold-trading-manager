@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Native SwiftUI iOS client (`ios/GoldManager`) for the "Gold Trading Manager". It talks to the **same Supabase backend** as the Next.js web app at the repo root — there is no separate iOS backend. Four feature modules, each surfaced as a tab and as Home Screen widgets:
 
 - **Vàng** (portfolio) — gold holdings, market price, profit, buy/sell transactions
-- **Tính nợ** (budget) — monthly budgets per source: income, expenses, paid state
+- **Quản lý thu chi** (budget) — monthly budgets per source: income, expenses, paid state
 - **Tích góp** (savings) — savings wires with per-payment cells
 - **iPad** — inventory, sales, profit, and debt tracking
 

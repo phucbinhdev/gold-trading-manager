@@ -31,6 +31,26 @@ extension Double {
     var goldWeight: String {
         formatted(.number.locale(Locale(identifier: "vi_VN")).precision(.fractionLength(0...2)))
     }
+
+    /// Tiền VND rút gọn cho không gian hẹp: "1,2 tỷ", "12,5 tr", "850 N".
+    var compactVND: String {
+        let value = abs(self)
+        let sign = self < 0 ? "-" : ""
+        let vi = Locale(identifier: "vi_VN")
+        func number(_ amount: Double, _ fraction: Int) -> String {
+            amount.formatted(.number.locale(vi).precision(.fractionLength(0...fraction)))
+        }
+        switch value {
+        case 1_000_000_000...:
+            return "\(sign)\(number(value / 1_000_000_000, 2)) tỷ"
+        case 1_000_000...:
+            return "\(sign)\(number(value / 1_000_000, 1)) tr"
+        case 1_000...:
+            return "\(sign)\(number(value / 1_000, 0)) N"
+        default:
+            return "\(sign)\(number(value, 0))"
+        }
+    }
 }
 
 extension FormatStyle where Self == FloatingPointFormatStyle<Double> {

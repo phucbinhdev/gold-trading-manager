@@ -11,6 +11,18 @@ final class SavingsStore {
 
     private let client = SupabaseClient()
 
+    private static let cacheKey = "savings"
+
+    init() {
+        if let cached = LocalCache.load([SavingsRow].self, key: Self.cacheKey) {
+            rows = cached
+        }
+    }
+
+    private func saveCache() {
+        LocalCache.save(rows, key: Self.cacheKey)
+    }
+
     var totalGoal: Double {
         rows.reduce(0) { $0 + Double($1.totalCells) * $1.periodAmount }
     }
@@ -47,10 +59,11 @@ final class SavingsStore {
         do {
             rows = try await client.fetchSavings(configuration: configuration)
             state = .loaded
+            saveCache()
         } catch is CancellationError {
             return
         } catch {
-            state = .failed(error.localizedDescription)
+            state = rows.isEmpty ? .failed(error.localizedDescription) : .loaded
         }
     }
 

@@ -7,6 +7,8 @@ import UIKit
 final class PortfolioStore {
     var transactions: [GoldTransaction] = []
     var marketPrice = 8_000_000.0
+    /// Lịch sử giá vàng theo ngày (tăng dần) để vẽ biểu đồ.
+    var priceHistory: [GoldPricePoint] = []
     var state: LoadState = .idle
     var configuration: SupabaseConfiguration
     /// Bộ lọc theo người sở hữu. `nil` = xem tất cả.
@@ -41,6 +43,14 @@ final class PortfolioStore {
     private let client = SupabaseClient()
     private let goldClient = BTMCGoldPriceClient()
 
+    private static let cacheKey = "portfolio"
+
+    private struct PortfolioCache: Codable {
+        var transactions: [GoldTransaction]
+        var marketPrice: Double
+        var priceHistory: [GoldPricePoint]?
+    }
+
     init() {
         let environment = ProcessInfo.processInfo.environment
         configuration = SupabaseConfiguration(
@@ -50,6 +60,26 @@ final class PortfolioStore {
             anonKey: Self.buildSetting("EXPO_PUBLIC_SUPABASE_ANON_KEY")
                 ?? environment["EXPO_PUBLIC_SUPABASE_ANON_KEY"]
                 ?? ""
+        )
+        loadCache()
+    }
+
+    /// Nạp dữ liệu lần cuối từ cache để hiển thị ngay khi mở app (kể cả offline).
+    private func loadCache() {
+        guard let cache = LocalCache.load(PortfolioCache.self, key: Self.cacheKey) else { return }
+        transactions = cache.transactions
+        marketPrice = cache.marketPrice
+        priceHistory = cache.priceHistory ?? []
+    }
+
+    private func saveCache() {
+        LocalCache.save(
+            PortfolioCache(
+                transactions: transactions,
+                marketPrice: marketPrice,
+                priceHistory: priceHistory
+            ),
+            key: Self.cacheKey
         )
     }
 
@@ -116,13 +146,47 @@ final class PortfolioStore {
             transactions = try await loadedTransactions
             applySettings(try await loadedSettings)
             state = .loaded
+            saveCache()
         } catch is CancellationError {
             return
         } catch {
-            state = .failed(error.localizedDescription)
+            // Còn dữ liệu cũ (cache) thì giữ hiển thị thay vì báo lỗi toàn màn.
+            state = transactions.isEmpty ? .failed(error.localizedDescription) : .loaded
         }
         // Lấy giá BTMC theo kiểu "tốt nhất có thể": lỗi mạng không làm hỏng màn hình.
         await refreshLiveQuotes()
+        await refreshPriceHistory()
+    }
+
+    /// Tải lịch sử giá vàng; bỏ qua lỗi (vd bảng chưa tạo) để giữ dữ liệu cache.
+    func refreshPriceHistory() async {
+        do {
+            let points = try await client.fetchGoldPriceHistory(configuration: configuration)
+            if !points.isEmpty {
+                priceHistory = points
+                saveCache()
+            }
+        } catch {
+            // Giữ nguyên lịch sử đang có khi không tải được.
+        }
+    }
+
+    /// Ghi giá hôm nay vào lịch sử (bỏ qua nếu bảng chưa tạo) và cập nhật biểu đồ cục bộ ngay.
+    private func recordTodayPrice(_ price: Double) async {
+        try? await client.recordGoldPrice(date: Date(), price: price, configuration: configuration)
+        upsertLocalHistory(price: price)
+    }
+
+    private func upsertLocalHistory(price: Double) {
+        guard let day = DateFormatters.parseDatabaseDay(DateFormatters.formatDatabaseDay(Date())) else { return }
+        let point = GoldPricePoint(priceDate: day, price: price)
+        if let index = priceHistory.firstIndex(where: { $0.priceDate == day }) {
+            priceHistory[index] = point
+        } else {
+            priceHistory.append(point)
+            priceHistory.sort { $0.priceDate < $1.priceDate }
+        }
+        saveCache()
     }
 
     /// Áp dụng giá thị trường + cấu hình lấy giá đã lưu trong `app_settings`.
@@ -196,6 +260,7 @@ final class PortfolioStore {
             )
             marketPrice = price
             autoFilledDate = today
+            await recordTodayPrice(price)
         } catch {
             // Bỏ qua lỗi ghi — sẽ thử lại lần mở app sau.
         }
@@ -310,6 +375,7 @@ final class PortfolioStore {
         priceSide = side
         autoUpdateEnabled = autoUpdate
         autoFilledDate = today
+        await recordTodayPrice(price)
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 

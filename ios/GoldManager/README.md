@@ -14,7 +14,7 @@ Native SwiftUI client for the four requested application modules.
 Four data-driven widgets, one per screen (small + medium families):
 
 - **Vàng** — current total value, profit, market price, capital, and realized gain
-- **Tính nợ** — remaining balance, total income, and planned expenses for the selected source/month
+- **Quản lý thu chi** — remaining balance, total income, and planned expenses for the selected source/month
 - **Tích góp** — overall progress ring with paid / goal / remaining
 - **iPad** — current-month profit, capital, revenue, and unpaid debt
 

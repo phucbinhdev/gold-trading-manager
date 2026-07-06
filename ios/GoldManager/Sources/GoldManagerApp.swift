@@ -6,6 +6,8 @@ struct GoldManagerApp: App {
     @State private var budgetStore = BudgetStore()
     @State private var savingsStore = SavingsStore()
     @State private var ipadStore = IpadStore()
+    @State private var appLock = AppLockManager()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -14,12 +16,34 @@ struct GoldManagerApp: App {
                 .environment(budgetStore)
                 .environment(savingsStore)
                 .environment(ipadStore)
+                .environment(appLock)
                 .tint(AppTheme.accent)
+                .overlay {
+                    if appLock.isLocked {
+                        LockScreenView()
+                            .environment(appLock)
+                    } else if appLock.isEnabled, scenePhase == .inactive {
+                        PrivacyCoverView()
+                    }
+                }
+                .animation(.easeInOut(duration: 0.2), value: appLock.isLocked)
+                .task { await appLock.authenticate() }
+                .onChange(of: scenePhase) { _, newPhase in
+                    switch newPhase {
+                    case .background:
+                        appLock.lock()
+                    case .active:
+                        Task { await appLock.authenticate() }
+                    default:
+                        break
+                    }
+                }
         }
     }
 }
 
-private enum AppTab: String, Hashable {
+enum AppTab: String, Hashable {
+    case home
     case portfolio
     case budget
     case savings
@@ -31,11 +55,19 @@ struct AppView: View {
 
     init() {
         let requestedTab = ProcessInfo.processInfo.environment["GOLD_MANAGER_START_TAB"]
-        _selection = State(initialValue: AppTab(rawValue: requestedTab ?? "") ?? .portfolio)
+        _selection = State(initialValue: AppTab(rawValue: requestedTab ?? "") ?? .home)
     }
 
     var body: some View {
         TabView(selection: $selection) {
+            NavigationStack {
+                HomeView(selection: $selection)
+            }
+            .tabItem {
+                Label("Tổng quan", systemImage: "square.grid.2x2.fill")
+            }
+            .tag(AppTab.home)
+
             NavigationStack {
                 PortfolioView()
             }
@@ -48,7 +80,7 @@ struct AppView: View {
                 BudgetView()
             }
             .tabItem {
-                Label("Tính nợ", systemImage: "list.bullet.clipboard.fill")
+                Label("Thu chi", systemImage: "list.bullet.clipboard.fill")
             }
             .tag(AppTab.budget)
 

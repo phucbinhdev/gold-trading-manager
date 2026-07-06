@@ -39,7 +39,7 @@ struct BudgetWidgetEntry: Sendable, Identifiable {
     let isSelected: Bool
 }
 
-/// Màn "Tính nợ": thu/chi và số dư còn lại của nguồn tiền đầu tiên trong tháng hiện tại.
+/// Màn "Quản lý thu chi": thu/chi và số dư còn lại của nguồn tiền đầu tiên trong tháng hiện tại.
 struct BudgetWidgetSnapshot: Sendable {
     var sourceName: String
     var monthLabel: String

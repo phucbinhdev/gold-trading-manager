@@ -139,6 +139,42 @@ actor SupabaseClient {
         )
     }
 
+    /// Lịch sử giá vàng (mới nhất `days` ngày), trả theo thứ tự ngày tăng dần để vẽ biểu đồ.
+    func fetchGoldPriceHistory(
+        days: Int = 90,
+        configuration: SupabaseConfiguration
+    ) async throws -> [GoldPricePoint] {
+        let request = try request(
+            configuration: configuration,
+            path: "gold_price_history",
+            query: [
+                URLQueryItem(name: "select", value: "price_date,price"),
+                URLQueryItem(name: "order", value: "price_date.desc"),
+                URLQueryItem(name: "limit", value: String(days))
+            ]
+        )
+        let points: [GoldPricePoint] = try await send(request)
+        return points.sorted { $0.priceDate < $1.priceDate }
+    }
+
+    /// Ghi (upsert) giá vàng của một ngày vào `gold_price_history`.
+    func recordGoldPrice(
+        date: Date,
+        price: Double,
+        configuration: SupabaseConfiguration
+    ) async throws {
+        let payload = [GoldPriceRecord(priceDate: DateFormatters.formatDatabaseDay(date), price: price)]
+        var request = try request(
+            configuration: configuration,
+            path: "gold_price_history",
+            query: [URLQueryItem(name: "on_conflict", value: "price_date")]
+        )
+        request.httpMethod = "POST"
+        request.setValue("resolution=merge-duplicates,return=minimal", forHTTPHeaderField: "Prefer")
+        request.httpBody = try encoder.encode(payload)
+        try await sendWithoutBody(request)
+    }
+
     /// Đọc toàn bộ key/value trong bảng `app_settings`.
     func fetchAppSettings(configuration: SupabaseConfiguration) async throws -> [AppSetting] {
         let request = try request(

@@ -103,6 +103,8 @@ private struct WidgetHeader: View {
             Text(title)
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             Spacer(minLength: 0)
             if let subtitle {
                 Text(subtitle)
@@ -445,7 +447,7 @@ private struct PortfolioWidget: Widget {
     }
 }
 
-// MARK: - Widget Tính nợ
+// MARK: - Widget Quản lý thu chi
 
 private struct BudgetWidgetView: View {
     @Environment(\.widgetFamily) private var family
@@ -470,7 +472,7 @@ private struct BudgetWidgetView: View {
                     compactContent(data)
                 }
             } else {
-                WidgetEmptyState(systemImage: "list.bullet.clipboard.fill", title: "Tính nợ")
+                WidgetEmptyState(systemImage: "list.bullet.clipboard.fill", title: "Quản lý thu chi")
             }
         }
         .widgetURL(tabURL("budget"))
@@ -481,7 +483,7 @@ private struct BudgetWidgetView: View {
     @ViewBuilder
     private func compactContent(_ data: BudgetWidgetSnapshot) -> some View {
         VStack(alignment: .leading, spacing: family == .systemSmall ? 8 : 10) {
-            WidgetHeader(systemImage: "list.bullet.clipboard.fill", title: "Tính nợ",
+            WidgetHeader(systemImage: "list.bullet.clipboard.fill", title: "Quản lý thu chi",
                          subtitle: data.monthLabel)
 
             HeroStat(label: "Còn lại · \(data.sourceName)",
@@ -521,7 +523,7 @@ private struct BudgetWidgetView: View {
 
     private func summarySection(_ data: BudgetWidgetSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            WidgetHeader(systemImage: "list.bullet.clipboard.fill", title: "Tính nợ",
+            WidgetHeader(systemImage: "list.bullet.clipboard.fill", title: "Quản lý thu chi",
                          subtitle: "\(data.sourceName) · \(data.monthLabel)")
 
             HStack(spacing: 8) {
@@ -666,7 +668,7 @@ private struct BudgetWidget: Widget {
         ) { entry in
             BudgetWidgetView(entry: entry)
         }
-        .configurationDisplayName("Tính nợ")
+        .configurationDisplayName("Quản lý thu chi")
         .description("Thu chi, số dư còn lại và danh sách khoản thu chi tương tác trong tháng.")
         .supportedFamilies(families)
     }

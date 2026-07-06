@@ -28,6 +28,18 @@ final class IpadStore {
 
     private let client = SupabaseClient()
 
+    private static let cacheKey = "ipad"
+
+    init() {
+        if let cached = LocalCache.load([IpadTransaction].self, key: Self.cacheKey) {
+            transactions = cached.sorted(by: Self.compareTransactions)
+        }
+    }
+
+    private func saveCache() {
+        LocalCache.save(transactions, key: Self.cacheKey)
+    }
+
     var visibleTransactions: [IpadTransaction] {
         transactions
             .filter { transaction in
@@ -76,10 +88,11 @@ final class IpadStore {
             transactions = try await client.fetchIpadTransactions(configuration: configuration)
                 .sorted(by: Self.compareTransactions)
             state = .loaded
+            saveCache()
         } catch is CancellationError {
             return
         } catch {
-            state = .failed(error.localizedDescription)
+            state = transactions.isEmpty ? .failed(error.localizedDescription) : .loaded
         }
     }
 

@@ -115,6 +115,30 @@ struct TransactionSoldPayload: Encodable, Sendable {
     }
 }
 
+/// Một điểm giá vàng theo ngày — dùng vẽ biểu đồ lịch sử.
+struct GoldPricePoint: Codable, Identifiable, Hashable, Sendable {
+    let priceDate: Date
+    let price: Double
+
+    var id: Date { priceDate }
+
+    enum CodingKeys: String, CodingKey {
+        case priceDate = "price_date"
+        case price
+    }
+}
+
+/// Payload ghi giá vàng của một ngày (cột `price_date` kiểu DATE nên gửi chuỗi "yyyy-MM-dd").
+struct GoldPriceRecord: Encodable, Sendable {
+    let priceDate: String
+    let price: Double
+
+    enum CodingKeys: String, CodingKey {
+        case priceDate = "price_date"
+        case price
+    }
+}
+
 struct AppSetting: Codable, Sendable {
     let key: String
     let value: String?
