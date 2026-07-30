@@ -1,0 +1,5 @@
+// Shared build configuration. Machine-specific values belong in Local.xcconfig.
+EXPO_PUBLIC_SUPABASE_URL =
+EXPO_PUBLIC_SUPABASE_ANON_KEY =
+
+#include? "Local.xcconfig"

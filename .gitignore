@@ -39,3 +39,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Native iOS local configuration and build output
+/ios/GoldManager/Config/Local.xcconfig
+/ios/GoldManager/DerivedData/
+/ios/GoldManager/build/
+
+# Xcode user-specific state
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+# Swift/Xcode build artifacts
+.build/
+DerivedData/
+*.dSYM/
+
+# Local mobile app artifacts
+/apps/*/node_modules/
+/apps/*/.env*
+/apps/*/.expo/
+/apps/*/ios/Pods/
+/apps/*/ios/build/
+/apps/*/ios/.xcode.env.local
