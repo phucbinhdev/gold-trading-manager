@@ -15,6 +15,14 @@ final class BudgetStore {
 
     private let client = SupabaseClient()
 
+    /// Ví + tháng ứng với dữ liệu đang hiển thị. Dùng để biết khi nào phải xoá
+    /// `budget`/`entries` cũ (đổi ví, đổi tháng) thay vì làm mới tại chỗ.
+    private var loadedSelection: String?
+
+    /// Số thứ tự của lần tải mới nhất. Phản hồi của lần tải cũ hơn bị bỏ qua
+    /// để không ghi đè dữ liệu của ví/tháng vừa chọn.
+    private var loadToken = 0
+
     private static let cacheKey = "budget"
 
     private struct BudgetCache: Codable {
@@ -33,7 +41,13 @@ final class BudgetStore {
         if cache.monthKey == monthKey {
             budget = cache.budget
             entries = cache.entries
+            loadedSelection = selectionKey(sourceId: cache.selectedSourceId, monthKey: cache.monthKey)
         }
+    }
+
+    private func selectionKey(sourceId: UUID?, monthKey: String) -> String? {
+        guard let sourceId else { return nil }
+        return "\(sourceId.uuidString)|\(monthKey)"
     }
 
     private func saveCache() {
@@ -99,60 +113,86 @@ final class BudgetStore {
             if selectedSourceId == nil || !loadedSources.contains(where: { $0.id == selectedSourceId }) {
                 selectedSourceId = loadedSources.first?.id
             }
-            try await loadSelectedMonth(configuration: configuration)
+            // Lưu danh sách ví ngay, kể cả khi bước tải tháng bên dưới lỗi.
+            saveCache()
+            await loadSelectedMonth(configuration: configuration)
+        } catch is CancellationError {
+            return
+        } catch {
+            state = .failed(error.localizedDescription)
+        }
+    }
+
+    /// Tải ngân sách + khoản thu chi của ví/tháng đang chọn.
+    ///
+    /// Hàm tự quản lý `state` và cache: lỗi được đẩy thẳng ra `state` thay vì bị
+    /// nuốt, nếu không màn hình sẽ giữ nguyên số liệu cũ và trông như "không fetch".
+    func loadSelectedMonth(configuration: SupabaseConfiguration) async {
+        loadToken &+= 1
+        let token = loadToken
+
+        guard let sourceId = selectedSourceId else {
+            budget = nil
+            entries = []
+            loadedSelection = nil
+            state = .loaded
+            return
+        }
+
+        let requestedMonthKey = monthKey
+        let requestedSelection = selectionKey(sourceId: sourceId, monthKey: requestedMonthKey)
+        // Đổi ví hoặc đổi tháng thì dữ liệu đang hiển thị không còn đúng nữa —
+        // xoá ngay để không thấy số liệu của ví/tháng trước trong lúc chờ mạng.
+        if loadedSelection != requestedSelection {
+            budget = nil
+            entries = []
+            loadedSelection = nil
+        }
+        state = entries.isEmpty ? .loading : .loaded
+
+        do {
+            let existingBudget = try await client.fetchBudgetMonth(
+                sourceId: sourceId,
+                monthKey: requestedMonthKey,
+                configuration: configuration
+            )
+            let resolvedBudget: BudgetMonth
+            if let existingBudget {
+                resolvedBudget = existingBudget
+            } else {
+                resolvedBudget = try await client.createBudgetMonth(
+                    sourceId: sourceId,
+                    monthKey: requestedMonthKey,
+                    configuration: configuration
+                )
+            }
+            let loadedEntries = try await client.fetchBudgetEntries(
+                budgetId: resolvedBudget.id,
+                configuration: configuration
+            )
+            // Người dùng đã chuyển sang ví/tháng khác trong lúc chờ: bỏ kết quả cũ.
+            guard token == loadToken else { return }
+            budget = resolvedBudget
+            entries = loadedEntries
+            loadedSelection = requestedSelection
             state = .loaded
             saveCache()
         } catch is CancellationError {
             return
         } catch {
-            state = sources.isEmpty ? .failed(error.localizedDescription) : .loaded
+            guard token == loadToken else { return }
+            state = .failed(error.localizedDescription)
         }
-    }
-
-    func loadSelectedMonth(configuration: SupabaseConfiguration) async throws {
-        guard let sourceId = selectedSourceId else {
-            budget = nil
-            entries = []
-            return
-        }
-        let existingBudget = try await client.fetchBudgetMonth(
-            sourceId: sourceId,
-            monthKey: monthKey,
-            configuration: configuration
-        )
-        let resolvedBudget: BudgetMonth
-        if let existingBudget {
-            resolvedBudget = existingBudget
-        } else {
-            resolvedBudget = try await client.createBudgetMonth(
-                sourceId: sourceId,
-                monthKey: monthKey,
-                configuration: configuration
-            )
-        }
-        budget = resolvedBudget
-        entries = try await client.fetchBudgetEntries(
-            budgetId: resolvedBudget.id,
-            configuration: configuration
-        )
     }
 
     func moveMonth(by value: Int, configuration: SupabaseConfiguration) async {
         month = Calendar.current.date(byAdding: .month, value: value, to: month) ?? month
-        do {
-            try await loadSelectedMonth(configuration: configuration)
-        } catch {
-            state = .failed(error.localizedDescription)
-        }
+        await loadSelectedMonth(configuration: configuration)
     }
 
     func selectSource(_ id: UUID, configuration: SupabaseConfiguration) async {
         selectedSourceId = id
-        do {
-            try await loadSelectedMonth(configuration: configuration)
-        } catch {
-            state = .failed(error.localizedDescription)
-        }
+        await loadSelectedMonth(configuration: configuration)
     }
 
     func setBaseIncome(_ amount: Double, configuration: SupabaseConfiguration) async throws {
@@ -301,7 +341,7 @@ final class BudgetStore {
         sources.removeAll { $0.id == source.id }
         if selectedSourceId == source.id {
             selectedSourceId = sources.first?.id
-            try await loadSelectedMonth(configuration: configuration)
+            await loadSelectedMonth(configuration: configuration)
         }
     }
 

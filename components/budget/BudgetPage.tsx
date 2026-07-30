@@ -60,6 +60,7 @@ type Expense = Database["public"]["Tables"]["budget_expenses"]["Row"];
 type BudgetRecordType = Expense["record_type"];
 
 const DEFAULT_SOURCE_NAME = "Nguồn chính";
+const EMPTY_EXPENSES: Expense[] = [];
 
 export function BudgetPage() {
   const haptics = useWebHaptics();
@@ -216,12 +217,23 @@ export function BudgetPage() {
       return { budget: currentBudget, expenses: expensesData || [] };
     },
     enabled: !!effectiveSelectedSourceId,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
-  const budget = budgetDataQuery.data?.budget || null;
-  const expenses = budgetDataQuery.data?.expenses || [];
+  const currentBudgetData = useMemo(() => {
+    const rawBudget = budgetDataQuery.data?.budget || null;
+    const isCurrentMonthData = !rawBudget || rawBudget.month_key === monthKey;
+
+    return {
+      budget: isCurrentMonthData ? rawBudget : null,
+      expenses: isCurrentMonthData ? budgetDataQuery.data?.expenses || EMPTY_EXPENSES : EMPTY_EXPENSES,
+      isCurrentMonthData,
+    };
+  }, [budgetDataQuery.data, monthKey]);
+  const { budget, expenses, isCurrentMonthData } = currentBudgetData;
   const loadingSources = sourcesQuery.isLoading && sources.length === 0;
-  const loading = budgetDataQuery.isLoading && !budget;
+  const loading = !isCurrentMonthData || (budgetDataQuery.isLoading && !budget);
   const budgetDataQueryKey = queryKeys.budget.month(
     effectiveSelectedSourceId,
     monthKey,

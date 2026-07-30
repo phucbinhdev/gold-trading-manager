@@ -46,6 +46,32 @@ config is injected at build time and is not committed to the repository.
 The Supabase project must allow the anon role to select, insert, and delete
 rows in the same tables used by the web application.
 
+## Build an unsigned .ipa
+
+```bash
+Scripts/build-ipa.sh                  # Release, unsigned -> build/ipa/
+Scripts/build-ipa.sh --debug          # Debug instead of Release
+Scripts/build-ipa.sh --skip-generate  # reuse the existing .xcodeproj (faster rebuild)
+Scripts/build-ipa.sh -o ~/Desktop     # write the .ipa somewhere else
+```
+
+The script chains `sync-env-xcconfig.sh` → `xcodegen generate` → `xcodebuild`
+with signing disabled, then wraps the `.app` in `Payload/` and zips it. Signing
+is skipped on purpose: the project is signed with a **free** Apple account whose
+provisioning profiles expire after ~7 days, so a signed build fails whenever
+Xcode has no Apple ID configured. Install the resulting `.ipa` with a
+re-signing tool (Sideloadly / AltStore / ESign).
+
+For a signed build straight onto a paired iPhone, add the Apple ID under
+Xcode → Settings → Accounts first, then:
+
+```bash
+xcodebuild build -scheme GoldManager \
+  -destination 'platform=iOS,id=<device-udid>' -allowProvisioningUpdates
+xcrun devicectl device install app --device <device-udid> \
+  "<DerivedData>/Build/Products/Debug-iphoneos/Gold Manager.app"
+```
+
 ## Verification
 
 Run strict Swift 6 checking:

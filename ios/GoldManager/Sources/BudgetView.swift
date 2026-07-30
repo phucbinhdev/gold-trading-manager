@@ -96,6 +96,15 @@ struct BudgetView: View {
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
 
+        // Khi làm mới thất bại mà vẫn còn dữ liệu cũ trên màn hình, danh sách bên dưới
+        // là số liệu cũ — báo rõ thay vì im lặng để người dùng tưởng đã tải mới xong.
+        if case .failed(let message) = store.state, !store.entries.isEmpty {
+            refreshErrorBanner(message)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+        }
+
         switch store.state {
         case .idle where store.entries.isEmpty,
              .loading where store.entries.isEmpty:
@@ -139,6 +148,28 @@ struct BudgetView: View {
                 }
             }
         }
+    }
+
+    private func refreshErrorBanner(_ message: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Không tải được dữ liệu mới")
+                    .font(.subheadline.bold())
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            Button("Thử lại") {
+                Task { await store.loadSelectedMonth(configuration: appStore.configuration) }
+            }
+            .font(.caption.bold())
+            .buttonStyle(.borderless)
+        }
+        .padding(12)
+        .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
     }
 
     private var monthSelector: some View {
